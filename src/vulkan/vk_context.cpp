@@ -13,9 +13,11 @@ auto VulkanContext::get() -> VulkanContext& {
 }
 
 VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
-        vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device)
+        vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
+        uint32_t graphics_queue_family, uint32_t present_queue_family)
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
-        m_physical_device(std::move(physical_device)), m_device(std::move(device)) {}
+        m_physical_device(std::move(physical_device)), m_device(std::move(device)), m_vma_allocator(std::move(vma_allocator)), m_queue_storage(std::move(queue_storage)),
+        m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family) {}
 
 
 auto VulkanContext::create(SDL_Window* window) -> std::unique_ptr<VulkanContext> {
@@ -40,11 +42,18 @@ auto VulkanContext::create(SDL_Window* window) -> std::unique_ptr<VulkanContext>
 
     auto surface = vk::raii::SurfaceKHR(instance, surface_c);
 
-    auto device = create_device(surface, physical_device);
+    auto [graphics_queue_index, present_queue_index] = select_physical_device_queue_families(surface, physical_device);
+
+    auto unique_queue_families = std::unordered_set<uint32_t>{graphics_queue_index, present_queue_index};
+    auto device = create_device(physical_device, unique_queue_families);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
 
-    auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface), std::move(physical_device), std::move(device));
+    auto queues = acquire_device_queues(device, unique_queue_families);
+    auto vma_allocator = create_vma_allocator(instance, physical_device, device);
+
+    auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface),
+            std::move(physical_device), std::move(device), std::move(vma_allocator), std::move(queues), graphics_queue_index, present_queue_index);
     g_vulkan_context = ptr.get();
     return ptr;
 }
@@ -83,7 +92,7 @@ auto VulkanContext::select_physical_device(const vk::raii::Instance& instance) -
     return physical_devices[0];
 }
 
-auto VulkanContext::create_device(const vk::raii::SurfaceKHR& surface, const vk::raii::PhysicalDevice& physical_device) -> vk::raii::Device {
+auto VulkanContext::select_physical_device_queue_families(const vk::raii::SurfaceKHR& surface, const vk::raii::PhysicalDevice& physical_device) -> std::tuple<uint32_t, uint32_t> {
     // For this simulation we only need a graphics queue and a present queue.
 
     auto physical_device_queue_props = physical_device.getQueueFamilyProperties();
@@ -101,9 +110,19 @@ auto VulkanContext::create_device(const vk::raii::SurfaceKHR& surface, const vk:
         }
     }
 
-    std::unordered_set queue_families = { graphics_queue_family, present_queue_family };
-    std::vector<uint32_t> unique_queue_families = std::vector(queue_families.begin(), queue_families.end());
+    return { graphics_queue_family, present_queue_family };
+}
 
+auto VulkanContext::acquire_device_queues(const vk::raii::Device& device, const std::unordered_set<uint32_t>& unique_queues)
+    -> std::unordered_map<uint32_t, vk::raii::Queue> {
+    std::unordered_map<uint32_t, vk::raii::Queue> queue_storage;
+    for (uint32_t queue_family : unique_queues) {
+        queue_storage.emplace(queue_family, device.getQueue(queue_family, 0));
+    }
+    return queue_storage;
+}
+
+auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_device, const std::unordered_set<uint32_t>& unique_queue_families) -> vk::raii::Device {
     static float queue_priority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
     queue_create_infos.reserve(unique_queue_families.size());
@@ -122,7 +141,18 @@ auto VulkanContext::create_device(const vk::raii::SurfaceKHR& surface, const vk:
         .setEnabledLayerCount(0)
         .setQueueCreateInfos(queue_create_infos);
 
+    auto queue_storage = physical_device.getQueueFamilyProperties();
+
     return physical_device.createDevice(device_create_info);
+}
+
+auto VulkanContext::create_vma_allocator(const vk::raii::Instance& instance, const vk::raii::PhysicalDevice& physical_device, const vk::raii::Device& device) -> vma::raii::Allocator {
+    auto allocatorCreateInfo = vma::AllocatorCreateInfo{}
+        .setPhysicalDevice(physical_device)
+        .setVulkanApiVersion(vk::ApiVersion14)
+        .setFlags(vma::AllocatorCreateFlagBits::eBufferDeviceAddress);
+
+    return vma::raii::createAllocator(instance, device, allocatorCreateInfo);
 }
 
 } // namespace pop::vulkan
