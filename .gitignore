@@ -4,7 +4,10 @@
 !src/**
 !UML/
 !UML**
+!collaboration/
+!collaboration/**
 
 !.gitignore
 !CMakeLists.txt
 !README.md
+!persistent.settings
