@@ -19,12 +19,15 @@ FetchContent_Declare(
         VMAHpp
         URL      https://github.com/YaaZ/VulkanMemoryAllocator-Hpp/releases/download/v3.3.0+3/VulkanMemoryAllocator-Hpp-3.3.0.tar.gz
         URL_HASH SHA256=8c2a0573babe1f86f3241d12b4c9df40bb944649b7f4239c1c611797f8af6cd5
+        SYSTEM
 )
 FetchContent_MakeAvailable(VMAHpp)
 
-FetchContent_Declare(xxhash
+FetchContent_Declare(
+        xxhash
         GIT_REPOSITORY https://github.com/Cyan4973/xxHash.git
         GIT_TAG v0.8.3
+        SYSTEM
 )
 FetchContent_MakeAvailable(xxhash)
 
@@ -32,6 +35,7 @@ FetchContent_Declare(
         ktx
         GIT_REPOSITORY https://github.com/KhronosGroup/KTX-Software.git
         GIT_TAG        v4.4.2
+        SYSTEM
 )
 
 set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
