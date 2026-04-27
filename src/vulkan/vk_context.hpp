@@ -16,13 +16,15 @@ public:
     static auto create(SDL_Window* window) -> std::unique_ptr<VulkanContext>;
     static auto get()                      -> VulkanContext&;
 
-    [[nodiscard]] constexpr auto vk_instance()           -> const vk::raii::Instance& { return m_instance; }
-    [[nodiscard]] constexpr auto vk_surface()            -> const vk::raii::SurfaceKHR& { return m_surface; }
-    [[nodiscard]] constexpr auto vk_physical_device()    -> const vk::raii::PhysicalDevice& { return m_physical_device; }
-    [[nodiscard]] constexpr auto vk_device()             -> const vk::raii::Device& { return m_device; }
-    [[nodiscard]] constexpr auto vk_graphics_queue()     -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
-    [[nodiscard]] constexpr auto vk_present_queue()      -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
-    [[nodiscard]] constexpr auto vma_allocator()         -> const vma::raii::Allocator& { return m_vma_allocator; }
+    [[nodiscard]] constexpr auto vk_instance() const              -> const vk::raii::Instance& { return m_instance; }
+    [[nodiscard]] constexpr auto vk_surface() const               -> const vk::raii::SurfaceKHR& { return m_surface; }
+    [[nodiscard]] constexpr auto vk_physical_device() const       -> const vk::raii::PhysicalDevice& { return m_physical_device; }
+    [[nodiscard]] constexpr auto vk_device() const                -> const vk::raii::Device& { return m_device; }
+    [[nodiscard]] constexpr auto vk_graphics_queue() const        -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
+    [[nodiscard]] constexpr auto vk_present_queue() const         -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
+    [[nodiscard]] constexpr auto vk_graphics_queue_family() const -> uint32_t { return m_graphics_queue_family; }
+    [[nodiscard]] constexpr auto vk_present_queue_family() const  -> uint32_t { return m_present_queue_family; }
+    [[nodiscard]] constexpr auto vma_allocator() const            -> const vma::raii::Allocator& { return m_vma_allocator; }
 
 private:
     vk::detail::DynamicLoader m_dynamic_loader;
