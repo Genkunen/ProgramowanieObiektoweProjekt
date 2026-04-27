@@ -1,5 +1,6 @@
 #pragma once
 #include "vk_prelude.hpp"
+
 #include <SDL3/SDL_video.h>
 
 namespace pop::vulkan {
@@ -9,7 +10,8 @@ public:
     VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device);
 
-    static auto create(SDL_Window* window) -> VulkanContext;
+    static auto get() -> VulkanContext&;
+    static auto create(SDL_Window* window) -> std::unique_ptr<VulkanContext>;
 
 private:
     vk::detail::DynamicLoader m_dynamic_loader;
@@ -23,7 +25,8 @@ private:
     static auto create_instance(vk::raii::Context& raii_context) -> vk::raii::Instance;
     static auto select_physical_device(const vk::raii::Instance& instance) -> vk::raii::PhysicalDevice;
     static auto create_device(const vk::raii::SurfaceKHR& surface, const vk::raii::PhysicalDevice& physical_device) -> vk::raii::Device;
-
 };
+
+static inline VulkanContext* g_vulkan_context = nullptr;
 
 } // namespace pop::vulkan

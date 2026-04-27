@@ -8,13 +8,18 @@
 
 namespace pop::vulkan {
 
+auto VulkanContext::get() -> VulkanContext& {
+    return *g_vulkan_context;
+}
+
 VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device)
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
         m_physical_device(std::move(physical_device)), m_device(std::move(device)) {}
 
 
-auto VulkanContext::create(SDL_Window* window) -> VulkanContext {
+auto VulkanContext::create(SDL_Window* window) -> std::unique_ptr<VulkanContext> {
+    assert(g_vulkan_context == nullptr && "only one instance of VulkanContext may exist at any given time");
     // Load Vulkan dynamically.
 
     auto dynamic_loader = vk::detail::DynamicLoader();
@@ -39,7 +44,9 @@ auto VulkanContext::create(SDL_Window* window) -> VulkanContext {
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
 
-    return VulkanContext(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface), std::move(physical_device), std::move(device));
+    auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface), std::move(physical_device), std::move(device));
+    g_vulkan_context = ptr.get();
+    return ptr;
 }
 
 auto VulkanContext::create_instance(vk::raii::Context& raii_context) -> vk::raii::Instance {
