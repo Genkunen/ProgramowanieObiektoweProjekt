@@ -14,17 +14,25 @@ public:
         uint32_t graphics_queue_family, uint32_t present_queue_family);
 
     static auto create(SDL_Window* window) -> std::unique_ptr<VulkanContext>;
-    static auto get() -> VulkanContext&;
+    static auto get()                      -> VulkanContext&;
+
+    [[nodiscard]] constexpr auto vk_instance()           -> const vk::raii::Instance& { return m_instance; }
+    [[nodiscard]] constexpr auto vk_surface()            -> const vk::raii::SurfaceKHR& { return m_surface; }
+    [[nodiscard]] constexpr auto vk_physical_device()    -> const vk::raii::PhysicalDevice& { return m_physical_device; }
+    [[nodiscard]] constexpr auto vk_device()             -> const vk::raii::Device& { return m_device; }
+    [[nodiscard]] constexpr auto vk_graphics_queue()     -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
+    [[nodiscard]] constexpr auto vk_present_queue()      -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
+    [[nodiscard]] constexpr auto vma_allocator()         -> const vma::raii::Allocator& { return m_vma_allocator; }
 
 private:
     vk::detail::DynamicLoader m_dynamic_loader;
-    vk::raii::Context m_raii_context;
+    vk::raii::Context         m_raii_context;
 
-    vk::raii::Instance m_instance;
-    vk::raii::SurfaceKHR m_surface;
-    vk::raii::PhysicalDevice m_physical_device;
-    vk::raii::Device m_device;
-    vma::raii::Allocator m_vma_allocator;
+    vk::raii::Instance        m_instance;
+    vk::raii::SurfaceKHR      m_surface;
+    vk::raii::PhysicalDevice  m_physical_device;
+    vk::raii::Device          m_device;
+    vma::raii::Allocator      m_vma_allocator;
 
     std::unordered_map<uint32_t, vk::raii::Queue> m_queue_storage;
     uint32_t m_graphics_queue_family = 0;
