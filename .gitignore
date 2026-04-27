@@ -1,0 +1,10 @@
+*
+
+!src/
+!src/**
+!UML/
+!UML**
+
+!.gitignore
+!CMakeLists.txt
+!README.md
