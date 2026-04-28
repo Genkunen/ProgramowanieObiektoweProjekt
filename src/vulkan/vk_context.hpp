@@ -1,4 +1,5 @@
 #pragma once
+#include "sdl/sdl_window.hpp"
 #include "vk_prelude.hpp"
 
 #include <SDL3/SDL_video.h>
@@ -13,7 +14,7 @@ public:
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
         uint32_t graphics_queue_family, uint32_t present_queue_family);
 
-    static auto create(SDL_Window* window) -> std::unique_ptr<VulkanContext>;
+    static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
     static auto get()                      -> VulkanContext&;
 
     [[nodiscard]] constexpr auto vk_instance() const              -> const vk::raii::Instance& { return m_instance; }

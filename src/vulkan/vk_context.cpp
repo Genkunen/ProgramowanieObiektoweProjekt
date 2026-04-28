@@ -1,6 +1,5 @@
 #include "vk_context.hpp"
 
-#include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #include <ostream>
 #include <unordered_set>
@@ -20,7 +19,7 @@ VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::rai
         m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family) {}
 
 
-auto VulkanContext::create(SDL_Window* window) -> std::unique_ptr<VulkanContext> {
+auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext> {
     assert(g_vulkan_context == nullptr && "only one instance of VulkanContext may exist at any given time");
     // Load Vulkan dynamically.
 
@@ -35,12 +34,9 @@ auto VulkanContext::create(SDL_Window* window) -> std::unique_ptr<VulkanContext>
 
     auto physical_device = select_physical_device(instance);
 
-    VkSurfaceKHR surface_c;
-    if (!SDL_Vulkan_CreateSurface(window, *instance, nullptr, &surface_c)) {
-        throw std::runtime_error("Failed to create Vulkan surface!");
-    }
+    auto raw_surface = window.vulkan_create_raw_surface(instance);
 
-    auto surface = vk::raii::SurfaceKHR(instance, surface_c);
+    auto surface = vk::raii::SurfaceKHR(instance, raw_surface);
 
     auto [graphics_queue_index, present_queue_index] = select_physical_device_queue_families(surface, physical_device);
 

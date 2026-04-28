@@ -1,11 +1,14 @@
+#include "sdl/sdl_lib.hpp"
 #include "vulkan/vk_context.hpp"
+#include "vulkan/vk_swapchain.hpp"
 
 #include <SDL3/SDL.h>
 
-auto main() -> int {
-    SDL_Init(SDL_INIT_VIDEO);
-    SDL_Window* window = SDL_CreateWindow("ProgramowanieObiektoweProjekt", 1920, 1080, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+auto sdl_entry_main() -> void {
+    auto window = pop::sdl::SdlWindow("ProgramowanieObiektoweProjekt", 1920, 1080);
     auto vulkan_context = pop::vulkan::VulkanContext::create(window);
+
+    auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
 
     bool running = true;
     while (running) {
@@ -16,8 +19,10 @@ auto main() -> int {
             }
         }
     }
+}
 
-    SDL_DestroyWindow(window);
-
-    SDL_Quit();
+auto main() -> int {
+    pop::sdl::initializeSdl();
+    sdl_entry_main();
+    pop::sdl::terminateSdl();
 }
