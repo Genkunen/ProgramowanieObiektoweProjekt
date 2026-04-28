@@ -1,4 +1,5 @@
 #include "sdl/sdl_lib.hpp"
+#include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_swapchain.hpp"
 
@@ -9,6 +10,7 @@ auto sdl_entry_main() -> void {
     auto vulkan_context = pop::vulkan::VulkanContext::create(window);
 
     auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
+    auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
 
     bool running = true;
     while (running) {
@@ -18,7 +20,10 @@ auto sdl_entry_main() -> void {
                 running = false;
             }
         }
+
+        renderer.render_frame();
     }
+
 }
 
 auto main() -> int {

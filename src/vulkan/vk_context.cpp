@@ -17,7 +17,9 @@ VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::rai
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
         m_physical_device(std::move(physical_device)), m_device(std::move(device)), m_vma_allocator(std::move(vma_allocator)), m_queue_storage(std::move(queue_storage)),
         m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family) {}
-
+VulkanContext::~VulkanContext() {
+    m_device.waitIdle();
+}
 
 auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext> {
     assert(g_vulkan_context == nullptr && "only one instance of VulkanContext may exist at any given time");
@@ -132,14 +134,20 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
 
     auto device_extensions = std::vector<const char*> { vk::KHRSwapchainExtensionName };
 
+    auto vk13_features = vk::PhysicalDeviceVulkan13Features()
+        .setSynchronization2(true);
+
     auto device_create_info = vk::DeviceCreateInfo()
         .setPEnabledExtensionNames(device_extensions)
         .setEnabledLayerCount(0)
         .setQueueCreateInfos(queue_create_infos);
 
-    auto queue_storage = physical_device.getQueueFamilyProperties();
+    auto sc = vk::StructureChain{
+        device_create_info,
+        vk13_features,
+    };
 
-    return physical_device.createDevice(device_create_info);
+    return physical_device.createDevice(sc.get<vk::DeviceCreateInfo>());
 }
 
 auto VulkanContext::create_vma_allocator(const vk::raii::Instance& instance, const vk::raii::PhysicalDevice& physical_device, const vk::raii::Device& device) -> vma::raii::Allocator {

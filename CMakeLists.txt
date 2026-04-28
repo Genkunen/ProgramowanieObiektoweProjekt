@@ -73,4 +73,7 @@ target_link_libraries(
         xxhash
 )
 
-
+target_compile_options(
+        ProgramowanieObiektoweProjekt PRIVATE
+        -Werror=return-type
+)

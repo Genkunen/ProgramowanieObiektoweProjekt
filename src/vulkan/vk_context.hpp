@@ -13,6 +13,7 @@ public:
     VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
         uint32_t graphics_queue_family, uint32_t present_queue_family);
+    ~VulkanContext();
 
     static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
     static auto get()                      -> VulkanContext&;
