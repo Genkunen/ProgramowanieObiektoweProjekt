@@ -54,6 +54,7 @@ class PersistentSettings {
 
 public:
     static constexpr auto file_name = "persistent.settings";
+    static std::string file_path;
     
     static void amend(std::string key, float value);
     static void amend(std::string key, std::string value);
@@ -62,9 +63,11 @@ public:
     static void save();
     static void load();
 
-    static auto get(const std::string& key) -> Setting* { return nullptr; }
+    static auto get(const std::string& key) -> Setting*;
 
 private:
+    static void parse_buffer();
+    
     static std::vector<std::unique_ptr<Setting>> settings;
     static std::string buffer;
 };
