@@ -26,33 +26,33 @@ public:
     VulkanPipelineLayoutBuilder& operator=(VulkanPipelineLayoutBuilder&&) = default;
 
     [[nodiscard]] constexpr auto add_descriptor_set_layout(vk::DescriptorSetLayout layout) noexcept -> VulkanPipelineLayoutBuilder& {
-        m_descriptorSetLayouts.emplace_back(layout);
+        m_descriptor_set_layouts.emplace_back(layout);
         return *this;
     }
 
-    [[nodiscard]] constexpr auto add_push_constant_range(uint32_t offset, uint32_t size, vk::ShaderStageFlags stageFlags) noexcept -> VulkanPipelineLayoutBuilder& {
+    [[nodiscard]] constexpr auto add_push_constant_range(uint32_t offset, uint32_t size, vk::ShaderStageFlags stage_flags) noexcept -> VulkanPipelineLayoutBuilder& {
         auto range = vk::PushConstantRange()
-            .setStageFlags(stageFlags)
+            .setStageFlags(stage_flags)
             .setOffset(offset)
             .setSize(size);
 
-        m_pushConstantRanges.emplace_back(range);
+        m_push_constant_ranges.emplace_back(range);
         return *this;
     }
 
     [[nodiscard]] constexpr auto build_create_info() const noexcept -> vk::PipelineLayoutCreateInfo {
-        return vk::PipelineLayoutCreateInfo{}.setSetLayouts(m_descriptorSetLayouts).setPushConstantRanges(m_pushConstantRanges);
+        return vk::PipelineLayoutCreateInfo().setSetLayouts(m_descriptor_set_layouts).setPushConstantRanges(m_push_constant_ranges);
     }
 
     [[nodiscard]] constexpr auto build() const -> VulkanPipelineLayout {
-        auto pipelineLayout = VulkanContext::get().vk_device().createPipelineLayout(build_create_info());
+        auto pipeline_layout = VulkanContext::get().vk_device().createPipelineLayout(build_create_info());
 
-        return VulkanPipelineLayout(std::move(pipelineLayout));
+        return VulkanPipelineLayout(std::move(pipeline_layout));
     }
 
 private:
-    std::vector<vk::PushConstantRange> m_pushConstantRanges;
-    std::vector<vk::DescriptorSetLayout> m_descriptorSetLayouts;
+    std::vector<vk::PushConstantRange> m_push_constant_ranges;
+    std::vector<vk::DescriptorSetLayout> m_descriptor_set_layouts;
 };
 
 constexpr auto VulkanPipelineLayout::builder() -> VulkanPipelineLayoutBuilder { return VulkanPipelineLayoutBuilder(); }
