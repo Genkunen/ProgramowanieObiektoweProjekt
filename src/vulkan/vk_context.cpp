@@ -135,7 +135,11 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
     auto device_extensions = std::vector<const char*> { vk::KHRSwapchainExtensionName };
 
     auto vk13_features = vk::PhysicalDeviceVulkan13Features()
-        .setSynchronization2(true);
+        .setSynchronization2(true)
+        .setDynamicRendering(true);
+
+    auto vk14_features = vk::PhysicalDeviceVulkan14Features()
+        .setMaintenance5(true);
 
     auto device_create_info = vk::DeviceCreateInfo()
         .setPEnabledExtensionNames(device_extensions)
@@ -145,6 +149,7 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
     auto sc = vk::StructureChain{
         device_create_info,
         vk13_features,
+        vk14_features
     };
 
     return physical_device.createDevice(sc.get<vk::DeviceCreateInfo>());
