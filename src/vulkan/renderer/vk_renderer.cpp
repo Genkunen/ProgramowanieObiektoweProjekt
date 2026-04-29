@@ -1,6 +1,6 @@
 #include "vk_renderer.hpp"
 
-#include "systems/persistent_settings.hpp"
+#include "systems/filesystem.hpp"
 #include "vulkan/spirv_code.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
@@ -48,8 +48,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
         .build();
 
-    // TODO: move the executable directory resolution elsewhere to get rid of this hack
-    auto triangle_pipeline_shader_code = SpirvCode::load_from_file(systems::PersistentSettings::file_path.parent_path() / "spirv/triangle.spv");
+    auto triangle_pipeline_shader_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/triangle.spv");
 
     auto triangle_pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(triangle_pipeline_layout)

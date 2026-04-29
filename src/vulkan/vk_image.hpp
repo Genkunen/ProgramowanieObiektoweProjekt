@@ -70,7 +70,7 @@ public:
             case vk::ImageType::e1D: image_view_type = vk::ImageViewType::e1D; break;
             case vk::ImageType::e2D: image_view_type = vk::ImageViewType::e2D; break;
             case vk::ImageType::e3D: image_view_type = vk::ImageViewType::e3D; break;
-            default:
+            default: break;
         }
 
         auto image_view_create_info = vk::ImageViewCreateInfo()

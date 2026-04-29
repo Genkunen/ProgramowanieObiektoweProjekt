@@ -1,4 +1,5 @@
 #include "persistent_settings.hpp"
+#include "filesystem.hpp"
 
 #include <format>
 #include <print>
@@ -7,13 +8,6 @@
 #include <ranges>
 #include <filesystem>
 #include <charconv>
-
-#if defined(_WIN32)
-#include <windows.h>
-#elif defined(__linux__)
-#include <unistd.h>
-#include <limits.h>
-#endif
 
 namespace pop::systems {
 
@@ -218,22 +212,7 @@ void PersistentSettings::parse_buffer() {
     }
 }
 
-std::filesystem::path PersistentSettings::file_path = [] static noexcept -> std::filesystem::path {
-#if defined(_WIN32)
-    char buffer[MAX_PATH];
-    GetModuleFileNameA(NULL, buffer, MAX_PATH);
-    return std::filesystem::path(buffer).parent_path();
-#elif defined(__linux__)
-    char buffer[PATH_MAX];
-    ssize_t count = readlink("/proc/self/exe", buffer, PATH_MAX);
-    if (count > 0) {
-        return std::filesystem::path(std::string(buffer, count)).parent_path();
-    }
-    return std::filesystem::current_path();
-#else
-    return std::filesystem::current_path();
-#endif
-}() / file_name;
-
+std::filesystem::path PersistentSettings::file_path = 
+    pop::filesystem::relative_path() / file_name;
 }
 

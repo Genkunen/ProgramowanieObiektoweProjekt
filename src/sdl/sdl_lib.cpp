@@ -1,5 +1,7 @@
 #include "sdl_lib.hpp"
 
+#include <stdexcept>
+
 namespace pop::sdl {
 
 void initializeSdl() {
