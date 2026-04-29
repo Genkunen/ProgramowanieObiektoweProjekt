@@ -54,7 +54,7 @@ auto SettingString::value() const -> std::string {
 }
 
 void SettingString::set_value(std::string v) { 
-    m_value = v;
+    m_value = std::move(v);
 }
 
 auto SettingString::clone() const -> std::unique_ptr<Setting> {
@@ -85,22 +85,24 @@ void PersistentSettings::amend(std::string key, std::string value) {
 }
 
 void PersistentSettings::amend(const Setting& setting) {
-    auto it = std::ranges::find_if(settings, [&setting](const std::unique_ptr<Setting>& ptr) {
+    auto pred = [&setting](const std::unique_ptr<Setting>& ptr) {
         return ptr->key() == setting.key();
-    });
+    };
+    auto it = std::ranges::find_if(settings, std::move(pred));
 
     if (it != settings.end()) {
         *it = setting.clone();
-    } else {
+    } 
+    else {
         settings.push_back(setting.clone());
     }
 }
 
 void PersistentSettings::save() {
-    auto new_buffer = [] {
+    auto new_buffer = [] static {
         auto lines = buffer 
             | std::views::split('\n')
-            | std::views::take_while([](auto&& range) {
+            | std::views::take_while([] (auto&& range) static noexcept {
                 std::string_view line{ range.begin(), range.end() };
                 auto i = line.find_first_not_of(whitespace);
                 return i == std::string_view::npos || line[i] == '%';
@@ -109,8 +111,8 @@ void PersistentSettings::save() {
 
         auto result = std::ranges::to<std::string>(lines);
 
-        if (!result.empty()) {
-            result += '\n';
+        if (!result.empty() && result.back() != '\n') {
+            result += "\n";
         }
 
         return result;
@@ -121,8 +123,7 @@ void PersistentSettings::save() {
         new_buffer += '\n';
     }
 
-    std::filesystem::path path = file_path;
-    std::ofstream file(path / file_name);
+    std::ofstream file(file_path);
     if (!file.is_open()) {
         return;
     }
@@ -130,10 +131,7 @@ void PersistentSettings::save() {
 }
 
 void PersistentSettings::load() {
-    std::filesystem::path path = file_path;
-
-    std::ifstream file(path / file_name, std::ios::in | std::ios::binary);
-
+    std::ifstream file(file_path, std::ios::binary);
     if (!file.is_open()) {
         return;
     }
@@ -147,8 +145,14 @@ void PersistentSettings::load() {
     parse_buffer();
 }
 
+void PersistentSettings::reload() {
+    settings.clear();
+    save();
+    load();
+}
+
 auto PersistentSettings::get(const std::string& key) -> Setting* {
-    auto proj = [] (std::unique_ptr<Setting>& ptr) -> const std::string& {
+    auto proj = [] (const auto& ptr) static -> const std::string& {
         return ptr->key();
     };
     if (auto it = std::ranges::find(settings, key, proj); it != settings.end()) {
@@ -160,7 +164,9 @@ auto PersistentSettings::get(const std::string& key) -> Setting* {
 void PersistentSettings::parse_buffer() {
     auto lines = buffer 
         | std::views::split('\n')
-        | std::views::transform([](const auto& line) { return std::string_view{ line }; });
+        | std::views::transform(
+            [](const auto& line) static noexcept { return std::string_view{ line }; 
+          });
 
     for (std::string_view line : lines) {
         if (line.empty()) {
@@ -212,7 +218,7 @@ void PersistentSettings::parse_buffer() {
     }
 }
 
-std::string PersistentSettings::file_path = [] -> std::string {
+std::filesystem::path PersistentSettings::file_path = [] static noexcept -> std::filesystem::path {
 #if defined(_WIN32)
     char buffer[MAX_PATH];
     GetModuleFileNameA(NULL, buffer, MAX_PATH);
@@ -227,7 +233,7 @@ std::string PersistentSettings::file_path = [] -> std::string {
 #else
     return std::filesystem::current_path();
 #endif
-}();
+}() / file_name;
 
 }
 
