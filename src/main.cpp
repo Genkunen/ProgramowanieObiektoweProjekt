@@ -26,7 +26,9 @@ auto sdl_entry_main() -> void {
 
 }
 
+
 auto main() -> int {
+
     pop::sdl::initializeSdl();
     sdl_entry_main();
     pop::sdl::terminateSdl();

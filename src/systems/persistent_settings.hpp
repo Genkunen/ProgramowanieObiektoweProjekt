@@ -67,9 +67,10 @@ public:
 
 private:
     static void parse_buffer();
+    static constexpr auto whitespace = std::string_view{ " \t\r\v" };
     
-    static std::vector<std::unique_ptr<Setting>> settings;
-    static std::string buffer;
+    inline static std::vector<std::unique_ptr<Setting>> settings;
+    inline static std::string buffer;
 };
 
 }

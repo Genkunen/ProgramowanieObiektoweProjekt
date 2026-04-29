@@ -97,9 +97,36 @@ void PersistentSettings::amend(const Setting& setting) {
 }
 
 void PersistentSettings::save() {
+    auto new_buffer = [] {
+        auto lines = buffer 
+            | std::views::split('\n')
+            | std::views::take_while([](auto&& range) {
+                std::string_view line{ range.begin(), range.end() };
+                auto i = line.find_first_not_of(whitespace);
+                return i == std::string_view::npos || line[i] == '%';
+            })
+            | std::views::join_with('\n');
+
+        auto result = std::ranges::to<std::string>(lines);
+
+        if (!result.empty()) {
+            result += '\n';
+        }
+
+        return result;
+    }();
+
     for (auto& p : settings) {
-        std::println("{}", p->to_string());
+        new_buffer += p->to_string();
+        new_buffer += '\n';
     }
+
+    std::filesystem::path path = file_path;
+    std::ofstream file(path / file_name);
+    if (!file.is_open()) {
+        return;
+    }
+    file << new_buffer;
 }
 
 void PersistentSettings::load() {
@@ -140,7 +167,7 @@ void PersistentSettings::parse_buffer() {
             continue;
         }
 
-        auto start = line.find_first_not_of(" \n\t\r\v");
+        auto start = line.find_first_not_of(whitespace);
         if (start == std::string_view::npos) {
             continue;
         }
@@ -166,12 +193,12 @@ void PersistentSettings::parse_buffer() {
         if (line[0] == '"') {
             size_t end = line.size();
 
-            while (end > 0 && std::ranges::contains(" \n\t\r\v", line[end - 1])) {
+            while (end > 0 && std::ranges::contains(whitespace, line[end - 1])) {
                 --end;
             }
 
             auto value = std::string{ line.substr(0, end) };
-            settings.emplace_back(std::make_unique<SettingString>(key, value));
+            amend(key, value);
         }
         else {
             float value;
@@ -180,7 +207,7 @@ void PersistentSettings::parse_buffer() {
             if (ec != std::errc()) {
                 continue;
             }
-            settings.emplace_back(std::make_unique<SettingNumber>(key, value));
+            amend(key, value);
         }
     }
 }
@@ -201,9 +228,6 @@ std::string PersistentSettings::file_path = [] -> std::string {
     return std::filesystem::current_path();
 #endif
 }();
-
-std::vector<std::unique_ptr<Setting>> PersistentSettings::settings;
-std::string PersistentSettings::buffer;
 
 }
 
