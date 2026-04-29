@@ -46,15 +46,64 @@ FetchContent_MakeAvailable(ktx)
 
 # ---- Slang Setup -----------------------------------------------------------------------------------------------------
 
-# TODO: command to compile shaders..
+find_program(SLANGC_EXECUTABLE slangc
+        HINTS $ENV{VULKAN_SDK}/bin
+        REQUIRED
+)
+
+message(STATUS "Found slangc: ${SLANGC_EXECUTABLE}")
+
+function(add_slang_shaders TARGET)
+    cmake_parse_arguments(SLANG "" "TARGET_DIR" "SOURCES" ${ARGN})
+
+    if(NOT SLANG_TARGET_DIR)
+        set(SLANG_TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/spirv)
+    endif()
+
+    file(MAKE_DIRECTORY ${SLANG_TARGET_DIR})
+    set(OUTPUT_FILES "")
+
+    set(SLANGC_FLAGS
+            -target spirv
+            -profile spirv_1_6
+            -fvk-use-scalar-layout
+    )
+
+    foreach(SHADER ${SLANG_SOURCES})
+        get_filename_component(NAME_WE ${SHADER} NAME_WE)
+        set(OUTPUT_BINARY ${SLANG_TARGET_DIR}/${NAME_WE}.spv)
+        set(CMD
+                ${SLANGC_EXECUTABLE}
+                ${SHADER}
+                ${SLANGC_FLAGS}
+                -o
+                ${OUTPUT_BINARY}
+        )
+
+        add_custom_command(
+                OUTPUT ${OUTPUT_BINARY}
+                COMMAND ${CMD}
+                DEPENDS ${SHADER}
+                COMMENT "Compiling Slang shader ${SHADER} (${OUTPUT_BINARY})"
+                VERBATIM
+        )
+
+        list(APPEND OUTPUT_FILES ${OUTPUT_BINARY})
+    endforeach()
+
+    add_custom_target(${TARGET} DEPENDS ${OUTPUT_FILES})
+endfunction()
 
 # ---- Sources Setup ---------------------------------------------------------------------------------------------------
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/bin/*.slang)
 
 # ---- Build Setup -----------------------------------------------------------------------------------------------------
 
 add_executable(ProgramowanieObiektoweProjekt ${SOURCES})
+add_slang_shaders(ProgramowanieObiektoweProjekt_spv SOURCES ${SHADER_SOURCES} TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/spirv)
+add_dependencies(ProgramowanieObiektoweProjekt ProgramowanieObiektoweProjekt_spv)
 
 add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
