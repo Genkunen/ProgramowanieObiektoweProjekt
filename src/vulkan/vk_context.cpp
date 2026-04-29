@@ -135,7 +135,8 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
     auto device_extensions = std::vector<const char*> { vk::KHRSwapchainExtensionName };
 
     auto vk12_features = vk::PhysicalDeviceVulkan12Features()
-        .setBufferDeviceAddress(true);
+        .setBufferDeviceAddress(true)
+        .setDrawIndirectCount(true);
 
     auto vk13_features = vk::PhysicalDeviceVulkan13Features()
         .setSynchronization2(true)
