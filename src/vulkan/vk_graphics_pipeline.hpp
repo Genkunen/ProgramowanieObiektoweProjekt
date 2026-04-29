@@ -1,4 +1,5 @@
 #pragma once
+#include "spirv_code.hpp"
 #include "vk_graphics_pipeline.hpp"
 #include "vk_pipeline_barriers.hpp"
 #include "vk_pipeline_layout.hpp"
@@ -29,13 +30,12 @@ public:
     VulkanGraphicsPipelineBuilder& operator=(const VulkanGraphicsPipelineBuilder&) = delete;
     VulkanGraphicsPipelineBuilder& operator=(VulkanGraphicsPipelineBuilder&&) = default;
 
-    [[nodiscard]] constexpr auto add_shader(const std::span<const uint32_t>& shader_code, vk::ShaderStageFlagBits stage) noexcept -> VulkanGraphicsPipelineBuilder& {
+    [[nodiscard]] constexpr auto add_shader(const SpirvCode& shader_code, vk::ShaderStageFlagBits stage) noexcept -> VulkanGraphicsPipelineBuilder& {
         auto stage_tuple = vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo>{
             vk::PipelineShaderStageCreateInfo()
                 .setStage(stage)
                 .setPName("main"),
-            vk::ShaderModuleCreateInfo()
-                .setCode(shader_code)
+            shader_code.vulkan_shader_module_create_info()
         };
         m_shader_stages.emplace_back(stage_tuple);
         return *this;

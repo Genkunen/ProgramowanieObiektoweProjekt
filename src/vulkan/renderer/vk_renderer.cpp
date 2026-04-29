@@ -1,5 +1,6 @@
 #include "vk_renderer.hpp"
 
+#include "vulkan/spirv_code.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
 
@@ -7,8 +8,11 @@
 
 namespace pop::vulkan::renderer {
 
-VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, std::vector<FrameInFlight>&& frames_in_flight)
-    : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_frames_in_flight(std::move(frames_in_flight)) {}
+VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
+    std::vector<FrameInFlight>&& frames_in_flight)
+    : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_triangle_pipeline(std::move(triangle_pipeline)),
+        m_frames_in_flight(std::move(frames_in_flight)) {}
+
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
 }
@@ -36,7 +40,27 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .add_push_constant_range(0, 4, vk::ShaderStageFlagBits::eFragment)
         .build();
 
-    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(frames_in_flight) };
+    auto triangle_pipeline_shader_code = SpirvCode::load_from_file("spirv/triangle.spv");
+
+    auto triangle_pipeline = VulkanGraphicsPipeline::builder()
+        .set_pipeline_layout(triangle_pipeline_layout)
+        .add_shader(triangle_pipeline_shader_code, vk::ShaderStageFlagBits::eVertex)
+        .add_shader(triangle_pipeline_shader_code, vk::ShaderStageFlagBits::eFragment)
+        .set_input_topology(vk::PrimitiveTopology::eTriangleList)
+        .set_rasterizer_polygon_mode(vk::PolygonMode::eFill)
+        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eBack, vk::FrontFace::eClockwise)
+        .set_rasterizer_line_width(1.0f)
+        .disable_multisampling()
+        .disable_depth_test()
+        .add_rendering_attachment(
+            vk::PipelineColorBlendAttachmentState()
+                .setBlendEnable(false)
+                .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
+            vk::Format::eR16G16B16A16Sfloat
+        )
+        .build();
+
+    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame() -> RenderResult {
