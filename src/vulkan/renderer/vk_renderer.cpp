@@ -7,8 +7,8 @@
 
 namespace pop::vulkan::renderer {
 
-VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, std::vector<FrameInFlight>&& frames_in_flight)
-    : m_swapchain(std::move(swapchain)), m_frames_in_flight(std::move(frames_in_flight)) {}
+VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, std::vector<FrameInFlight>&& frames_in_flight)
+    : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_frames_in_flight(std::move(frames_in_flight)) {}
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
 }
@@ -32,7 +32,11 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         frames_in_flight.emplace_back(std::move(frame_finished_fence), std::move(image_acquired_semaphore), std::move(command_pool), std::move(frame_command_buffer));
     }
 
-    return VulkanRenderer{ std::move(swapchain), std::move(frames_in_flight) };
+    auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, 4, vk::ShaderStageFlagBits::eFragment)
+        .build();
+
+    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame() -> RenderResult {

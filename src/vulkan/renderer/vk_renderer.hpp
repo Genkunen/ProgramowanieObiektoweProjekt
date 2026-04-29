@@ -1,4 +1,5 @@
 #pragma once
+#include "vulkan/vk_pipeline_layout.hpp"
 #include "vulkan/vk_prelude.hpp"
 #include "vulkan/vk_swapchain.hpp"
 #include <cstdint>
@@ -23,7 +24,7 @@ struct FrameInFlight {
 
 class VulkanRenderer {
 public:
-    VulkanRenderer(VulkanSwapchain&& swapchain, std::vector<FrameInFlight>&& frames_in_flight);
+    VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
@@ -32,6 +33,9 @@ public:
     auto recreate_swapchain() -> void;
 private:
     VulkanSwapchain m_swapchain;
+
+    VulkanPipelineLayout m_triangle_pipeline_layout;
+
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
