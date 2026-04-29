@@ -15,13 +15,28 @@ auto sdl_entry_main() -> void {
     bool running = true;
     while (running) {
         SDL_Event event;
+        bool should_recreate_swapchain = false;
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
+            switch (event.type) {
+            case SDL_EVENT_QUIT:
                 running = false;
+                break;
+            case SDL_EVENT_WINDOW_RESIZED:
+                should_recreate_swapchain = true;
+                break;
+                // TODO: Handle minimization events to avoid creating zero-sized swapchain images
             }
         }
 
-        renderer.render_frame();
+        if (should_recreate_swapchain) {
+            renderer.recreate_swapchain();
+        }
+
+        auto render_result = renderer.render_frame();
+
+        if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
+            renderer.recreate_swapchain();
+        }
     }
 
 }

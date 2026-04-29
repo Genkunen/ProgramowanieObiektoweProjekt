@@ -7,6 +7,11 @@ namespace pop::vulkan::renderer {
 
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 
+enum class RenderResult {
+    Ok,
+    SwapchainSuboptimal,
+};
+
 struct FrameInFlight {
     vk::raii::Fence frame_finished_fence;
 
@@ -23,8 +28,8 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    // TODO: rework to return some kind of result, for now false means need to recreate swapchain, true - not
-    auto render_frame() -> bool;
+    auto render_frame() -> RenderResult;
+    auto recreate_swapchain() -> void;
 private:
     VulkanSwapchain m_swapchain;
 

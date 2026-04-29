@@ -35,7 +35,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     return VulkanRenderer{ std::move(swapchain), std::move(frames_in_flight) };
 }
 
-auto VulkanRenderer::render_frame() -> bool {
+auto VulkanRenderer::render_frame() -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
     device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
@@ -43,10 +43,11 @@ auto VulkanRenderer::render_frame() -> bool {
     auto swapchain_acquire_result = m_swapchain.vk_swapchain().acquireNextImage(std::numeric_limits<uint64_t>::max(), frame.image_acquired_semaphore, {});
 
     if (swapchain_acquire_result.result == vk::Result::eSuboptimalKHR || swapchain_acquire_result.result == vk::Result::eErrorOutOfDateKHR) {
-        return false;
+        return RenderResult::SwapchainSuboptimal;
     }
 
     if (swapchain_acquire_result.result != vk::Result::eSuccess) {
+        std::println("ERROR: Failed to acquire swapchain image: {}", vk::to_string(swapchain_acquire_result.result));
         throw std::runtime_error("Failed to acquire swapchain image!");
     }
 
@@ -104,11 +105,24 @@ auto VulkanRenderer::render_frame() -> bool {
         .setSwapchains(*m_swapchain.vk_swapchain())
         .setImageIndices(swapchain_acquire_result.value);
 
-    VulkanContext::get().vk_present_queue().presentKHR(present_info);
-
     m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 
-    return true;
+    auto present_result = VulkanContext::get().vk_present_queue().presentKHR(present_info);
+
+    if (present_result == vk::Result::eErrorOutOfDateKHR || present_result == vk::Result::eSuboptimalKHR) {
+        return RenderResult::SwapchainSuboptimal;
+    }
+
+    if (present_result != vk::Result::eSuccess) {
+        std::println("ERROR: Failed to submit present: {}", vk::to_string(swapchain_acquire_result.result));
+        throw std::runtime_error("Failed to submit present!");
+    }
+
+    return RenderResult::Ok;
+}
+auto VulkanRenderer::recreate_swapchain() -> void {
+    VulkanContext::get().vk_device().waitIdle();
+    m_swapchain = VulkanSwapchain::create(m_swapchain.image_extent(), std::move(m_swapchain), true);
 }
 
 } // namespace pop::vulkan::renderer
