@@ -1,5 +1,6 @@
 #include "vk_renderer.hpp"
 
+#include "systems/persistent_settings.hpp"
 #include "vulkan/spirv_code.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
@@ -9,12 +10,20 @@
 namespace pop::vulkan::renderer {
 
 VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
-    std::vector<FrameInFlight>&& frames_in_flight)
+    VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_triangle_pipeline(std::move(triangle_pipeline)),
-        m_frames_in_flight(std::move(frames_in_flight)) {}
+        m_main_render_target(std::move(main_render_target)), m_frames_in_flight(std::move(frames_in_flight)) {}
 
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
+}
+
+inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
+    return vk::Offset3D{
+        static_cast<int32_t>(extent.width),
+        static_cast<int32_t>(extent.height),
+        static_cast<int32_t>(extent.depth)
+    };
 }
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
@@ -37,10 +46,10 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     }
 
     auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, 4, vk::ShaderStageFlagBits::eFragment)
         .build();
 
-    auto triangle_pipeline_shader_code = SpirvCode::load_from_file("spirv/triangle.spv");
+    // TODO: move the executable directory resolution elsewhere to get rid of this hack
+    auto triangle_pipeline_shader_code = SpirvCode::load_from_file(systems::PersistentSettings::file_path.parent_path() / "spirv/triangle.spv");
 
     auto triangle_pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(triangle_pipeline_layout)
@@ -48,7 +57,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .add_shader(triangle_pipeline_shader_code, vk::ShaderStageFlagBits::eFragment)
         .set_input_topology(vk::PrimitiveTopology::eTriangleList)
         .set_rasterizer_polygon_mode(vk::PolygonMode::eFill)
-        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eBack, vk::FrontFace::eClockwise)
+        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eBack, vk::FrontFace::eCounterClockwise)
         .set_rasterizer_line_width(1.0f)
         .disable_multisampling()
         .disable_depth_test()
@@ -60,7 +69,18 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         )
         .build();
 
-    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(frames_in_flight) };
+    auto main_render_target = VulkanImage::builder()
+        .set_extent(vk::Extent3D(swapchain.image_extent(), 1))
+        .set_format(vk::Format::eR16G16B16A16Sfloat)
+        .set_initial_layout(vk::ImageLayout::eUndefined)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .set_mip_levels(1)
+        .set_tiling(vk::ImageTiling::eOptimal)
+        .set_type(vk::ImageType::e2D)
+        .set_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc)
+        .build();
+
+    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(main_render_target), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame() -> RenderResult {
@@ -88,25 +108,48 @@ auto VulkanRenderer::render_frame() -> RenderResult {
     vk::CommandBufferBeginInfo command_buffer_begin_info = vk::CommandBufferBeginInfo()
         .setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-    frame.frame_command_buffer.begin(command_buffer_begin_info);
+    auto& command_buffer = frame.frame_command_buffer;
+
+    command_buffer.begin(command_buffer_begin_info);
+
+    // ---- Transition before main renderpass ------------------------------------------------------------------------------------------------------------------
+    
+    VulkanPipelineBarriers::builder()
+        .insertImageMemoryBarrier(m_main_render_target.vk_image(),
+            vk::ImageLayout::eUndefined, vk::PipelineStageFlagBits2::eBlit, vk::AccessFlagBits2::eTransferRead,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
+            m_main_render_target.full_subresource_range()
+        )
+        .flush(command_buffer);
+    
+    run_main_renderpass(command_buffer);
+
+    // ---- Transition after main renderpass before copy to swapchain image ------------------------------------------------------------------------------------
+
+    VulkanPipelineBarriers::builder()
+        .insertImageMemoryBarrier(m_main_render_target.vk_image(),
+            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
+            vk::ImageLayout::eTransferSrcOptimal, vk::PipelineStageFlagBits2::eBlit, vk::AccessFlagBits2::eTransferRead,
+            m_main_render_target.full_subresource_range()
+        )
+        .insertImageMemoryBarrier(swapchain_image.vk_image(),
+            vk::ImageLayout::eUndefined, vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eNone,
+            vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eBlit, vk::AccessFlagBits2::eTransferWrite,
+            swapchain_image.full_subresource_range()
+        )
+        .flush(command_buffer);
+
+    copy_main_render_target_to_swapchain_image(command_buffer, swapchain_image);
+
+    // ---- Transition after copy to swapchain image -----------------------------------------------------------------------------------------------------------
 
     VulkanPipelineBarriers::builder()
         .insertImageMemoryBarrier(swapchain_image.vk_image(),
-            vk::ImageLayout::eUndefined, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
-            vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
+            vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eBlit, vk::AccessFlagBits2::eTransferWrite,
+            vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits2::eNone, vk::AccessFlagBits2::eNone,
             swapchain_image.full_subresource_range()
         )
-        .flush(frame.frame_command_buffer);
-
-    frame.frame_command_buffer.clearColorImage(swapchain_image.vk_image(), vk::ImageLayout::eTransferDstOptimal, { 0.2f, 0.2f, 0.2f, 1.0f }, swapchain_image.full_subresource_range());
-
-    VulkanPipelineBarriers::builder()
-        .insertImageMemoryBarrier(swapchain_image.vk_image(),
-            vk::ImageLayout::eTransferDstOptimal, vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
-            vk::ImageLayout::ePresentSrcKHR, vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eNone,
-            swapchain_image.full_subresource_range()
-        )
-        .flush(frame.frame_command_buffer);
+        .flush(command_buffer);
 
     frame.frame_command_buffer.end();
 
@@ -148,9 +191,69 @@ auto VulkanRenderer::render_frame() -> RenderResult {
 
     return RenderResult::Ok;
 }
+
 auto VulkanRenderer::recreate_swapchain() -> void {
     VulkanContext::get().vk_device().waitIdle();
     m_swapchain = VulkanSwapchain::create(m_swapchain.image_extent(), std::move(m_swapchain), true);
+}
+
+auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void {
+    auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
+        .setImageView(m_main_render_target.vk_full_image_view())
+        .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eStore)
+        .setClearValue(vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f});
+
+    auto rendering_area = vk::Extent2D(m_main_render_target.extent().width, m_main_render_target.extent().height);
+
+    auto viewport = vk::Viewport()
+        .setWidth(rendering_area.width)
+        .setHeight(rendering_area.height)
+        .setMinDepth(0.0f)
+        .setMaxDepth(1.0f);
+
+    auto scissor = vk::Rect2D()
+        .setExtent(rendering_area);
+
+    auto rendering_info = vk::RenderingInfo()
+        .setColorAttachments(main_render_target_attachment_info)
+        .setLayerCount(1)
+        .setRenderArea(scissor);
+
+    cmd.beginRendering(rendering_info);
+    cmd.setViewport(0, viewport);
+    cmd.setScissor(0, scissor);
+
+    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_triangle_pipeline.vk_pipeline());
+    cmd.draw(3, 1, 0, 0);
+
+    cmd.endRendering();
+}
+auto VulkanRenderer::copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void {
+    auto blit_offsets = std::array<vk::Offset3D, 2>{{{0, 0, 0}, {to_offset3d(m_main_render_target.extent())}}};
+
+    auto blit_subresources = vk::ImageSubresourceLayers()
+        .setAspectMask(vk::ImageAspectFlagBits::eColor)
+        .setBaseArrayLayer(0)
+        .setLayerCount(1)
+        .setMipLevel(0);
+
+    auto blit = vk::ImageBlit2()
+        .setSrcOffsets(blit_offsets)
+        .setDstOffsets(blit_offsets)
+        .setSrcSubresource(blit_subresources)
+        .setDstSubresource(blit_subresources);
+
+    auto blit_info = vk::BlitImageInfo2()
+        .setSrcImage(m_main_render_target.vk_image())
+        .setSrcImageLayout(vk::ImageLayout::eTransferSrcOptimal)
+        .setDstImage(swapchain_image.vk_image())
+        .setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
+        .setFilter(vk::Filter::eNearest)
+        .setRegions(blit);
+
+    cmd.blitImage2(blit_info);
 }
 
 } // namespace pop::vulkan::renderer

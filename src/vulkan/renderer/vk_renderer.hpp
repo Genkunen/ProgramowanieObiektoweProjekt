@@ -1,5 +1,6 @@
 #pragma once
 #include "vulkan/vk_graphics_pipeline.hpp"
+#include "vulkan/vk_image.hpp"
 #include "vulkan/vk_pipeline_layout.hpp"
 #include "vulkan/vk_prelude.hpp"
 #include "vulkan/vk_swapchain.hpp"
@@ -26,7 +27,7 @@ struct FrameInFlight {
 class VulkanRenderer {
 public:
     VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
-        std::vector<FrameInFlight>&& frames_in_flight);
+        VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
@@ -39,9 +40,13 @@ private:
     VulkanPipelineLayout m_triangle_pipeline_layout;
     VulkanGraphicsPipeline m_triangle_pipeline;
 
+    VulkanImage m_main_render_target;
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
+
+    auto run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void;
+    auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
 };
 
 }

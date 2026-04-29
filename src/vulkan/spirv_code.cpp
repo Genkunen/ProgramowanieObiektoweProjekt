@@ -1,6 +1,7 @@
 #include "spirv_code.hpp"
 
 #include <fstream>
+#include <print>
 
 namespace pop::vulkan {
 
@@ -8,6 +9,7 @@ SpirvCode::SpirvCode(std::vector<uint32_t>&& code)
     : m_code(std::move(code)) {}
 
 auto SpirvCode::load_from_file(const std::filesystem::path& file_path) -> SpirvCode {
+    std::println("Loading shader code from file: {}", file_path.string());
     std::ifstream shader_code_file(file_path, std::ios::binary | std::ios::ate);
 
     if (!shader_code_file) {
