@@ -29,13 +29,13 @@ auto sdl_entry_main() -> void {
         }
 
         if (should_recreate_swapchain) {
-            renderer.recreate_swapchain();
+            renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
         }
 
         auto render_result = renderer.render_frame();
 
         if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
-            renderer.recreate_swapchain();
+            renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
         }
     }
 

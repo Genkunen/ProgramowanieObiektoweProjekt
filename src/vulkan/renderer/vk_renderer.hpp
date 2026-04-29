@@ -33,7 +33,7 @@ public:
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
     auto render_frame() -> RenderResult;
-    auto recreate_swapchain() -> void;
+    auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
 private:
     VulkanSwapchain m_swapchain;
 

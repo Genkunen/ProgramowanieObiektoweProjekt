@@ -191,9 +191,21 @@ auto VulkanRenderer::render_frame() -> RenderResult {
     return RenderResult::Ok;
 }
 
-auto VulkanRenderer::recreate_swapchain() -> void {
+auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent) -> void {
     VulkanContext::get().vk_device().waitIdle();
-    m_swapchain = VulkanSwapchain::create(m_swapchain.image_extent(), std::move(m_swapchain), true);
+
+    m_main_render_target = VulkanImage::builder()
+        .set_extent(vk::Extent3D(new_window_extent, 1))
+        .set_format(vk::Format::eR16G16B16A16Sfloat)
+        .set_initial_layout(vk::ImageLayout::eUndefined)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .set_mip_levels(1)
+        .set_tiling(vk::ImageTiling::eOptimal)
+        .set_type(vk::ImageType::e2D)
+        .set_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc)
+        .build();
+
+    m_swapchain = VulkanSwapchain::create(new_window_extent, std::move(m_swapchain), true);
 }
 
 auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void {
