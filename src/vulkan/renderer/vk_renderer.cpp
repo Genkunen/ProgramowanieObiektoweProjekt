@@ -10,9 +10,11 @@
 namespace pop::vulkan::renderer {
 
 VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
-    VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight)
+    VulkanBuffer&& simulation_draw_commands_buffer, VulkanBuffer&& simulation_draw_commands_count_buffer, VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_triangle_pipeline(std::move(triangle_pipeline)),
-        m_main_render_target(std::move(main_render_target)), m_frames_in_flight(std::move(frames_in_flight)) {}
+        m_simulation_draw_commands_buffer(std::move(simulation_draw_commands_buffer)),
+        m_simulation_draw_commands_count_buffer(std::move(simulation_draw_commands_count_buffer)), m_main_render_target(std::move(main_render_target)),
+        m_frames_in_flight(std::move(frames_in_flight)) {}
 
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
@@ -25,6 +27,9 @@ inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
         static_cast<int32_t>(extent.depth)
     };
 }
+
+// TODO: Temporary limits, add dynamic resizing later
+constexpr uint64_t MAX_DRAW_COMMANDS = 1;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     std::vector<FrameInFlight> frames_in_flight;
@@ -79,7 +84,35 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .set_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc)
         .build();
 
-    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(main_render_target), std::move(frames_in_flight) };
+    auto simulation_draw_commands_buffer = VulkanBuffer::builder()
+        .set_size(MAX_DRAW_COMMANDS * sizeof(vk::DrawIndirectCommand))
+        .set_usage(vk::BufferUsageFlagBits::eIndirectBuffer)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .map_for_sequential_write()
+        .build();
+
+    auto simulation_draw_commands_count_buffer = VulkanBuffer::builder()
+        .set_size(sizeof(uint32_t))
+        .set_usage(vk::BufferUsageFlagBits::eIndirectBuffer)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .map_for_sequential_write()
+        .build();
+
+    // TODO: Temporary, add proper dispatch filling the buffers later
+
+    auto triangle_draw_indirect_command = vk::DrawIndirectCommand()
+        .setVertexCount(3)
+        .setInstanceCount(1)
+        .setFirstVertex(0)
+        .setFirstInstance(0);
+
+    uint32_t draw_commands_count = 1;
+
+    memcpy(simulation_draw_commands_buffer.memory_host_ptr(), &triangle_draw_indirect_command, sizeof(vk::DrawIndirectCommand));
+    memcpy(simulation_draw_commands_count_buffer.memory_host_ptr(), &draw_commands_count, sizeof(uint32_t));
+
+    return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(simulation_draw_commands_buffer),
+            std::move(simulation_draw_commands_count_buffer), std::move(main_render_target), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame() -> RenderResult {
@@ -237,7 +270,8 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void {
     cmd.setScissor(0, scissor);
 
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_triangle_pipeline.vk_pipeline());
-    cmd.draw(3, 1, 0, 0);
+
+    cmd.drawIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, 1, sizeof(vk::DrawIndirectCommand));
 
     cmd.endRendering();
 }
