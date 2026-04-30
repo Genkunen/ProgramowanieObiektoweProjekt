@@ -2,6 +2,8 @@
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_swapchain.hpp"
+#include <imgui/imgui_layer.hpp>
+#include <backends/imgui_impl_sdl3.h>
 
 #include <SDL3/SDL.h>
 
@@ -12,11 +14,14 @@ auto sdl_entry_main() -> void {
     auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
     auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
 
+    auto imgui = pop::imgui::ImGuiLayer(window, renderer.swapchain());
+
     bool running = true;
     while (running) {
         SDL_Event event;
         bool should_recreate_swapchain = false;
         while (SDL_PollEvent(&event)) {
+            ImGui_ImplSDL3_ProcessEvent(&event);
             switch (event.type) {
             case SDL_EVENT_QUIT:
                 running = false;
@@ -32,13 +37,19 @@ auto sdl_entry_main() -> void {
             renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
         }
 
-        auto render_result = renderer.render_frame();
+        imgui.begin_frame();
+
+        ImGui::Begin("ImGui");
+        ImGui::Text("Frame time: %.3f ms (%.1f FPS)", 
+                    1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+        ImGui::End();
+
+        auto render_result = renderer.render_frame(imgui.draw_data());
 
         if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
             renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
         }
     }
-
 }
 
 auto main() -> int {

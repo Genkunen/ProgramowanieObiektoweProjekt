@@ -75,7 +75,6 @@ private:
     static void parse_buffer();
 
     static constexpr auto whitespace{ std::string_view{ " \t\r\v" } };
-    static constexpr auto file_name{ "persistent.settings" };
 
     inline static std::vector<std::unique_ptr<Setting>> settings;
     inline static std::string buffer;

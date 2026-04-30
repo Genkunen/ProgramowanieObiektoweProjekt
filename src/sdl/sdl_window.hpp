@@ -17,7 +17,7 @@ public:
 
     [[nodiscard]] auto vulkan_create_raw_surface(vk::Instance instance) const -> vk::SurfaceKHR;
     [[nodiscard]] auto vulkan_window_drawable_extent() const -> vk::Extent2D;
-
+    [[nodiscard]] auto get() const -> SDL_Window* const;
 private:
     SDL_Window* m_window;
 };

@@ -7,6 +7,8 @@
 #include "vulkan/vk_swapchain.hpp"
 #include <cstdint>
 
+struct ImDrawData;
+
 namespace pop::vulkan::renderer {
 
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
@@ -34,8 +36,9 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    auto render_frame() -> RenderResult;
+    auto render_frame(ImDrawData* draw_data) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
+    auto swapchain() const -> const VulkanSwapchain&;
 private:
     VulkanSwapchain m_swapchain;
 
@@ -52,7 +55,7 @@ private:
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
 
-    auto run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void;
+    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
     auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
 };
 

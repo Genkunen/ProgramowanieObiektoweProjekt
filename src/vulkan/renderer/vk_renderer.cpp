@@ -5,6 +5,8 @@
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
 
+#include <backends/imgui_impl_vulkan.h>
+#include <imgui.h>
 #include <print>
 
 namespace pop::vulkan::renderer {
@@ -115,7 +117,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
             std::move(simulation_draw_commands_count_buffer), std::move(main_render_target), std::move(frames_in_flight) };
 }
 
-auto VulkanRenderer::render_frame() -> RenderResult {
+auto VulkanRenderer::render_frame(ImDrawData* draw_data) -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
     device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
@@ -154,7 +156,7 @@ auto VulkanRenderer::render_frame() -> RenderResult {
         )
         .flush(command_buffer);
     
-    run_main_renderpass(command_buffer);
+    run_main_renderpass(command_buffer, draw_data);
 
     // ---- Transition after main renderpass before copy to swapchain image ------------------------------------------------------------------------------------
 
@@ -241,7 +243,11 @@ auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent)
     m_swapchain = VulkanSwapchain::create(new_window_extent, std::move(m_swapchain), true);
 }
 
-auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void {
+auto VulkanRenderer::swapchain() const -> const VulkanSwapchain& {
+    return m_swapchain;
+}
+
+auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void {
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(m_main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
@@ -272,6 +278,10 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd) -> void {
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_triangle_pipeline.vk_pipeline());
 
     cmd.drawIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, 1, sizeof(vk::DrawIndirectCommand));
+
+    if (draw_data) {
+        ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
+    }
 
     cmd.endRendering();
 }

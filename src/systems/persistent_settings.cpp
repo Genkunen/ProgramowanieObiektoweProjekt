@@ -213,6 +213,6 @@ void PersistentSettings::parse_buffer() {
 }
 
 std::filesystem::path PersistentSettings::file_path = 
-    pop::filesystem::relative_path() / file_name;
+    pop::filesystem::relative_path() / "persistent.settings";
 }
 

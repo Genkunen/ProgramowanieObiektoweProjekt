@@ -8,6 +8,7 @@ namespace pop::sdl {
 
 SdlWindow::SdlWindow(const std::string& title, uint32_t width, uint32_t height) {
     m_window = SDL_CreateWindow(title.c_str(), width, height, SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE);
+
 }
 
 SdlWindow::~SdlWindow() {
@@ -29,6 +30,10 @@ auto SdlWindow::vulkan_window_drawable_extent() const -> vk::Extent2D {
     vk::Extent2D extent;
     SDL_GetWindowSizeInPixels(m_window, reinterpret_cast<int*>(&extent.width), reinterpret_cast<int*>(&extent.height));
     return extent;
+}
+
+auto SdlWindow::get() const -> SDL_Window* const {
+    return m_window;
 }
 
 } // namespace pop::sdl
