@@ -13,7 +13,7 @@ struct PushConstants {
 [vk::push_constant] PushConstants push_constants;
 
 [shader("compute")]
-[numthreads(64, 1, 1)]
+[numthreads(32, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint index = dtid.x;
 

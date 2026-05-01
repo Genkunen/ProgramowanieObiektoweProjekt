@@ -359,7 +359,7 @@ auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, Fra
 
     cmd.pushConstants<PushConstants>(m_simulation_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     // TODO: DRY it with the shader params later
-    constexpr uint32_t SIMULATION_OBJECTS_PER_GROUP = 64;
+    constexpr uint32_t SIMULATION_OBJECTS_PER_GROUP = 32;
 
     cmd.dispatch(
         (object_count + SIMULATION_OBJECTS_PER_GROUP - 1) / SIMULATION_OBJECTS_PER_GROUP,
