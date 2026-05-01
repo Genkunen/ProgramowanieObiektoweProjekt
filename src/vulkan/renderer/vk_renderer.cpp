@@ -237,11 +237,11 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
         )
         .insert_buffer_memory_barrier(m_simulation_draw_commands_buffer.vk_buffer(), vk::WholeSize, 0,
             vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageWrite,
-            vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eMemoryRead
+            vk::PipelineStageFlagBits2::eDrawIndirect, vk::AccessFlagBits2::eIndirectCommandRead
         )
         .insert_buffer_memory_barrier(m_simulation_draw_commands_count_buffer.vk_buffer(), vk::WholeSize, 0,
             vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageWrite,
-            vk::PipelineStageFlagBits2::eAllCommands, vk::AccessFlagBits2::eMemoryRead
+            vk::PipelineStageFlagBits2::eDrawIndirect, vk::AccessFlagBits2::eIndirectCommandRead
         )
         .flush(command_buffer);
     
