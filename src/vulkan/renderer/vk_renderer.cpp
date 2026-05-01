@@ -164,9 +164,6 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
     auto& device = VulkanContext::get().vk_device();
     device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
 
-    // TODO: debug
-    device.waitIdle();
-
     auto swapchain_acquire_result = m_swapchain.vk_swapchain().acquireNextImage(std::numeric_limits<uint64_t>::max(), frame.image_acquired_semaphore, {});
 
     if (swapchain_acquire_result.result == vk::Result::eSuboptimalKHR || swapchain_acquire_result.result == vk::Result::eErrorOutOfDateKHR) {
