@@ -1,25 +1,23 @@
+#include "../shared_types.hpp"
+
+struct PushConstants {
+    pop::shaders::Vertex* vertices;
+};
+
+[vk::push_constant] PushConstants push_constants;
+
 struct VSOutput {
     float4 position : SV_Position;
     float3 color : COLOR;
 };
 
-static const float3 triangle_positions[3] = {
-    float3(0.0, -0.5, 0.0),
-    float3(-0.5, 0.5, 0.0),
-    float3(0.5, 0.5, 0.0)
-};
-
-static const float3 triangle_colors[3] = {
-    float3(1.0, 0.0, 0.0),
-    float3(0.0, 1.0, 0.0),
-    float3(0.0, 0.0, 1.0)
-};
-
 [shader("vertex")]
 VSOutput main(uint vertex_id : SV_VulkanVertexID) {
+    let vertex = push_constants.vertices[vertex_id];
+
     VSOutput output;
-    output.position = float4(triangle_positions[vertex_id], 1.0);
-    output.color = triangle_colors[vertex_id];
+    output.position = float4(vertex.position, 1.0);
+    output.color = vertex.normal;
     return output;
 }
 

@@ -1,16 +1,9 @@
 #pragma once
 #include "mesh.hpp"
+#include "shaders/shared_types.hpp"
 #include "vulkan/vk_buffer.hpp"
 
 namespace pop::vulkan::renderer {
-
-
-struct MeshAllocationData {
-    uint32_t vertex_count;
-    uint32_t index_count;
-    uint32_t first_vertex;
-    uint32_t first_index;
-};
 
 class MeshPool {
 public:
@@ -20,9 +13,8 @@ public:
 
     [[nodiscard]] auto vertex_buffer() const -> const VulkanBuffer& { return m_vertex_buffer; }
     [[nodiscard]] auto index_buffer() const -> const VulkanBuffer& { return m_index_buffer; }
-    [[nodiscard]] auto mesh_allocations() const -> const std::vector<MeshAllocationData>& { return m_mesh_allocations; }
-    [[nodiscard]] auto mesh_allocations_needs_reupload() const -> bool { return m_mesh_allocations_needs_reupload; }
-    auto reset_mesh_allocations_needs_reupload() -> void { m_mesh_allocations_needs_reupload = false; }
+    [[nodiscard]] auto mesh_allocations() const -> const std::vector<shaders::MeshAllocationData>& { return m_mesh_allocations; }
+    [[nodiscard]] auto mesh_allocations_table_generation() const -> uint64_t { return m_mesh_allocations_table_generation; }
 
 
     [[nodiscard]] auto allocate(uint32_t vertex_count, uint32_t index_count) -> Mesh;
@@ -40,8 +32,8 @@ private:
         vma::raii::VirtualAllocation index_allocation;
     };
 
-    std::vector<MeshAllocationData> m_mesh_allocations;
-    bool m_mesh_allocations_needs_reupload = false;
+    std::vector<shaders::MeshAllocationData> m_mesh_allocations;
+    uint64_t m_mesh_allocations_table_generation = 0;
 
     std::vector<MeshAllocationHandle> m_mesh_allocation_handles;
 };
