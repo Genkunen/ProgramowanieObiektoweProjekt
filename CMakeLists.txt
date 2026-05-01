@@ -148,6 +148,13 @@ target_link_libraries(
         glm::glm
 )
 
+target_compile_definitions(
+        ProgramowanieObiektoweProjekt PRIVATE
+        GLM_FORCE_DEPTH_ZERO_TO_ONE
+        GLM_FORCE_LEFT_HANDED
+        GLM_FORCE_RADIANS
+)
+
 target_compile_options(
         ProgramowanieObiektoweProjekt PRIVATE
         -Werror=return-type

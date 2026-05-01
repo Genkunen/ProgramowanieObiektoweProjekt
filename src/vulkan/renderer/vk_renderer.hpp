@@ -28,9 +28,10 @@ struct FrameInFlight {
     vk::raii::CommandPool command_pool;
     vk::raii::CommandBuffer frame_command_buffer;
 
+    VulkanBuffer simulation_data_buffer;
     VulkanBuffer simulation_object_buffer;
-
     VulkanBuffer mesh_index_to_buffer_params_table;
+
     uint64_t mesh_index_to_buffer_params_table_generation = 0;
 };
 
@@ -39,7 +40,8 @@ public:
     VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
         VulkanPipelineLayout&& simulation_pipeline_layout, VulkanComputePipeline&& simulation_pipeline, VulkanPipelineLayout&& simulation_clear_pipeline_layout,
         VulkanComputePipeline&& simulation_clear_pipeline, VulkanBuffer&& simulation_draw_commands_buffer, VulkanBuffer&& simulation_draw_commands_count_buffer,
-        VulkanImage&& main_render_target, VulkanImage&& depth_buffer, std::vector<FrameInFlight>&& frames_in_flight);
+        VulkanBuffer&& prepared_simulation_objects_buffer, VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
+        std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
@@ -61,6 +63,7 @@ private:
 
     VulkanBuffer m_simulation_draw_commands_buffer;
     VulkanBuffer m_simulation_draw_commands_count_buffer;
+    VulkanBuffer m_prepared_simulation_objects_buffer;
 
     // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
 

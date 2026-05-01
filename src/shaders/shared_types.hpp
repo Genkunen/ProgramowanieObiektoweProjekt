@@ -12,6 +12,8 @@ using float3 = glm::vec3;
 using float4 = glm::vec4;
 using uint = uint32_t;
 
+using float4x4 = glm::mat4;
+
 #endif
 
 struct Vertex {
@@ -29,6 +31,14 @@ struct MeshAllocationData {
 
 struct SimulationObject {
     uint mesh_index;
+};
+
+struct PreparedSimulationObject {
+    float4x4 transform;
+};
+
+struct SimulationData {
+    float4x4 projview;
 };
 
 }

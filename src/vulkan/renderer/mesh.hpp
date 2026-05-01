@@ -1,6 +1,5 @@
 #pragma once
 #include <cstdint>
-#define GLM_FORCE_LEFT_HANDED
 #include <glm/glm.hpp>
 
 namespace pop::vulkan::renderer {
