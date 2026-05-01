@@ -358,6 +358,18 @@ auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent)
         .set_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc)
         .build();
 
+    m_depth_buffer = VulkanImage::builder()
+        .set_extent(vk::Extent3D(new_window_extent, 1))
+        .set_format(vk::Format::eD32Sfloat)
+        .set_initial_layout(vk::ImageLayout::eUndefined)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .set_mip_levels(1)
+        .set_tiling(vk::ImageTiling::eOptimal)
+        .set_type(vk::ImageType::e2D)
+        .set_usage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+        .build();
+
+
     m_swapchain = VulkanSwapchain::create(new_window_extent, std::move(m_swapchain), true);
 }
 
