@@ -14,6 +14,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED)
+find_package(glm REQUIRED)
 
 FetchContent_Declare(
         VMAHpp
@@ -144,6 +145,7 @@ target_link_libraries(
         VulkanMemoryAllocator-Hpp::VulkanMemoryAllocator-Hpp
         xxhash
         imgui
+        glm::glm
 )
 
 target_compile_options(
