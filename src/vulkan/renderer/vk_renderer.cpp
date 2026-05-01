@@ -35,7 +35,8 @@ inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
 }
 
 // TODO: Temporary limits, add dynamic resizing later
-constexpr uint64_t MAX_DRAW_COMMANDS = 1;
+constexpr uint64_t MAX_SIMULATION_OBJECTS = 1000;
+constexpr uint64_t MAX_DRAW_COMMANDS = 1000;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     std::vector<FrameInFlight> frames_in_flight;
@@ -54,7 +55,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         auto image_acquired_semaphore = VulkanContext::get().vk_device().createSemaphore(default_semaphore_create_info);
 
         auto simulation_object_buffer = VulkanBuffer::builder()
-            .set_size(1 * sizeof(shaders::SimulationObject))
+            .set_size(MAX_SIMULATION_OBJECTS * sizeof(shaders::SimulationObject))
             .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
             .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
             .map_for_sequential_write()
@@ -140,19 +141,6 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .map_for_sequential_write()
         .build();
 
-    // TODO: Temporary, add proper dispatch filling the buffers later
-
-    auto triangle_draw_indirect_command = vk::DrawIndirectCommand()
-        .setVertexCount(3)
-        .setInstanceCount(1)
-        .setFirstVertex(0)
-        .setFirstInstance(0);
-
-    uint32_t draw_commands_count = 1;
-
-    memcpy(simulation_draw_commands_buffer.memory_host_ptr(), &triangle_draw_indirect_command, sizeof(vk::DrawIndirectCommand));
-    memcpy(simulation_draw_commands_count_buffer.memory_host_ptr(), &draw_commands_count, sizeof(uint32_t));
-
     return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(simulation_pipeline_layout),
             std::move(simulation_pipeline), std::move(simulation_clear_pipeline_layout), std::move(simulation_clear_pipeline),
             std::move(simulation_draw_commands_buffer), std::move(simulation_draw_commands_count_buffer), std::move(main_render_target),
@@ -185,7 +173,9 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
 
     shaders::SimulationObject simulation_object_data = shaders::SimulationObject{ .mesh_index = sample_mesh.allocation_index };
 
-    memcpy(frame.simulation_object_buffer.memory_host_ptr(), &simulation_object_data, sizeof(shaders::SimulationObject));
+    for (int i = 0; i < MAX_SIMULATION_OBJECTS; i++) {
+        memcpy(frame.simulation_object_buffer.memory_host_ptr() + i * sizeof(shaders::SimulationObject), &simulation_object_data, sizeof(shaders::SimulationObject));
+    }
 
     if (mesh_pool.mesh_allocations_table_generation() > frame.mesh_index_to_buffer_params_table_generation) {
         // Make sure the destination buffer has enough size
@@ -225,7 +215,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
         )
         .flush(command_buffer);
 
-    run_gpgpu_simulation_step(command_buffer, frame, 1);
+    run_gpgpu_simulation_step(command_buffer, frame, MAX_SIMULATION_OBJECTS);
 
     // ---- Transition before main renderpass ------------------------------------------------------------------------------------------------------------------
     
@@ -411,7 +401,7 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool&
     cmd.bindIndexBuffer(mesh_pool.index_buffer().vk_buffer(), 0, vk::IndexType::eUint32);
 
     cmd.pushConstants<vk::DeviceAddress>(m_triangle_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, mesh_pool.vertex_buffer().memory_device_ptr());
-    cmd.drawIndexedIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, 1, sizeof(vk::DrawIndexedIndirectCommand));
+    cmd.drawIndexedIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, MAX_DRAW_COMMANDS, sizeof(vk::DrawIndexedIndirectCommand));
 
     if (draw_data) {
         ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);
