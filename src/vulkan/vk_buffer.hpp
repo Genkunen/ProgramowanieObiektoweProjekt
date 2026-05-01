@@ -7,7 +7,7 @@ namespace pop::vulkan {
 class VulkanBufferBuilder;
 class VulkanBuffer {
 public:
-    VulkanBuffer(vk::raii::Buffer&& buffer, vma::raii::Allocation&& allocation, uint8_t* memory_host_ptr, vk::DeviceAddress memory_device_ptr);
+    VulkanBuffer(vk::raii::Buffer&& buffer, vma::raii::Allocation&& allocation, uint8_t* memory_host_ptr, vk::DeviceAddress memory_device_ptr, uint64_t size);
 
     [[nodiscard]] constexpr static auto builder() -> VulkanBufferBuilder;
 
@@ -63,7 +63,7 @@ public:
             memory_device_ptr = VulkanContext::get().vk_device().getBufferAddress(bda_info);
         }
 
-        return VulkanBuffer(std::move(buffer), std::move(allocation), memory_host_ptr, memory_device_ptr);
+        return VulkanBuffer(std::move(buffer), std::move(allocation), memory_host_ptr, memory_device_ptr, m_size);
     }
 
 private:
