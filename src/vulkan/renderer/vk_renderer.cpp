@@ -53,7 +53,7 @@ inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
 
 // TODO: Temporary limits, add dynamic resizing later
 constexpr uint64_t MAX_SIMULATION_OBJECTS = 1000;
-constexpr uint64_t MAX_DRAW_COMMANDS = 1;
+constexpr uint64_t MAX_DRAW_COMMANDS = 1000;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Per-pending-frame Data -----------------------------------------------------------------------------------------------------------------------------
