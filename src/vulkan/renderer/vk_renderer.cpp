@@ -117,7 +117,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
             std::move(simulation_draw_commands_count_buffer), std::move(main_render_target), std::move(frames_in_flight) };
 }
 
-auto VulkanRenderer::render_frame(ImDrawData* draw_data) -> RenderResult {
+auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data) -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
     device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());

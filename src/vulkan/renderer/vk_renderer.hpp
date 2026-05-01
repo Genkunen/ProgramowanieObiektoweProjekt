@@ -1,4 +1,5 @@
 #pragma once
+#include "mesh_pool.hpp"
 #include "vulkan/vk_buffer.hpp"
 #include "vulkan/vk_graphics_pipeline.hpp"
 #include "vulkan/vk_image.hpp"
@@ -36,7 +37,7 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    auto render_frame(ImDrawData* draw_data) -> RenderResult;
+    auto render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
 private:
