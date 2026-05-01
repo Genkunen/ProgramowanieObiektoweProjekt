@@ -29,6 +29,9 @@ struct MeshAllocationData {
 
 struct SimulationObject {
     uint mesh_index;
+    uint _pad;
+    float2 position;
+    float2 velocity;
 };
 
 }

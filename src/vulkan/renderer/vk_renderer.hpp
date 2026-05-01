@@ -13,7 +13,7 @@ struct ImDrawData;
 
 namespace pop::vulkan::renderer {
 
-constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+constexpr size_t MAX_FRAMES_IN_FLIGHT = 1;
 
 enum class RenderResult {
     Ok,
@@ -47,6 +47,7 @@ public:
     auto render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
+    void innnn(Mesh& sample_mesh);
 private:
     VulkanSwapchain m_swapchain;
 

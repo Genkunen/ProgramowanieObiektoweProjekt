@@ -2,6 +2,7 @@
 
 struct PushConstants {
     pop::shaders::Vertex* vertices;
+    pop::shaders::SimulationObject* simulation_objects;
 };
 
 [vk::push_constant] PushConstants push_constants;
@@ -32,10 +33,11 @@ float2 randomOffset(uint seed)
 [shader("vertex")]
 VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanInstanceID) {
     let vertex = push_constants.vertices[vertex_id];
-
+    let object = push_constants.simulation_objects[instance_id];
 
     VSOutput output;
-    output.position = float4(vertex.position + float3(randomOffset(instance_id), 0.0), 1.0);
+    output.position = 
+        float4(vertex.position + float3(object.position, 0.0), 1.0);
     output.color = vertex.normal;
     return output;
 }

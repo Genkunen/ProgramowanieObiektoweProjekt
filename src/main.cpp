@@ -20,10 +20,12 @@ auto sdl_entry_main() -> void {
     auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
 
     auto mesh_pool = pop::vulkan::renderer::MeshPool::create(1048576, 1048576);
-    auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.1f);
+    auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.01f);
 
     auto sphere_mesh = mesh_pool.allocate(sphere_vertices.size(), sphere_indices.size());
     mesh_pool.upload_mesh_data(sphere_mesh, sphere_vertices, sphere_indices);
+
+    renderer.innnn(sphere_mesh);
     std::println("Index count: {}", sphere_indices.size());
 
     auto imgui = pop::imgui::ImGuiLayer(window, renderer.swapchain());

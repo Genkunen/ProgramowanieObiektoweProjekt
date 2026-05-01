@@ -8,8 +8,26 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 #include <print>
-
+#include <random>
 namespace pop::vulkan::renderer {
+
+void VulkanRenderer::innnn(Mesh& sample_mesh) {
+    std::mt19937 rng(42);
+    std::uniform_real_distribution<float> pos_dist(-0.8f, 0.8f);
+    std::uniform_real_distribution<float> vel_dist(-0.4f, 0.4f);
+
+    for (auto& frame : m_frames_in_flight) {
+        auto* objects = reinterpret_cast<shaders::SimulationObject*>(
+            frame.simulation_object_buffer.memory_host_ptr()
+        );
+        for (int i = 0; i < 1000; i++) {
+            objects[i].mesh_index = sample_mesh.allocation_index;
+            objects[i]._pad = 0;
+            objects[i].position = { pos_dist(rng), pos_dist(rng) };
+            objects[i].velocity = { vel_dist(rng), vel_dist(rng) };
+        }
+    }
+}
 
 VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
         VulkanPipelineLayout&& simulation_pipeline_layout, VulkanComputePipeline&& simulation_pipeline, VulkanPipelineLayout&& simulation_clear_pipeline_layout,
@@ -77,7 +95,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Pipelines ------------------------------------------------------------------------------------------------------------------------------------------
 
     auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, 8, vk::ShaderStageFlagBits::eVertex)
+        .add_push_constant_range(0, 16, vk::ShaderStageFlagBits::eVertex)
         .build();
 
     auto triangle_pipeline_shader_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/triangle.spv");
@@ -193,9 +211,9 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
 
     shaders::SimulationObject simulation_object_data = shaders::SimulationObject{ .mesh_index = sample_mesh.allocation_index };
 
-    for (int i = 0; i < MAX_SIMULATION_OBJECTS; i++) {
-        memcpy(frame.simulation_object_buffer.memory_host_ptr() + i * sizeof(shaders::SimulationObject), &simulation_object_data, sizeof(shaders::SimulationObject));
-    }
+    // for (int i = 0; i < MAX_SIMULATION_OBJECTS; i++) {
+    //     memcpy(frame.simulation_object_buffer.memory_host_ptr() + i * sizeof(shaders::SimulationObject), &simulation_object_data, sizeof(shaders::SimulationObject));
+    // }
 
     if (mesh_pool.mesh_allocations_table_generation() > frame.mesh_index_to_buffer_params_table_generation) {
         // Make sure the destination buffer has enough size
@@ -459,7 +477,17 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool&
 
     cmd.bindIndexBuffer(mesh_pool.index_buffer().vk_buffer(), 0, vk::IndexType::eUint32);
 
-    cmd.pushConstants<vk::DeviceAddress>(m_triangle_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, mesh_pool.vertex_buffer().memory_device_ptr());
+    struct PushConstants {
+        vk::DeviceAddress vertices;
+        vk::DeviceAddress simulation_objects;
+    };
+
+    PushConstants pc {
+        .vertices = mesh_pool.vertex_buffer().memory_device_ptr(),
+        .simulation_objects = m_frames_in_flight[m_current_frame].simulation_object_buffer.memory_device_ptr(),
+    };
+
+    cmd.pushConstants<PushConstants>(m_triangle_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, pc);
     cmd.drawIndexedIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, MAX_DRAW_COMMANDS, sizeof(vk::DrawIndexedIndirectCommand));
 
     cmd.endRendering();
