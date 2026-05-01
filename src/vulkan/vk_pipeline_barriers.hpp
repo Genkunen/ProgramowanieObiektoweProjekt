@@ -9,7 +9,7 @@ public:
         return VulkanPipelineBarriers();
     }
 
-    auto insertImageMemoryBarrier(vk::Image image, vk::ImageLayout src_layout, vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access, vk::ImageLayout dst_layout, vk::PipelineStageFlags2 dst_stage, vk::AccessFlags2 dst_access, vk::ImageSubresourceRange subresource_range) -> VulkanPipelineBarriers& {
+    auto insert_image_memory_barrier(vk::Image image, vk::ImageLayout src_layout, vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access, vk::ImageLayout dst_layout, vk::PipelineStageFlags2 dst_stage, vk::AccessFlags2 dst_access, vk::ImageSubresourceRange subresource_range) -> VulkanPipelineBarriers& {
         auto barrier = vk::ImageMemoryBarrier2{}
             .setOldLayout(src_layout)
             .setSrcStageMask(src_stage)
