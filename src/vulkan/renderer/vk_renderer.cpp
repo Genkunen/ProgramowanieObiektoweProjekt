@@ -14,13 +14,13 @@ namespace pop::vulkan::renderer {
 VulkanRenderer::VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
         VulkanPipelineLayout&& simulation_pipeline_layout, VulkanComputePipeline&& simulation_pipeline, VulkanPipelineLayout&& simulation_clear_pipeline_layout,
         VulkanComputePipeline&& simulation_clear_pipeline, VulkanBuffer&& simulation_draw_commands_buffer, VulkanBuffer&& simulation_draw_commands_count_buffer,
-        VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight)
+        VulkanImage&& main_render_target, VulkanImage&& depth_buffer, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_triangle_pipeline_layout(std::move(triangle_pipeline_layout)), m_triangle_pipeline(std::move(triangle_pipeline)),
         m_simulation_pipeline_layout(std::move(simulation_pipeline_layout)), m_simulation_pipeline(std::move(simulation_pipeline)),
         m_simulation_clear_pipeline_layout(std::move(simulation_clear_pipeline_layout)), m_simulation_clear_pipeline(std::move(simulation_clear_pipeline)),
         m_simulation_draw_commands_buffer(std::move(simulation_draw_commands_buffer)),
         m_simulation_draw_commands_count_buffer(std::move(simulation_draw_commands_count_buffer)), m_main_render_target(std::move(main_render_target)),
-        m_frames_in_flight(std::move(frames_in_flight)) {}
+        m_depth_buffer(std::move(depth_buffer)), m_frames_in_flight(std::move(frames_in_flight)) {}
 
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
@@ -39,6 +39,8 @@ constexpr uint64_t MAX_SIMULATION_OBJECTS = 1000;
 constexpr uint64_t MAX_DRAW_COMMANDS = 1000;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
+    // ---- Per-pending-frame Data -----------------------------------------------------------------------------------------------------------------------------
+
     std::vector<FrameInFlight> frames_in_flight;
 
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
@@ -72,6 +74,8 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
             std::move(frame_command_buffer), std::move(simulation_object_buffer), std::move(mesh_index_to_buffer_params_table));
     }
 
+    // ---- Pipelines ------------------------------------------------------------------------------------------------------------------------------------------
+
     auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
         .add_push_constant_range(0, 8, vk::ShaderStageFlagBits::eVertex)
         .build();
@@ -87,13 +91,14 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .set_rasterizer_cull_mode(vk::CullModeFlagBits::eNone, vk::FrontFace::eCounterClockwise)
         .set_rasterizer_line_width(1.0f)
         .disable_multisampling()
-        .disable_depth_test()
+        .enable_depth_test(true)
         .add_rendering_attachment(
             vk::PipelineColorBlendAttachmentState()
                 .setBlendEnable(false)
                 .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
             vk::Format::eR16G16B16A16Sfloat
         )
+        .set_depth_attachment_format(vk::Format::eD32Sfloat)
         .build();
 
     auto simulation_pipeline_layout = VulkanPipelineLayout::builder()
@@ -116,6 +121,8 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .set_shader(simulation_clear_pipeline_shader_code)
         .build();
 
+    // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
+
     auto main_render_target = VulkanImage::builder()
         .set_extent(vk::Extent3D(swapchain.image_extent(), 1))
         .set_format(vk::Format::eR16G16B16A16Sfloat)
@@ -126,6 +133,19 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .set_type(vk::ImageType::e2D)
         .set_usage(vk::ImageUsageFlagBits::eColorAttachment | vk::ImageUsageFlagBits::eTransferSrc)
         .build();
+
+    auto depth_buffer = VulkanImage::builder()
+        .set_extent(vk::Extent3D(swapchain.image_extent(), 1))
+        .set_format(vk::Format::eD32Sfloat)
+        .set_initial_layout(vk::ImageLayout::eUndefined)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .set_mip_levels(1)
+        .set_tiling(vk::ImageTiling::eOptimal)
+        .set_type(vk::ImageType::e2D)
+        .set_usage(vk::ImageUsageFlagBits::eDepthStencilAttachment)
+        .build();
+
+    // ---- Indirect Draw Buffers ------------------------------------------------------------------------------------------------------------------------------
 
     auto simulation_draw_commands_buffer = VulkanBuffer::builder()
         .set_size(MAX_DRAW_COMMANDS * sizeof(vk::DrawIndexedIndirectCommand))
@@ -144,7 +164,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     return VulkanRenderer{ std::move(swapchain), std::move(triangle_pipeline_layout), std::move(triangle_pipeline), std::move(simulation_pipeline_layout),
             std::move(simulation_pipeline), std::move(simulation_clear_pipeline_layout), std::move(simulation_clear_pipeline),
             std::move(simulation_draw_commands_buffer), std::move(simulation_draw_commands_count_buffer), std::move(main_render_target),
-        std::move(frames_in_flight) };
+            std::move(depth_buffer), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data) -> RenderResult {
@@ -225,6 +245,14 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
             vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
             m_main_render_target.full_subresource_range()
         )
+        .insert_image_memory_barrier(m_depth_buffer.vk_image(),
+            vk::ImageLayout::eUndefined, vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+
+            vk::ImageLayout::eDepthStencilAttachmentOptimal, vk::PipelineStageFlagBits2::eEarlyFragmentTests | vk::PipelineStageFlagBits2::eLateFragmentTests,
+            vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite,
+            m_depth_buffer.full_subresource_range()
+        )
         .insert_buffer_memory_barrier(m_simulation_draw_commands_buffer.vk_buffer(), vk::WholeSize, 0,
             vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageWrite,
             vk::PipelineStageFlagBits2::eDrawIndirect, vk::AccessFlagBits2::eIndirectCommandRead
@@ -235,10 +263,21 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
         )
         .flush(command_buffer);
     
-    run_main_renderpass(command_buffer, mesh_pool, draw_data);
+    run_main_renderpass(command_buffer, mesh_pool);
 
-    // ---- Transition after main renderpass before copy to swapchain image ------------------------------------------------------------------------------------
+    // ---- Transition after main renderpass before ImGui renderpass -------------------------------------------------------------------------------------------
 
+    VulkanPipelineBarriers::builder()
+        .insert_image_memory_barrier(m_main_render_target.vk_image(),
+            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
+            vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentRead | vk::AccessFlagBits2::eColorAttachmentWrite,
+            m_main_render_target.full_subresource_range()
+        )
+        .flush(command_buffer);
+
+    run_imgui_renderpass(command_buffer, draw_data);
+
+    // ---- Transition after ImGui renderpass before copy to swapchain image ------------------------------------------------------------------------------------
     VulkanPipelineBarriers::builder()
         .insert_image_memory_barrier(m_main_render_target.vk_image(),
             vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite,
@@ -368,13 +407,20 @@ auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, Fra
     );
 }
 
-auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, ImDrawData* draw_data) -> void {
+auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void {
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(m_main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
         .setLoadOp(vk::AttachmentLoadOp::eClear)
         .setStoreOp(vk::AttachmentStoreOp::eStore)
         .setClearValue(vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f});
+
+    auto depth_buffer_attachment_info = vk::RenderingAttachmentInfo()
+        .setImageView(m_depth_buffer.vk_full_image_view())
+        .setImageLayout(vk::ImageLayout::eDepthStencilAttachmentOptimal)
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eStore)
+        .setClearValue(vk::ClearDepthStencilValue{0.0f, 0});
 
     auto rendering_area = vk::Extent2D(m_main_render_target.extent().width, m_main_render_target.extent().height);
 
@@ -389,6 +435,7 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool&
 
     auto rendering_info = vk::RenderingInfo()
         .setColorAttachments(main_render_target_attachment_info)
+        .setPDepthAttachment(&depth_buffer_attachment_info)
         .setLayerCount(1)
         .setRenderArea(scissor);
 
@@ -402,6 +449,33 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool&
 
     cmd.pushConstants<vk::DeviceAddress>(m_triangle_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, mesh_pool.vertex_buffer().memory_device_ptr());
     cmd.drawIndexedIndirectCount(m_simulation_draw_commands_buffer.vk_buffer(), 0, m_simulation_draw_commands_count_buffer.vk_buffer(), 0, MAX_DRAW_COMMANDS, sizeof(vk::DrawIndexedIndirectCommand));
+
+    cmd.endRendering();
+}
+auto VulkanRenderer::run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void {
+    auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
+        .setImageView(m_main_render_target.vk_full_image_view())
+        .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+        .setLoadOp(vk::AttachmentLoadOp::eLoad)
+        .setStoreOp(vk::AttachmentStoreOp::eStore);
+
+    auto rendering_area = vk::Extent2D(m_main_render_target.extent().width, m_main_render_target.extent().height);
+
+    auto viewport = vk::Viewport()
+        .setWidth(rendering_area.width)
+        .setHeight(rendering_area.height);
+
+    auto scissor = vk::Rect2D()
+        .setExtent(rendering_area);
+
+    auto rendering_info = vk::RenderingInfo()
+        .setColorAttachments(main_render_target_attachment_info)
+        .setLayerCount(1)
+        .setRenderArea(scissor);
+
+    cmd.beginRendering(rendering_info);
+    cmd.setViewport(0, viewport);
+    cmd.setScissor(0, scissor);
 
     if (draw_data) {
         ImGui_ImplVulkan_RenderDrawData(draw_data, *cmd);

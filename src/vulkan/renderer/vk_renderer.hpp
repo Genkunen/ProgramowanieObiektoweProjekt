@@ -39,7 +39,7 @@ public:
     VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
         VulkanPipelineLayout&& simulation_pipeline_layout, VulkanComputePipeline&& simulation_pipeline, VulkanPipelineLayout&& simulation_clear_pipeline_layout,
         VulkanComputePipeline&& simulation_clear_pipeline, VulkanBuffer&& simulation_draw_commands_buffer, VulkanBuffer&& simulation_draw_commands_count_buffer,
-        VulkanImage&& main_render_target, std::vector<FrameInFlight>&& frames_in_flight);
+        VulkanImage&& main_render_target, VulkanImage&& depth_buffer, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
@@ -65,12 +65,14 @@ private:
     // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
 
     VulkanImage m_main_render_target;
+    VulkanImage m_depth_buffer;
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
 
     auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void;
-    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, ImDrawData* draw_data) -> void;
+    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
+    auto run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
     auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
 };
 
