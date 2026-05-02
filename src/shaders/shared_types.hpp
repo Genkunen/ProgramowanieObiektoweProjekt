@@ -31,6 +31,8 @@ struct MeshAllocationData {
 
 struct SimulationObject {
     uint mesh_index;
+    float2 position;
+    float2 velocity;
 };
 
 struct PreparedSimulationObject {
@@ -39,6 +41,9 @@ struct PreparedSimulationObject {
 
 struct SimulationData {
     float4x4 projview;
+    float delta_time;
 };
+
+static const uint MAX_DRAW_COMMANDS = 32;
 
 }

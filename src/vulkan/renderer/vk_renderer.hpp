@@ -20,6 +20,11 @@ enum class RenderResult {
     SwapchainSuboptimal,
 };
 
+enum class SimulationObjectBufferReadWriteDirection {
+    e1to2,
+    e2to1,
+};
+
 struct FrameInFlight {
     vk::raii::Fence frame_finished_fence;
 
@@ -28,25 +33,34 @@ struct FrameInFlight {
     vk::raii::CommandPool command_pool;
     vk::raii::CommandBuffer frame_command_buffer;
 
+    // Holds data about the simulation this frame (camera matrix, time deltas, etc.)
     VulkanBuffer simulation_data_buffer;
-    VulkanBuffer simulation_object_buffer;
-    VulkanBuffer mesh_index_to_buffer_params_table;
+    // Staging buffer for data on mesh parameters to set up draw commands with.
+    VulkanBuffer mesh_allocations_table_staging_buffer;
 
-    uint64_t mesh_index_to_buffer_params_table_generation = 0;
+    // TODO: CPU-based simulation needs its own buffers
+
 };
 
 class VulkanRenderer {
 public:
-    VulkanRenderer(VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
-        VulkanPipelineLayout&& simulation_pipeline_layout, VulkanComputePipeline&& simulation_pipeline, VulkanPipelineLayout&& simulation_clear_pipeline_layout,
-        VulkanComputePipeline&& simulation_clear_pipeline, VulkanBuffer&& simulation_draw_commands_buffer, VulkanBuffer&& simulation_draw_commands_count_buffer,
-        VulkanBuffer&& prepared_simulation_objects_buffer, VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
+    VulkanRenderer(
+        VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
+        VulkanPipelineLayout&& upload_meshes_cs_layout, VulkanComputePipeline&& upload_meshes_cs,
+        VulkanPipelineLayout&& clear_instance_count_cs_layout, VulkanComputePipeline&& clear_instance_count_cs,
+        VulkanPipelineLayout&& simulation_step_cs_layout, VulkanComputePipeline&& simulation_step_cs,
+        VulkanPipelineLayout&& build_indirect_instance_count_cs_layout, VulkanComputePipeline&& build_indirect_instance_count_cs,
+        VulkanPipelineLayout&& build_indirect_first_instance_cs_layout, VulkanComputePipeline&& build_indirect_first_instance_cs,
+        VulkanPipelineLayout&& build_instance_buffer_cs_layout, VulkanComputePipeline&& build_instance_buffer_cs,
+        VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
+        VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
+        VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
         std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    auto render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data) -> RenderResult;
+    auto render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data, float delta_time) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
 private:
@@ -55,15 +69,35 @@ private:
     VulkanPipelineLayout m_triangle_pipeline_layout;
     VulkanGraphicsPipeline m_triangle_pipeline;
 
-    VulkanPipelineLayout m_simulation_pipeline_layout;
-    VulkanComputePipeline m_simulation_pipeline;
+    VulkanPipelineLayout m_upload_meshes_cs_layout;
+    VulkanComputePipeline m_upload_meshes_cs;
 
-    VulkanPipelineLayout m_simulation_clear_pipeline_layout;
-    VulkanComputePipeline m_simulation_clear_pipeline;
+    VulkanPipelineLayout m_clear_instance_count_cs_layout;
+    VulkanComputePipeline m_clear_instance_count_cs;
 
-    VulkanBuffer m_simulation_draw_commands_buffer;
-    VulkanBuffer m_simulation_draw_commands_count_buffer;
-    VulkanBuffer m_prepared_simulation_objects_buffer;
+    VulkanPipelineLayout m_simulation_step_cs_layout;
+    VulkanComputePipeline m_simulation_step_cs;
+
+    VulkanPipelineLayout m_build_indirect_instance_count_cs_layout;
+    VulkanComputePipeline m_build_indirect_instance_count_cs;
+
+    VulkanPipelineLayout m_build_indirect_first_instance_cs_layout;
+    VulkanComputePipeline m_build_indirect_first_instance_cs;
+
+    VulkanPipelineLayout m_build_instance_buffer_cs_layout;
+    VulkanComputePipeline m_build_instance_buffer_cs;
+
+    // Ping-pong buffers for simulation objects data. The simulation step cycles between them.
+    VulkanBuffer m_simulation_objects_buffer_pp1;
+    VulkanBuffer m_simulation_objects_buffer_pp2;
+    SimulationObjectBufferReadWriteDirection m_simulation_objects_buffer_rw_direction = SimulationObjectBufferReadWriteDirection::e1to2;
+    // Holds indirect draw commands.
+    VulkanBuffer m_indirect_draw_commands_buffer;
+    uint64_t m_indirect_draw_commands_mesh_params_generation = 0;
+    // Holds draw-local instance IDs of objects.
+    VulkanBuffer m_drawlocal_instance_ids_buffer;
+    // Holds coalesced instance data.
+    VulkanBuffer m_instance_data_buffer;
 
     // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
 
@@ -72,11 +106,20 @@ private:
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
+    bool gpu_driven_sim_needs_preinit = true;
 
+    auto preinitialize_simulation(Mesh& default_mesh) -> void;
+    auto prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, MeshPool& mesh_pool) -> void;
+    auto clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
     auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void;
+    auto build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame, uint32_t object_count) -> void;
     auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
     auto run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
     auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
+
+    auto swap_simulation_objects_buffer_rw_direction() -> void;
+    auto get_simulation_objects_src_buffer() -> VulkanBuffer&;
+    auto get_simulation_objects_dst_buffer() -> VulkanBuffer&;
 };
 
 }

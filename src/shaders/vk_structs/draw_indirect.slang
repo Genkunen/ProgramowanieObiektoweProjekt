@@ -1,7 +1,7 @@
 namespace vk_structs {
 	struct DrawIndexedIndirectCommand {
 		uint indexCount;
-		uint instanceCount;
+		Atomic<uint> instanceCount;
 		uint firstIndex;
 		int  vertexOffset;
 		uint firstInstance;
