@@ -3,8 +3,6 @@
 namespace pop::shaders {
 
 #ifdef __cplusplus
-#include <array>
-#include <cstdint>
 #include <glm/glm.hpp>
 
 using float2 = glm::vec2;
@@ -43,7 +41,5 @@ struct SimulationData {
     float4x4 projview;
     float delta_time;
 };
-
-static const uint MAX_DRAW_COMMANDS = 32;
 
 }

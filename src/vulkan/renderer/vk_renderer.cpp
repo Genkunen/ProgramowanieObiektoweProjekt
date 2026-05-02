@@ -1,12 +1,14 @@
 #include "vk_renderer.hpp"
 
 #include "pipelines_push_constants.hpp"
+#include "shaders/shared_consts.hpp"
 #include "systems/filesystem.hpp"
 #include "vulkan/spirv_code.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
+#include <bits/os_defines.h>
 #include <imgui.h>
 #include <print>
 #include <random>
@@ -52,6 +54,10 @@ inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
     };
 }
 
+inline uint32_t div_ceil(uint32_t a, uint32_t b) {
+    return (a + b - 1) / b;
+}
+
 // TODO: temporary view
 inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
     // near and far swapped for reverse Z
@@ -65,8 +71,7 @@ inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
 }
 
 // TODO: Temporary limits, add dynamic resizing later
-constexpr uint64_t MAX_SIMULATION_OBJECTS = 100000;
-constexpr uint64_t MAX_DRAW_COMMANDS = 32;
+constexpr uint64_t MAX_SIMULATION_OBJECTS = 250000;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Per-pending-frame Data -----------------------------------------------------------------------------------------------------------------------------
@@ -239,7 +244,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Indirect Draw Buffers ------------------------------------------------------------------------------------------------------------------------------
 
     auto indirect_draw_commands_buffer = VulkanBuffer::builder()
-        .set_size(MAX_DRAW_COMMANDS * sizeof(vk::DrawIndexedIndirectCommand))
+        .set_size(shader_consts::MAX_DRAW_COMMANDS * sizeof(vk::DrawIndexedIndirectCommand))
         .set_usage(vk::BufferUsageFlagBits::eIndirectBuffer | vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
@@ -534,7 +539,7 @@ auto VulkanRenderer::prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& 
     };
 
     cmd.pushConstants<UploadMeshesCSPushConstants>(m_upload_meshes_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
-    cmd.dispatch((mesh_count + 31) / 32, 1, 1);
+    cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_UPLOAD_MESHES_GROUP_SIZE_X), 1, 1);
 }
 
 auto VulkanRenderer::clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void {
@@ -548,7 +553,7 @@ auto VulkanRenderer::clear_indirect_draw_instance_counts(vk::raii::CommandBuffer
     };
 
     cmd.pushConstants<ClearInstanceCountCSPushConstants>(m_clear_instance_count_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
-    cmd.dispatch((mesh_count + 31) / 32, 1, 1);
+    cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_CLEAR_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 }
 
 auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void {
@@ -561,11 +566,9 @@ auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, Fra
         object_count
     };
     cmd.pushConstants<SimulationStepCSPushConstants>(m_simulation_step_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
-    // TODO: DRY it with the shader params later
-    constexpr uint32_t SIMULATION_OBJECTS_PER_GROUP = 32;
 
     cmd.dispatch(
-        (object_count + SIMULATION_OBJECTS_PER_GROUP - 1) / SIMULATION_OBJECTS_PER_GROUP,
+        div_ceil(object_count, shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X),
         1,
         1
     );
@@ -582,7 +585,7 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
         object_count
     };
     cmd.pushConstants<BuildIndirectInstanceCountCSPushConstants>(m_build_indirect_instance_count_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_count_cs_consts);
-    cmd.dispatch((object_count + 31) / 32, 1, 1);
+    cmd.dispatch(div_ceil(object_count, shader_consts::CS_BUILD_INDIRECT_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 
     // Make sure that writes to the indirect draw commands buffer are visible to next dispatch.
     VulkanPipelineBarriers::builder()
@@ -596,12 +599,14 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_build_indirect_first_instance_cs.vk_pipeline());
 
     uint32_t draw_count = static_cast<uint32_t>(mesh_pool.mesh_allocations().size());
+    assert(draw_count <= shader_consts::GPU_WAVE_SIZE && "draw count must be smaller or equal to the GPU wave size");
     BuildIndirectFirstInstanceCSPushConstants first_instance_cs_consts = {
         m_indirect_draw_commands_buffer.memory_device_ptr(),
         draw_count
     };
     cmd.pushConstants<BuildIndirectFirstInstanceCSPushConstants>(m_build_indirect_first_instance_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, first_instance_cs_consts);
-    cmd.dispatch((draw_count + 31) / 32, 1, 1);
+    // 1 group for 1 wave that handles all draw instance prefix sums
+    cmd.dispatch(1, 1, 1);
 
     // Make sure that instance ID writes from the earlier dispatch and the draw command writes from the previous dispatch are visible to the next.
     VulkanPipelineBarriers::builder()
@@ -627,7 +632,7 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
         object_count
     };
     cmd.pushConstants<BuildInstanceBufferCSPushConstants>(m_build_instance_buffer_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_buffer_cs_consts);
-    cmd.dispatch((object_count + 31) / 32, 1, 1);
+    cmd.dispatch(div_ceil(object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
 }
 
 auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void {

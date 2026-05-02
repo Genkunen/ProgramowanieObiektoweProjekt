@@ -1,4 +1,4 @@
-#include "../shared_types.hpp"
+#include "../shared_consts.hpp"
 
 import "../vk_structs/draw_indirect";
 
@@ -12,7 +12,7 @@ struct PushConstants {
 groupshared Atomic<uint> gs_prefix_sum;
 
 [shader("compute")]
-[numthreads(pop::shaders::MAX_DRAW_COMMANDS, 1, 1)]
+[numthreads(pop::shader_consts::CS_BUILD_INDIRECT_FIRST_INSTANCE_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 

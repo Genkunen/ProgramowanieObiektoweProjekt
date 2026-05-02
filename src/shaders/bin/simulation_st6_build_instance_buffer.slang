@@ -1,4 +1,5 @@
 #include "../shared_types.hpp"
+#include "../shared_consts.hpp"
 
 import "../vk_structs/draw_indirect";
 
@@ -26,7 +27,7 @@ float4x4 build_model_matrix(float2 pos, float rotation) {
 }
 
 [shader("compute")]
-[numthreads(32, 1, 1)]
+[numthreads(pop::shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 

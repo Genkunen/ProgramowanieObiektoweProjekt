@@ -1,4 +1,5 @@
 #include "../shared_types.hpp"
+#include "../shared_consts.hpp"
 
 struct PushConstants {
     pop::shaders::SimulationData* simulation_data;
@@ -10,7 +11,7 @@ struct PushConstants {
 [vk::push_constant] PushConstants push_constants;
 
 [shader("compute")]
-[numthreads(32, 1, 1)]
+[numthreads(pop::shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 
