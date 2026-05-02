@@ -71,7 +71,7 @@ inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
 }
 
 // TODO: Temporary limits, add dynamic resizing later
-constexpr uint64_t MAX_SIMULATION_OBJECTS = 250000;
+constexpr uint64_t MAX_SIMULATION_OBJECTS = 2500;
 
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Per-pending-frame Data -----------------------------------------------------------------------------------------------------------------------------
@@ -269,7 +269,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         std::move(main_render_target), std::move(depth_buffer), std::move(frames_in_flight) };
 }
 
-auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data, float delta_time) -> RenderResult {
+auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
     device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
@@ -305,7 +305,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDraw
     if (gpu_driven_sim_needs_preinit) {
         device.waitIdle(); // to avoid hazard with CS reading the buffer, this is rare anyway so it's fine
         gpu_driven_sim_needs_preinit = false;
-        preinitialize_simulation(sample_mesh);
+        preinitialize_simulation(meshes);
     }
 
     // ---- Command recording begin ----------------------------------------------------------------------------------------------------------------------------
@@ -516,10 +516,10 @@ inline glm::vec2 random_ndc() {
     return glm::vec2(dist(gen), dist(gen));
 }
 
-auto VulkanRenderer::preinitialize_simulation(Mesh& default_mesh) -> void {
+auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshes) -> void {
     auto dst_ptr = reinterpret_cast<shaders::SimulationObject*>(get_simulation_objects_src_buffer().memory_host_ptr());
     for (uint32_t i = 0; i < MAX_SIMULATION_OBJECTS; ++i) {
-        dst_ptr[i].mesh_index = default_mesh.allocation_index;
+        dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
         dst_ptr[i].position = random_ndc() * glm::vec2(4.0f, 2.0f);
         dst_ptr[i].velocity = random_ndc();
     }

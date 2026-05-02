@@ -18,12 +18,18 @@ auto sdl_entry_main() -> void {
 
     auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
     auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
-
     auto mesh_pool = pop::vulkan::renderer::MeshPool::create(1048576, 1048576);
-    auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.005f);
 
-    auto sphere_mesh = mesh_pool.allocate(sphere_vertices.size(), sphere_indices.size());
-    mesh_pool.upload_mesh_data(sphere_mesh, sphere_vertices, sphere_indices);
+    std::vector<pop::vulkan::renderer::Mesh> meshes;
+
+    for (int i = 0; i < 10; i++) {
+        auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.008f * (float)i);
+
+        auto sphere_mesh = mesh_pool.allocate(sphere_vertices.size(), sphere_indices.size());
+        mesh_pool.upload_mesh_data(sphere_mesh, sphere_vertices, sphere_indices);
+
+        meshes.push_back(sphere_mesh);
+    }
 
     auto imgui = pop::imgui::ImGuiLayer(window, renderer.swapchain());
 
@@ -57,7 +63,7 @@ auto sdl_entry_main() -> void {
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
 
-        auto render_result = renderer.render_frame(mesh_pool, sphere_mesh, imgui.draw_data(), delta_time);
+        auto render_result = renderer.render_frame(mesh_pool, meshes, imgui.draw_data(), delta_time);
 
         if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
             renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());

@@ -60,7 +60,7 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    auto render_frame(MeshPool& mesh_pool, Mesh& sample_mesh, ImDrawData* draw_data, float delta_time) -> RenderResult;
+    auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
 private:
@@ -108,7 +108,7 @@ private:
     size_t m_current_frame = 0;
     bool gpu_driven_sim_needs_preinit = true;
 
-    auto preinitialize_simulation(Mesh& default_mesh) -> void;
+    auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
     auto prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, MeshPool& mesh_pool) -> void;
     auto clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
     auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void;

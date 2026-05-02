@@ -46,11 +46,9 @@ auto MeshPool::allocate(uint32_t vertex_count, uint32_t index_count) -> Mesh {
     auto vertex_buffer_alloc = m_vertex_buffer_block.allocate(vertex_area_size);
     auto index_buffer_alloc = m_index_buffer_block.allocate(index_area_size);
 
-    // we use the byte offset of the vertex allocation, but the logical offset of the index allocation, this is intentional to more closely match Vulkan
-    // draw-indirect semantics.
     m_mesh_allocations.emplace_back(
         vertex_count, index_count,
-        vertex_buffer_alloc.getInfo().offset, index_buffer_alloc.getInfo().offset / sizeof(uint32_t)
+        vertex_buffer_alloc.getInfo().offset / sizeof(Vertex), index_buffer_alloc.getInfo().offset / sizeof(uint32_t)
     );
 
     m_mesh_allocation_handles.emplace_back(std::move(vertex_buffer_alloc), std::move(index_buffer_alloc));
@@ -63,7 +61,7 @@ auto MeshPool::allocate(uint32_t vertex_count, uint32_t index_count) -> Mesh {
 }
 
 auto MeshPool::upload_mesh_data(Mesh mesh, const std::span<const Vertex>& vertices, const std::span<const uint32_t>& indices) -> void {
-    Vertex* allocation_base_vertex_buffer_ptr = reinterpret_cast<Vertex*>(m_vertex_buffer.memory_host_ptr() + m_mesh_allocations[mesh.allocation_index].vertex_offset);
+    Vertex* allocation_base_vertex_buffer_ptr = reinterpret_cast<Vertex*>(m_vertex_buffer.memory_host_ptr()) + m_mesh_allocations[mesh.allocation_index].vertex_offset;
     uint32_t* allocation_base_index_buffer_ptr = reinterpret_cast<uint32_t*>(m_index_buffer.memory_host_ptr()) + m_mesh_allocations[mesh.allocation_index].first_index;
 
     uint32_t vertex_count = m_mesh_allocations[mesh.allocation_index].vertex_count;
