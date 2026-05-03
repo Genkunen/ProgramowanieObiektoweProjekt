@@ -25,11 +25,7 @@ auto sdl_entry_main() -> void {
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
     for (int i = 0; i < 10; i++) {
-<<<<<<< HEAD
-        auto mesh = mesh_pool.load_mesh("MosquitoInAmber.glb");
-=======
-        auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.006f * static_cast<float>(i + 1));
->>>>>>> refs/remotes/origin/main
+        auto mesh = mesh_pool.load_mesh("../suzanne.glb");
 
         meshes.push_back(mesh);
     }
