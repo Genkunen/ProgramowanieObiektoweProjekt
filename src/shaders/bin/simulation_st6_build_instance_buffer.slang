@@ -4,7 +4,7 @@
 import "../vk_structs/draw_indirect";
 
 struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
+    vk_structs::DrawIndexedIndirectCommandNonatomic* draw_commands;
     uint* draw_instance_indices;
     pop::shaders::SimulationData* simulation_data;
     pop::shaders::SimulationObject* objects;

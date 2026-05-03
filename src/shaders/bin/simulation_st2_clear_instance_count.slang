@@ -3,7 +3,7 @@
 import "../vk_structs/draw_indirect";
 
 struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
+    vk_structs::DrawIndexedIndirectCommandNonatomic* draw_commands;
     uint mesh_count;
 };
 
@@ -16,5 +16,5 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (tid >= pushConstants.mesh_count) return;
 
-    pushConstants.draw_commands[tid].instanceCount.store(0, MemoryOrder.Relaxed);
+    pushConstants.draw_commands[tid].instanceCount = 0;
 }

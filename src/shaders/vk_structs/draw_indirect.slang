@@ -6,4 +6,11 @@ namespace vk_structs {
 		int  vertexOffset;
 		uint firstInstance;
 	};
+	struct DrawIndexedIndirectCommandNonatomic {
+		uint indexCount;
+		uint instanceCount;
+		uint firstIndex;
+		int  vertexOffset;
+		uint firstInstance;
+	};
 }
