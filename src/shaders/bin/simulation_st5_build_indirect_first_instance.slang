@@ -3,7 +3,7 @@
 import "../vk_structs/draw_indirect";
 
 struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
+    vk_structs::DrawIndexedIndirectCommandNonatomic* draw_commands;
     uint draw_commands_count;
 };
 
@@ -22,7 +22,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     GroupMemoryBarrier();
 
-    let instance_count = push_constants.draw_commands[tid].instanceCount.load(MemoryOrder.Relaxed);
+    let instance_count = push_constants.draw_commands[tid].instanceCount;
     let base = gs_prefix_sum.add(instance_count, MemoryOrder.Relaxed);
     push_constants.draw_commands[tid].firstInstance = base;
 }

@@ -1,5 +1,6 @@
 #include "sdl/sdl_lib.hpp"
 #include "sphere_geometry_gen.hpp"
+#include "systems/ktx2_loader.hpp"
 #include "vulkan/renderer/mesh_pool.hpp"
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
@@ -19,11 +20,16 @@ auto sdl_entry_main() -> void {
     auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
     auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
     auto mesh_pool = pop::vulkan::renderer::MeshPool::create(1048576, 1048576);
+    auto ktx2_loader = pop::systems::Ktx2Loader::create();
 
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
     for (int i = 0; i < 10; i++) {
+<<<<<<< HEAD
         auto mesh = mesh_pool.load_mesh("MosquitoInAmber.glb");
+=======
+        auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.006f * static_cast<float>(i + 1));
+>>>>>>> refs/remotes/origin/main
 
         meshes.push_back(mesh);
     }
@@ -31,6 +37,7 @@ auto sdl_entry_main() -> void {
     auto imgui = pop::imgui::ImGuiLayer(window, renderer.swapchain());
 
     bool running = true;
+    static int simulation_object_count = pop::vulkan::renderer::DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT;
     while (running) {
         SDL_Event event;
         bool should_recreate_swapchain = false;
@@ -56,6 +63,22 @@ auto sdl_entry_main() -> void {
         ImGui::Begin("ImGui");
         ImGui::Text("Frame time: %.3f ms (%.1f FPS)", 
                     1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+        ImGui::SetNextItemWidth(120.0f);
+        if (ImGui::InputInt("Object Count", &simulation_object_count)) {
+            if (simulation_object_count < 0) simulation_object_count = 0;
+            if (simulation_object_count > 10000000) simulation_object_count = 10000000;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Apply")) {
+            renderer.reset_simulation_object_count(simulation_object_count);
+        }
+
+        if (simulation_object_count >= 50000) {
+            ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "Warning: Using high-poly meshes with a high object count can degrade performance");
+        }
         ImGui::End();
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
