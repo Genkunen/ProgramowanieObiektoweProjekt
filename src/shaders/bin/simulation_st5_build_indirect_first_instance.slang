@@ -18,9 +18,9 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (tid >= push_constants.draw_commands_count) return;
 
-    if (WaveIsFirstLane()) gs_prefix_sum.store(0, MemoryOrder.Relaxed);
+    if (tid == 0) gs_prefix_sum.store(0, MemoryOrder.Relaxed);
 
-    GroupMemoryBarrier();
+    GroupMemoryBarrierWithGroupSync();
 
     let instance_count = push_constants.draw_commands[tid].instanceCount;
     let base = gs_prefix_sum.add(instance_count, MemoryOrder.Relaxed);
