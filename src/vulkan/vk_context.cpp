@@ -138,6 +138,9 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
         .setDrawIndirectFirstInstance(true)
         .setMultiDrawIndirect(true);
 
+    auto vk11_features = vk::PhysicalDeviceVulkan11Features()
+        .setShaderDrawParameters(true);
+
     auto vk12_features = vk::PhysicalDeviceVulkan12Features()
         .setBufferDeviceAddress(true)
         .setScalarBlockLayout(true);
@@ -157,6 +160,7 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
 
     auto sc = vk::StructureChain{
         device_create_info,
+        vk11_features,
         vk12_features,
         vk13_features,
         vk14_features

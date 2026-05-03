@@ -115,6 +115,8 @@ private:
     bool m_gpu_driven_sim_needs_preinit = true;
     bool m_gpu_driven_sim_needs_refit = false; // initially prefitted to DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT
 
+    std::chrono::time_point<std::chrono::high_resolution_clock> m_start_timepoint = std::chrono::high_resolution_clock::now();
+
     auto refit_simulation_buffers() -> void;
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
 
@@ -122,7 +124,7 @@ private:
     auto clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
     auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame) -> void;
     auto build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void;
-    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
+    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void;
     auto run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
     auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
 

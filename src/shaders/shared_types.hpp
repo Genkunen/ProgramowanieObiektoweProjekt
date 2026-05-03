@@ -28,18 +28,21 @@ struct MeshAllocationData {
 };
 
 struct SimulationObject {
-    uint mesh_index;
     float2 position;
     float2 velocity;
+    uint mesh_index;
+    uint randseed;
 };
 
 struct PreparedSimulationObject {
     float4x4 transform;
+    uint randseed;
 };
 
 struct SimulationData {
     float4x4 projview;
     float delta_time;
+    float simulation_time_since_start;
 };
 
 }

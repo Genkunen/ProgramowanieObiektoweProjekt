@@ -109,7 +109,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Pipelines ------------------------------------------------------------------------------------------------------------------------------------------
 
     auto triangle_pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, 16, vk::ShaderStageFlagBits::eVertex)
+        .add_push_constant_range(0, 24, vk::ShaderStageFlagBits::eVertex)
         .build();
 
     auto triangle_pipeline_shader_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_entity.spv");
@@ -291,9 +291,10 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     // ---- Fill simulation data buffer ------------------------------------------------------------------------------------------------------------------------
 
     float aspect_ratio = static_cast<float>(m_main_render_target.extent().width) / static_cast<float>(m_main_render_target.extent().height);
-    glm::mat4 projview = build_projview({0.0f, 0.0f, 2.0f}, aspect_ratio);
+    glm::mat4 projview = build_projview({0.0f, 0.0f, 20.0f}, aspect_ratio);
+    float time_since_start = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - m_start_timepoint).count();
 
-    shaders::SimulationData simulation_data = shaders::SimulationData{projview, delta_time};
+    shaders::SimulationData simulation_data = shaders::SimulationData{projview, delta_time, time_since_start};
 
     memcpy(frame.simulation_data_buffer.memory_host_ptr(), &simulation_data, sizeof(shaders::SimulationData));
 
@@ -395,7 +396,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         )
         .flush(command_buffer);
     
-    run_main_renderpass(command_buffer, mesh_pool);
+    run_main_renderpass(command_buffer, mesh_pool, frame);
 
     // ---- Transition after main renderpass before ImGui renderpass -------------------------------------------------------------------------------------------
 
@@ -524,6 +525,10 @@ inline glm::vec2 random_ndc() {
     return glm::vec2(dist(gen), dist(gen));
 }
 
+inline uint32_t object_random_seed() {
+    return static_cast<uint32_t>(rand());
+}
+
 auto VulkanRenderer::refit_simulation_buffers() -> void {
     m_simulation_objects_buffer_pp1 = VulkanBuffer::builder()
         .set_size(m_gpu_driven_sim_object_count * sizeof(shaders::SimulationObject))
@@ -556,8 +561,9 @@ auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshe
     auto dst_ptr = reinterpret_cast<shaders::SimulationObject*>(get_simulation_objects_src_buffer().memory_host_ptr());
     for (uint32_t i = 0; i < m_gpu_driven_sim_object_count; ++i) {
         dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
-        dst_ptr[i].position = random_ndc() * glm::vec2(4.0f, 2.0f);
-        dst_ptr[i].velocity = random_ndc();
+        dst_ptr[i].position = random_ndc() * glm::vec2(40.0f, 20.0f);
+        dst_ptr[i].velocity = random_ndc() * 5.0f;
+        dst_ptr[i].randseed = object_random_seed();
     }
 }
 
@@ -670,7 +676,7 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
     cmd.dispatch(div_ceil(m_gpu_driven_sim_object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
 }
 
-auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void {
+auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void {
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(m_main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
@@ -713,11 +719,13 @@ auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool&
     struct PushConstants {
         vk::DeviceAddress vertex_buffer;
         vk::DeviceAddress prepared_simulation_objects;
+        vk::DeviceAddress simulation_data;
     };
 
     PushConstants consts = {
         mesh_pool.vertex_buffer().memory_device_ptr(),
-        m_instance_data_buffer.memory_device_ptr()
+        m_instance_data_buffer.memory_device_ptr(),
+        frame.simulation_data_buffer.memory_device_ptr()
     };
 
     cmd.pushConstants<PushConstants>(m_triangle_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);

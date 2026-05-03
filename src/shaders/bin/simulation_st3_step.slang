@@ -21,10 +21,10 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     object.position += object.velocity * push_constants.simulation_data->delta_time;
 
-    if (object.position.x < -4.0f) { object.position.x = -4.0f; object.velocity.x *= -1.0f; }
-    if (object.position.x >  4.0f) { object.position.x =  4.0f; object.velocity.x *= -1.0f; }
-    if (object.position.y < -2.0f) { object.position.y = -2.0f; object.velocity.y *= -1.0f; }
-    if (object.position.y >  2.0f) { object.position.y =  2.0f; object.velocity.y *= -1.0f; }
+    if (object.position.x < -40.0f) { object.position.x = -40.0f; object.velocity.x *= -1.0f; }
+    if (object.position.x >  40.0f) { object.position.x =  40.0f; object.velocity.x *= -1.0f; }
+    if (object.position.y < -20.0f) { object.position.y = -20.0f; object.velocity.y *= -1.0f; }
+    if (object.position.y >  20.0f) { object.position.y =  20.0f; object.velocity.y *= -1.0f; }
 
     push_constants.dst_updated_objects[tid] = object;
 }
