@@ -20,6 +20,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (WaveIsFirstLane()) gs_prefix_sum.store(0, MemoryOrder.Relaxed);
 
+    GroupMemoryBarrier();
+
     let instance_count = push_constants.draw_commands[tid].instanceCount.load(MemoryOrder.Relaxed);
     let base = gs_prefix_sum.add(instance_count, MemoryOrder.Relaxed);
     push_constants.draw_commands[tid].firstInstance = base;
