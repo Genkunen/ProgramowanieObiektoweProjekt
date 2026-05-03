@@ -272,7 +272,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
-    device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
+    std::ignore = device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
 
     auto swapchain_acquire_result = m_swapchain.vk_swapchain().acquireNextImage(std::numeric_limits<uint64_t>::max(), frame.image_acquired_semaphore, {});
 

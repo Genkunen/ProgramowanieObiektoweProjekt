@@ -62,18 +62,35 @@ ImGuiLayer::ImGuiLayer(const pop::sdl::SdlWindow& window, const pop::vulkan::Vul
         .QueueFamily = context.vk_graphics_queue_family(),
         .Queue = *context.vk_graphics_queue(),
         .DescriptorPool = *m_descriptor_pool,
+        .DescriptorPoolSize = {},
         .MinImageCount = swapchain_image_count,
         .ImageCount = swapchain_image_count,
+        .PipelineCache = {},
+
         .PipelineInfoMain = {
+            .RenderPass = {},
             .Subpass = 0,
             .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+            .ExtraDynamicStates = {},
             .PipelineRenderingCreateInfo = {
                 .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+                .pNext = {},
+                .viewMask = {},
                 .colorAttachmentCount = 1,
                 .pColorAttachmentFormats = &color_format,
-            }
+                .depthAttachmentFormat = {},
+                .stencilAttachmentFormat = {},
+            },
         },
+
         .UseDynamicRendering = true,
+
+        .Allocator = {},
+        .CheckVkResultFn = {},
+        .MinAllocationSize = {},
+
+        .CustomShaderVertCreateInfo = {},
+        .CustomShaderFragCreateInfo = {},
     };
 
     ImGui_ImplVulkan_Init(&ii);
