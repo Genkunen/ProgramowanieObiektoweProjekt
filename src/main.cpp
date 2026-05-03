@@ -1,5 +1,6 @@
 #include "sdl/sdl_lib.hpp"
 #include "sphere_geometry_gen.hpp"
+#include "systems/ktx2_loader.hpp"
 #include "vulkan/renderer/mesh_pool.hpp"
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
@@ -19,6 +20,7 @@ auto sdl_entry_main() -> void {
     auto swapchain = pop::vulkan::VulkanSwapchain::create(window.vulkan_window_drawable_extent(), std::nullopt, true);
     auto renderer = pop::vulkan::renderer::VulkanRenderer::create(std::move(swapchain));
     auto mesh_pool = pop::vulkan::renderer::MeshPool::create(1048576, 1048576);
+    auto ktx2_loader = pop::systems::Ktx2Loader::create();
 
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
