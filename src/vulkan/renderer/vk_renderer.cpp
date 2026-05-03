@@ -70,9 +70,6 @@ inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
     return proj * view;
 }
 
-// TODO: Temporary limits, add dynamic resizing later
-constexpr uint64_t MAX_SIMULATION_OBJECTS = 2500;
-
 auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Per-pending-frame Data -----------------------------------------------------------------------------------------------------------------------------
 
@@ -228,14 +225,14 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     // ---- Simulation Data Buffers ----------------------------------------------------------------------------------------------------------------------------
 
     auto simulation_objects_buffer_pp1 = VulkanBuffer::builder()
-        .set_size(MAX_SIMULATION_OBJECTS * sizeof(shaders::SimulationObject))
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(shaders::SimulationObject))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .map_for_sequential_write()
         .build();
 
     auto simulation_objects_buffer_pp2 = VulkanBuffer::builder()
-        .set_size(MAX_SIMULATION_OBJECTS * sizeof(shaders::SimulationObject))
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(shaders::SimulationObject))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .map_for_sequential_write()
@@ -250,13 +247,13 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .build();
 
     auto drawlocal_instance_ids_buffer = VulkanBuffer::builder()
-        .set_size(MAX_SIMULATION_OBJECTS * sizeof(uint32_t))
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(uint32_t))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
 
     auto instance_data_buffer = VulkanBuffer::builder()
-        .set_size(MAX_SIMULATION_OBJECTS * sizeof(shaders::PreparedSimulationObject))
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(shaders::PreparedSimulationObject))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
@@ -300,11 +297,17 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
 
     memcpy(frame.simulation_data_buffer.memory_host_ptr(), &simulation_data, sizeof(shaders::SimulationData));
 
-    // ---- Preinitialize simulation if needeed ----------------------------------------------------------------------------------------------------------------
+    // ---- Preinitialize and/or refit simulation if needeed ---------------------------------------------------------------------------------------------------
 
-    if (gpu_driven_sim_needs_preinit) {
-        device.waitIdle(); // to avoid hazard with CS reading the buffer, this is rare anyway so it's fine
-        gpu_driven_sim_needs_preinit = false;
+    if (m_gpu_driven_sim_needs_refit || m_gpu_driven_sim_needs_preinit) device.waitIdle(); // to avoid hazard with CS reading the buffer, this is rare anyway so it's fine
+
+    if (m_gpu_driven_sim_needs_refit) {
+        m_gpu_driven_sim_needs_refit = false;
+        refit_simulation_buffers();
+    }
+
+    if (m_gpu_driven_sim_needs_preinit) {
+        m_gpu_driven_sim_needs_preinit = false;
         preinitialize_simulation(meshes);
     }
 
@@ -349,7 +352,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         )
         .flush(command_buffer);
 
-    run_gpgpu_simulation_step(command_buffer, frame, MAX_SIMULATION_OBJECTS);
+    run_gpgpu_simulation_step(command_buffer, frame);
 
     // ---- Build indirect draw buffers ------------------------------------------------------------------------------------------------------------------------
 
@@ -364,7 +367,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         )
         .flush(command_buffer);
 
-    build_indirect_draw_buffers(command_buffer, mesh_pool, frame, MAX_SIMULATION_OBJECTS);
+    build_indirect_draw_buffers(command_buffer, mesh_pool, frame);
 
     // ---- Transition before main renderpass ------------------------------------------------------------------------------------------------------------------
     
@@ -506,6 +509,11 @@ auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent)
 auto VulkanRenderer::swapchain() const -> const VulkanSwapchain& {
     return m_swapchain;
 }
+auto VulkanRenderer::reset_simulation_object_count(uint32_t new_count) -> void {
+    m_gpu_driven_sim_object_count = new_count;
+    m_gpu_driven_sim_needs_preinit = true;
+    m_gpu_driven_sim_needs_refit = true;
+}
 
 // TODO: remove or move somewhere else later
 inline glm::vec2 random_ndc() {
@@ -516,14 +524,41 @@ inline glm::vec2 random_ndc() {
     return glm::vec2(dist(gen), dist(gen));
 }
 
+auto VulkanRenderer::refit_simulation_buffers() -> void {
+    m_simulation_objects_buffer_pp1 = VulkanBuffer::builder()
+        .set_size(m_gpu_driven_sim_object_count * sizeof(shaders::SimulationObject))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .map_for_sequential_write()
+        .build();
+
+    m_simulation_objects_buffer_pp2 = VulkanBuffer::builder()
+        .set_size(m_gpu_driven_sim_object_count * sizeof(shaders::SimulationObject))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .map_for_sequential_write()
+        .build();
+
+    m_drawlocal_instance_ids_buffer = VulkanBuffer::builder()
+        .set_size(m_gpu_driven_sim_object_count * sizeof(uint32_t))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .build();
+
+    m_instance_data_buffer = VulkanBuffer::builder()
+        .set_size(m_gpu_driven_sim_object_count * sizeof(shaders::PreparedSimulationObject))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .build();
+}
+
 auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshes) -> void {
     auto dst_ptr = reinterpret_cast<shaders::SimulationObject*>(get_simulation_objects_src_buffer().memory_host_ptr());
-    for (uint32_t i = 0; i < MAX_SIMULATION_OBJECTS; ++i) {
+    for (uint32_t i = 0; i < m_gpu_driven_sim_object_count; ++i) {
         dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
         dst_ptr[i].position = random_ndc() * glm::vec2(4.0f, 2.0f);
         dst_ptr[i].velocity = random_ndc();
     }
-    std::println("Preinitialized simulation");
 }
 
 auto VulkanRenderer::prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, MeshPool& mesh_pool) -> void {
@@ -556,25 +591,25 @@ auto VulkanRenderer::clear_indirect_draw_instance_counts(vk::raii::CommandBuffer
     cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_CLEAR_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 }
 
-auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void {
+auto VulkanRenderer::run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame) -> void {
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_simulation_step_cs.vk_pipeline());
 
     SimulationStepCSPushConstants consts = {
         frame.simulation_data_buffer.memory_device_ptr(),
         get_simulation_objects_src_buffer().memory_device_ptr(),
         get_simulation_objects_dst_buffer().memory_device_ptr(),
-        object_count
+        m_gpu_driven_sim_object_count
     };
     cmd.pushConstants<SimulationStepCSPushConstants>(m_simulation_step_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
 
     cmd.dispatch(
-        div_ceil(object_count, shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X),
+        div_ceil(m_gpu_driven_sim_object_count, shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X),
         1,
         1
     );
 }
 
-auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame, uint32_t object_count) -> void {
+auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void {
     // Build instance counts first.
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_build_indirect_instance_count_cs.vk_pipeline());
 
@@ -582,10 +617,10 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
         m_indirect_draw_commands_buffer.memory_device_ptr(),
         m_drawlocal_instance_ids_buffer.memory_device_ptr(),
         get_simulation_objects_dst_buffer().memory_device_ptr(),
-        object_count
+        m_gpu_driven_sim_object_count
     };
     cmd.pushConstants<BuildIndirectInstanceCountCSPushConstants>(m_build_indirect_instance_count_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_count_cs_consts);
-    cmd.dispatch(div_ceil(object_count, shader_consts::CS_BUILD_INDIRECT_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
+    cmd.dispatch(div_ceil(m_gpu_driven_sim_object_count, shader_consts::CS_BUILD_INDIRECT_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 
     // Make sure that writes to the indirect draw commands buffer are visible to next dispatch.
     VulkanPipelineBarriers::builder()
@@ -629,10 +664,10 @@ auto VulkanRenderer::build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, M
         frame.simulation_data_buffer.memory_device_ptr(),
         get_simulation_objects_dst_buffer().memory_device_ptr(),
         m_instance_data_buffer.memory_device_ptr(),
-        object_count
+        m_gpu_driven_sim_object_count
     };
     cmd.pushConstants<BuildInstanceBufferCSPushConstants>(m_build_instance_buffer_cs_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_buffer_cs_consts);
-    cmd.dispatch(div_ceil(object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
+    cmd.dispatch(div_ceil(m_gpu_driven_sim_object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
 }
 
 auto VulkanRenderer::run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void {

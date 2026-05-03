@@ -14,6 +14,7 @@ struct ImDrawData;
 namespace pop::vulkan::renderer {
 
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
+constexpr uint64_t DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT = 1000;
 
 enum class RenderResult {
     Ok,
@@ -63,6 +64,9 @@ public:
     auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
+
+    auto reset_simulation_object_count(uint32_t new_count) -> void;
+
 private:
     VulkanSwapchain m_swapchain;
 
@@ -106,13 +110,18 @@ private:
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
-    bool gpu_driven_sim_needs_preinit = true;
 
+    uint32_t m_gpu_driven_sim_object_count = DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT;
+    bool m_gpu_driven_sim_needs_preinit = true;
+    bool m_gpu_driven_sim_needs_refit = false; // initially prefitted to DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT
+
+    auto refit_simulation_buffers() -> void;
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
+
     auto prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, MeshPool& mesh_pool) -> void;
     auto clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
-    auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, uint32_t object_count) -> void;
-    auto build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame, uint32_t object_count) -> void;
+    auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame) -> void;
+    auto build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void;
     auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
     auto run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
     auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
