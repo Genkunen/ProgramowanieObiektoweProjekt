@@ -18,11 +18,15 @@ float4x4 build_model_matrix(float2 pos, float rotation) {
     float sz = sin(rotation);
     float cz = cos(rotation);
 
+    float scale_x = 0.03;
+    float scale_y = 0.03;
+    float scale_z = 0.03;
+
     return float4x4(
-        cz,    -sz,   0.0, pos.x,
-        sz,    cz,    0.0, pos.y,
-        0.0,   0.0,   1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
+        scale_x * cz,    scale_y * -sz,   0.0,     pos.x,
+        scale_x * sz,    scale_y * cz,    0.0,     pos.y,
+        0.0,             0.0,             scale_z, 0.0,
+        0.0,             0.0,             0.0,     1.0
     );
 }
 

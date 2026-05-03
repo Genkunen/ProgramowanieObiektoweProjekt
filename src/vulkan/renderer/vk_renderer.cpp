@@ -120,7 +120,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .add_shader(triangle_pipeline_shader_code, vk::ShaderStageFlagBits::eFragment)
         .set_input_topology(vk::PrimitiveTopology::eTriangleList)
         .set_rasterizer_polygon_mode(vk::PolygonMode::eFill)
-        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eBack, vk::FrontFace::eCounterClockwise)
+        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eFront, vk::FrontFace::eCounterClockwise)
         .set_rasterizer_line_width(1.0f)
         .disable_multisampling()
         .enable_depth_test(true)
