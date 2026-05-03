@@ -173,10 +173,8 @@ void PersistentSettings::parse_buffer() {
         }
         line.remove_prefix(start);
        
-        bool is_const{};
         if (line[start] == '%') {
             line.remove_prefix(1);
-            is_const = true;
         }
 
         auto eq = line.find_first_of("=");

@@ -21,7 +21,6 @@ public:
 
 protected:
     std::string m_key;
-    bool is_const{};
 };
 
 class SettingNumber final : public Setting {

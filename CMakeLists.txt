@@ -3,6 +3,9 @@ include(FetchContent)
 project(ProgramowanieObiektoweProjekt VERSION 0.1.0 LANGUAGES CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+if (CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-fdiagnostics-color=always)
+endif()
 
 # ---- C/C++ Settings --------------------------------------------------------------------------------------------------
 
@@ -157,6 +160,9 @@ target_compile_definitions(
 
 target_compile_options(
         ProgramowanieObiektoweProjekt PRIVATE
+        -Wall
+        -Wextra
+        -Wpedantic
         -Werror=return-type
 )
 
