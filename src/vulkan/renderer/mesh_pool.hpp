@@ -3,6 +3,8 @@
 #include "shaders/shared_types.hpp"
 #include "vulkan/vk_buffer.hpp"
 
+#include <filesystem>
+
 namespace pop::vulkan::renderer {
 
 class MeshPool {
@@ -16,6 +18,7 @@ public:
     [[nodiscard]] auto mesh_allocations() const -> const std::vector<shaders::MeshAllocationData>& { return m_mesh_allocations; }
     [[nodiscard]] auto mesh_allocations_table_generation() const -> uint64_t { return m_mesh_allocations_table_generation; }
 
+    [[nodiscard]] auto load_mesh(std::filesystem::path filename) -> Mesh;
 
     [[nodiscard]] auto allocate(uint32_t vertex_count, uint32_t index_count) -> Mesh;
     auto upload_mesh_data(Mesh mesh, const std::span<const Vertex>& vertices, const std::span<const uint32_t>& indices) -> void;

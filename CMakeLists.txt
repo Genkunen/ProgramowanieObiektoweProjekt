@@ -50,6 +50,7 @@ FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/ocornut/imgui.git
     GIT_TAG        v1.92.7
+    SYSTEM
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -70,6 +71,16 @@ target_include_directories(imgui PUBLIC
 
 target_compile_definitions(imgui PRIVATE IMGUI_IMPL_VULKAN_NO_PROTOTYPES)
 target_link_libraries(imgui PRIVATE SDL3::SDL3 Vulkan::Headers)
+
+FetchContent_Declare(
+    tinygltf
+    GIT_REPOSITORY https://github.com/syoyo/tinygltf.git
+    GIT_TAG        v3.0.0
+    SYSTEM
+)
+set(TINYGLTF_BUILD_LOADER_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(TINYGLTF_HEADER_ONLY ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(tinygltf)
 
 # ---- Slang Setup -----------------------------------------------------------------------------------------------------
 
@@ -149,6 +160,7 @@ target_link_libraries(
         xxhash
         imgui
         glm::glm
+        tinygltf
 )
 
 target_compile_definitions(

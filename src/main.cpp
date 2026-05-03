@@ -23,12 +23,9 @@ auto sdl_entry_main() -> void {
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
     for (int i = 0; i < 10; i++) {
-        auto [sphere_vertices, sphere_indices] = make_sphere_mesh_data(16, 16, 0.008f * (float)i);
+        auto mesh = mesh_pool.load_mesh("MosquitoInAmber.glb");
 
-        auto sphere_mesh = mesh_pool.allocate(sphere_vertices.size(), sphere_indices.size());
-        mesh_pool.upload_mesh_data(sphere_mesh, sphere_vertices, sphere_indices);
-
-        meshes.push_back(sphere_mesh);
+        meshes.push_back(mesh);
     }
 
     auto imgui = pop::imgui::ImGuiLayer(window, renderer.swapchain());

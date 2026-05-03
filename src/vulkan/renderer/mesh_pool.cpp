@@ -2,6 +2,8 @@
 
 #include "mesh.hpp"
 
+#include <print>
+
 namespace pop::vulkan::renderer {
 
 MeshPool::MeshPool(VulkanBuffer&& vertex_buffer, VulkanBuffer&& index_buffer, vma::raii::VirtualBlock&& vertex_buffer_block,
@@ -37,6 +39,26 @@ auto MeshPool::create(uint32_t max_vertices, uint32_t max_indices) -> MeshPool {
     auto index_buffer_block = vma::raii::createVirtualBlock(index_buffer_block_create_info);
 
     return MeshPool(std::move(vertex_buffer), std::move(index_buffer), std::move(vertex_buffer_block), std::move(index_buffer_block));
+}
+
+auto MeshPool::load_mesh(std::filesystem::path filename) -> Mesh {
+    const std::string ext = filename.extension();
+    std::println("{}", ext);
+    std::vector<Vertex> vertices;
+    std::vector<uint32_t> indices;
+
+    if (ext == ".glb" || ext == ".gltf") {
+        std::tie(vertices, indices) = load_mesh_data_gltf(filename);
+    }
+    else {
+        // std::println(stderr, "Not supported extension");
+        throw std::runtime_error{ "Not supported extension" };
+    }
+
+    auto mesh = allocate(vertices.size(), indices.size());
+    upload_mesh_data(mesh, vertices, indices);
+
+    return mesh; 
 }
 
 auto MeshPool::allocate(uint32_t vertex_count, uint32_t index_count) -> Mesh {
