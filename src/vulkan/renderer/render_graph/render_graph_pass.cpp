@@ -1,5 +1,4 @@
 #include "render_graph_pass.hpp"
-#pragma once
 
 namespace pop::vulkan::renderer::render_graph {
 
