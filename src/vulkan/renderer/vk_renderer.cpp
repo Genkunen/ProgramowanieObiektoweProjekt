@@ -7,9 +7,10 @@
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_pipeline_barriers.hpp"
 
-#include <backends/imgui_impl_vulkan.h>
+#include "simulation_render_graph_passes.hpp"
 #include <bits/os_defines.h>
 #include <imgui.h>
+#include <backends/imgui_impl_vulkan.h>
 #include <print>
 #include <random>
 
@@ -44,18 +45,6 @@ VulkanRenderer::VulkanRenderer(
 
 VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
-}
-
-inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
-    return vk::Offset3D{
-        static_cast<int32_t>(extent.width),
-        static_cast<int32_t>(extent.height),
-        static_cast<int32_t>(extent.depth)
-    };
-}
-
-inline uint32_t div_ceil(uint32_t a, uint32_t b) {
-    return (a + b - 1) / b;
 }
 
 // TODO: temporary view

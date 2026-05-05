@@ -1,10 +1,10 @@
 #pragma once
-#include "../../../cmake-build-debug/_deps/imgui-src/imgui.h"
 #include "mesh_pool.hpp"
 #include "vulkan/renderer/render_graph/render_graph_pass.hpp"
 #include "vulkan/vk_compute_pipeline.hpp"
 #include "vulkan/vk_pipeline_layout.hpp"
 #include "vulkan/vk_swapchain.hpp"
+#include <imgui.h>
 
 namespace pop::vulkan::renderer {
 
