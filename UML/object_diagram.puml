@@ -1,0 +1,41 @@
+@startuml
+!theme black-knight
+
+object "window : pop::sdl::SdlWindow" as window {
+  title = "ProgramowanieObiektoweProjekt"
+  width = 1920
+  height = 1080
+}
+
+object "vulkan_context : pop::vulkan::VulkanContext" as context
+
+object "swapchain : pop::vulkan::VulkanSwapchain" as swapchain {
+  vsync = true
+}
+
+object "renderer : pop::vulkan::renderer::VulkanRenderer" as renderer
+
+object "mesh_pool : pop::vulkan::renderer::MeshPool" as mesh_pool {
+  vertex_buffer_size = 1048576 (magic value)
+  index_buffer_size = 1048576  (magic value)
+}
+
+object "ktx2_loader : pop::systems::Ktx2Loader" as ktx2_loader
+
+object "imgui : pop::imgui::ImGuiLayer" as imgui {
+  simulation_object_count = 10000 (default)
+}
+
+object "mesh : pop::vulkan::renderer::Mesh" as mesh {
+  path = "../fih.glb"
+}
+
+window <.. context : uses window for surface creation
+window <.. swapchain : needs window size
+swapchain --* renderer : lifetime transfer
+
+window <-- imgui : uses handles
+swapchain <-- imgui : uses frames
+
+mesh_pool --> mesh : allocation from file
+@enduml
