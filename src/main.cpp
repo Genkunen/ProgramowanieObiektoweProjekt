@@ -25,7 +25,7 @@ auto sdl_entry_main() -> void {
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
     for (int i = 0; i < 10; i++) {
-        auto mesh = mesh_pool.load_mesh("../suzanne.glb");
+        auto mesh = mesh_pool.load_mesh("../fih.glb");
 
         meshes.push_back(mesh);
     }
