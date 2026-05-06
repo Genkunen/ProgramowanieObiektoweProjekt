@@ -3,7 +3,8 @@
 !src/
 !src/**
 !UML/
-!UML**
+!UML/**
+UML/**/.uml_tmp/
 !collaboration/
 !collaboration/**
 

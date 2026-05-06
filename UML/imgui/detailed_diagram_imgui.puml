@@ -1,0 +1,40 @@
+@startuml
+!theme black-knight
+
+allowmixing
+
+namespace pop {
+
+    namespace imgui {
+        class "ImGuiLayer" as ImGuiLayer {
+            + ImGuiLayer(const pop::sdl::SdlWindow& window, const pop::vulkan::VulkanSwapchain& swapchain)
+                + ~ImGuiLayer()
+
+                + ImGuiLayer(const ImGuiLayer&) = delete
+                + ImGuiLayer(ImGuiLayer&&) = delete
+                + ImGuiLayer& operator=(const ImGuiLayer&) = delete
+                + ImGuiLayer& operator=(ImGuiLayer&&) = delete
+
+                + {static} auto create(const pop::sdl::SdlWindow& window, const pop::vulkan::VulkanSwapchain& swapchain) -> ImGuiLayer
+                + void begin_frame()
+                + auto draw_data() -> ImDrawData*
+                + void shutdown()
+
+                - vk::raii::DescriptorPool m_descriptor_pool
+                - auto create_descriptor_pool() -> vk::raii::DescriptorPool
+        }
+    }
+
+    namespace vulkan {
+        file "vk_swapchain.hpp" as vk_swapchain
+    }
+
+    namespace sdl {
+        file "sdl_window.hpp" as sdl_window
+    }
+
+    imgui -> sdl_window
+    imgui --> vk_swapchain
+}
+
+@enduml

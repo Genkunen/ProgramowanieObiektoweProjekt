@@ -1,0 +1,104 @@
+@startuml
+!theme black-knight
+allowmixing
+
+skinparam linetype ortho
+
+namespace pop {
+
+    namespace vulkan {
+        file "spirv_code.hpp" as spirv_code
+            file "vk_buffer.hpp" as vk_buffer
+            file "vk_compute_pipeline.hpp" as vk_compute_pipeline
+            file "vk_context.hpp" as vk_context
+            file "vk_graphics_pipeline.hpp" as vk_graphics_pipeline 
+            file "vk_image.hpp" as vk_image 
+            file "vk_pipeline_barriers.hpp" as vk_pipeline_barriers
+            file "vk_pipeline_layout.hpp" as vk_pipeline_layout 
+            file "vk_prelude.hpp" as vk_prelude
+            file "vk_swapchain.hpp" as vk_swapchain
+    }
+
+    namespace vulkan::renderer {
+        file "mesh.hpp" as mesh
+            file "mesh_pool.hpp" as mesh_pool
+            file "pipelines_push_constants.hpp" as pipelines_push_constants
+            file "simulation_render_graph_passes.hpp" as simulation_render_graph_passes
+            file "vk_renderer.hpp" as renderer
+    }
+
+    namespace vulkan::renderer::render_graph {
+        file "execution_plan.hpp" as execution_plan
+            file "render_graph.hpp" as render_graph
+            file "render_graph_pass.hpp" as render_graph_pass
+            file "render_graph_pass_resources.hpp" as render_graph_pass_resources
+    }
+
+''''''''''''''''''''''''''''''
+
+spirv_code --> vk_prelude
+
+vk_buffer --> vk_prelude
+vk_buffer --> vk_context
+
+vk_compute_pipeline --> spirv_code
+vk_compute_pipeline --> vk_pipeline_layout
+
+vk_context --> vk_prelude
+
+vk_graphics_pipeline --> vk_pipeline_layout
+vk_graphics_pipeline --> spirv_code
+
+vk_image --> vk_context
+vk_image --> vk_prelude
+
+vk_pipeline_barriers --> vk_prelude
+
+vk_pipeline_layout --> vk_prelude
+vk_pipeline_layout --> vk_context
+
+vk_swapchain --> vk_prelude
+
+''''''''''''''''''''''''''''''
+
+mesh_pool -> vk_buffer
+
+pipelines_push_constants -> vk_prelude
+
+simulation_render_graph_passes --> render_graph_pass 
+simulation_render_graph_passes --> mesh_pool 
+simulation_render_graph_passes --> vk_pipeline_layout 
+simulation_render_graph_passes --> vk_compute_pipeline 
+simulation_render_graph_passes --> vk_swapchain 
+
+vk_renderer -> mesh_pool
+vk_renderer -> vk_buffer
+vk_renderer -> vk_compute_pipeline 
+vk_renderer -> vk_graphics_pipeline 
+vk_renderer -> vk_image
+vk_renderer -> vk_pipeline_layout 
+vk_renderer -> vk_prelude 
+vk_renderer -> vk_swapchain 
+
+''''''''''''''''''''''''''''''
+
+execution_plan --> render_graph_pass 
+execution_plan --> render_graph_pass_resources 
+execution_plan --> simulation_render_graph_passes
+
+render_graph --> render_graph_pass 
+render_graph ---> render_graph_pass_resources 
+render_graph --> vk_prelude 
+
+render_graph_pass --> vk_buffer
+render_graph_pass --> render_graph_pass_resources
+
+simulation_render_graph_passes -> vk_buffer
+simulation_render_graph_passes -> vk_image
+
+''''''''''''''''''''''''''''''
+
+}
+
+
+@enduml
