@@ -1,0 +1,113 @@
+@startuml
+!theme black-knight
+
+skinparam linetype ortho
+
+allowmixing
+
+namespace pop {
+
+    namespace vulkan {
+        file "vk_image.hpp" as vk_image
+        file "vk_pipeline_barriers.hpp" as vk_pipeline_barriers
+        file "vk_buffer.hpp" as vk_buffer
+    }
+
+    namespace systems {
+        class "relative_path" as relative_path {
+===
+            + {static} inline auto operator()() -> std::filesystem::path
+===
+        }
+
+        class "KTX2Loader" as KTX2Loader {
+===
+            + Ktx2Loader(vk::raii::CommandPool&& upload_cmd_pool)
+
+            + {static} auto create() -> Ktx2Loader
+            + auto load_to_vulkan_image(const std::filesystem::path& path) -> vulkan::VulkanImage
+
+            -vk::raii::CommandPool m_upload_cmd_pool
+===
+        }
+
+        class "Setting" as Setting {
+===
+            + explicit Setting(std::string key)
+            + {abstract} virtual ~Setting()
+
+            + {abstract} virtual auto value() const -> std::string = 0
+            + {abstract} virtual auto clone() const -> std::unique_ptr<Setting> = 0
+
+            + auto key() const -> const std::string&
+            + auto to_string() const -> std::string
+
+            - std::string m_key
+===
+        }
+
+        class "SettingNumber" as SettingNumber {
+===
+            + explicit SettingNumber(std::string key, float value = 0)
+
+            + auto value() const -> std::string override final
+            + void set_value(float v)
+
+            + auto clone() const -> std::unique_ptr<Setting> override final
+
+            - float m_value
+===
+        }
+
+        class "SettingString" as SettingString {
+===
+            + explicit SettingString(std::string key, std::string value = "")
+
+            + auto value() const -> std::string override final
+            + void set_value(std::string v)
+
+            + auto clone() const -> std::unique_ptr<Setting> override final
+
+            - std::string m_value
+===
+        }
+
+
+        class "PersistentSettings" as PersistentSettings {
+===
+            +PersistentSettings() = delete
+
+            +{static} std::filesystem::path file_path
+
+            +{static} void amend(std::string key, float value)
+            +{static} void amend(std::string key, std::string value)
+            +{static} void amend(const Setting& setting)
+
+            +{static} void save()
+            +{static} void load()
+            +{static} void reload()
+
+            + {static} auto get(const std::string& key) -> Setting*
+
+            - {static} void parse_buffer()
+
+            - {static} constexpr auto whitespace
+
+            - {static} std::vector<std::unique_ptr<Setting>> settings
+            - {static} std::string buffer
+===
+        }
+    }
+
+    KTX2Loader -> vk_image
+    KTX2Loader -> vk_buffer
+    KTX2Loader -> vk_pipeline_barriers
+
+    Setting <|-- SettingNumber
+    Setting <|-- SettingString
+
+    PersistentSettings --> Setting
+    PersistentSettings -> relative_path
+}
+
+@enduml
