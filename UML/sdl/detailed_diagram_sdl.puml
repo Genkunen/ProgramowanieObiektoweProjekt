@@ -1,0 +1,36 @@
+@startuml
+!theme black-knight
+skinparam linetype ortho
+
+allowmixing
+
+namespace pop {
+
+    namespace sdl {
+        file "sdl_lib.hpp" as sdl_lib
+        
+        class "SdlWindow" as SdlWindow {
+            + SdlWindow(const std::string& title, uint32_t width, uint32_t height)
+            + ~SdlWindow()
+
+            + SdlWindow(const SdlWindow&) = delete
+            + SdlWindow(SdlWindow&&) = default
+            + SdlWindow& operator=(const SdlWindow&) = delete
+            + SdlWindow& operator=(SdlWindow&&) = default
+
+            + auto vulkan_create_raw_surface(vk::Instance instance) const -> vk::SurfaceKHR
+            + auto vulkan_window_drawable_extent() const -> vk::Extent2D
+            + auto get() const -> SDL_Window*
+
+            - SDL_Window* m_window
+        }
+    }
+
+    namespace vulkan {
+        file "vk_prelude.hpp" as vk_prelude
+    }
+
+    SdlWindow -> vk_prelude
+}
+
+@enduml
