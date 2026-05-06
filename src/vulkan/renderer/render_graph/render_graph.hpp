@@ -96,11 +96,13 @@ public:
             auto pass_index = PassIndex{ .id = i };
             if (m_barrier_params.contains(pass_index)) {
                 auto& barrier_params = m_barrier_params[pass_index];
-                auto dependency_info = vk::DependencyInfo{}
-                .setBufferMemoryBarriers(barrier_params.buffer_barriers)
-                .setImageMemoryBarriers(barrier_params.image_barriers);
+                if (!(barrier_params.buffer_barriers.empty() && barrier_params.image_barriers.empty())) {
+                    auto dependency_info = vk::DependencyInfo{}
+                        .setBufferMemoryBarriers(barrier_params.buffer_barriers)
+                        .setImageMemoryBarriers(barrier_params.image_barriers);
 
-                cmd.pipelineBarrier2(dependency_info);
+                    cmd.pipelineBarrier2(dependency_info);
+                }
             }
 
             if (pass->is_enabled()) {
