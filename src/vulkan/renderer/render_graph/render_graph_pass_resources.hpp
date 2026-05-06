@@ -31,6 +31,9 @@ public:
     auto inject_buffer(BufferResourceIdentifier identifier, VulkanBuffer&& buffer) -> void;
     auto inject_image(ImageResourceIdentifier identifier, VulkanImage&& image) -> void;
 
+    auto all_buffers() const -> const std::unordered_map<BufferResourceIdentifier, VulkanBuffer>& { return m_buffers; }
+    auto all_images() const -> const std::unordered_map<ImageResourceIdentifier, VulkanImage>& { return m_images; }
+
     auto get_buffer_by_identifier(BufferResourceIdentifier identifier) const -> const VulkanBuffer&;
     auto get_image_by_identifier(ImageResourceIdentifier identifier) const -> const VulkanImage&;
 
