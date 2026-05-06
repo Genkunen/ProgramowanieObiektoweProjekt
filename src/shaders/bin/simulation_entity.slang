@@ -11,6 +11,7 @@ struct PushConstants {
 struct VSOutput {
     float4 position : SV_Position;
     float3 color : COLOR;
+    nointerpolation uint randseed;
 };
 
 float3 fish_displace_model_vertices(float3 pos, uint seed) {
@@ -31,10 +32,22 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanIn
     VSOutput output;
     output.position = mul(object_data.transform, float4(position, 1.0));
     output.color = vertex.normal;
+    output.randseed = push_constants.object_data[instance_id].randseed;
     return output;
+}
+
+float3 generate(uint3 x) {
+    uint3 prec = x * 747796405u + 2891336453u;
+
+    float3 precf = prec / 4294967296.0f;
+    return precf;
 }
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-    return float4(input.color, 1.0);
+
+    uint3 seed = uint3(input.randseed, input.randseed >> 4, input.randseed >> 9);
+    float3 col = 0.25 * input.color + 0.75 * generate(seed);
+
+    return float4(col, 1.0);
 }
