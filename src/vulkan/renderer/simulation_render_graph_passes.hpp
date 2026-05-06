@@ -22,10 +22,9 @@ inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
 
 struct SimulationRenderState {
     std::reference_wrapper<MeshPool> mesh_pool;
-    std::reference_wrapper<VulkanSwapchainImage> current_swapchain_image;
+    std::reference_wrapper<const VulkanSwapchainImage> current_swapchain_image;
     uint32_t object_count;
     ImDrawData* imgui_draw_data;
-
 };
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
@@ -37,6 +36,9 @@ public:
     static auto create() -> UploadMeshInfoPass;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+    UploadMeshInfoPass(UploadMeshInfoPass&& other) = default;
+
 
 private:
     VulkanPipelineLayout m_pipeline_layout;

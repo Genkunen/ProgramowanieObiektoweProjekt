@@ -9,7 +9,7 @@
 #include <limits.h>
 #endif
 
-namespace pop::filesystem {
+namespace pop::systems {
 
 inline constexpr class {
 public:

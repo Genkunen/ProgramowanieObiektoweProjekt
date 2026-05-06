@@ -2,12 +2,12 @@
 
 namespace pop::vulkan::renderer::render_graph {
 
-auto PassResources::inject_buffer(BufferResourceIdentifier identifier, VulkanBuffer&& buffer) -> void {
-    m_buffers.emplace(identifier, std::move(buffer));
+auto PassResources::inject_buffer(BufferResourceIdentifier identifier, VulkanBuffer& buffer) -> void {
+    m_buffers.emplace(identifier, std::ref(buffer));
 }
 
-auto PassResources::inject_image(ImageResourceIdentifier identifier, VulkanImage&& image) -> void {
-    m_images.emplace(identifier, std::move(image));
+auto PassResources::inject_image(ImageResourceIdentifier identifier, VulkanImage& image) -> void {
+    m_images.emplace(identifier, std::ref(image));
 }
 
 auto PassResources::get_buffer_by_identifier(BufferResourceIdentifier identifier) const -> const VulkanBuffer& {

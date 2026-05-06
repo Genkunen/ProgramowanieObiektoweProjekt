@@ -28,18 +28,15 @@ class PassResources {
 public:
     PassResources() = default;
 
-    auto inject_buffer(BufferResourceIdentifier identifier, VulkanBuffer&& buffer) -> void;
-    auto inject_image(ImageResourceIdentifier identifier, VulkanImage&& image) -> void;
-
-    auto all_buffers() const -> const std::unordered_map<BufferResourceIdentifier, VulkanBuffer>& { return m_buffers; }
-    auto all_images() const -> const std::unordered_map<ImageResourceIdentifier, VulkanImage>& { return m_images; }
+    auto inject_buffer(BufferResourceIdentifier identifier, VulkanBuffer& buffer) -> void;
+    auto inject_image(ImageResourceIdentifier identifier, VulkanImage& image) -> void;
 
     auto get_buffer_by_identifier(BufferResourceIdentifier identifier) const -> const VulkanBuffer&;
     auto get_image_by_identifier(ImageResourceIdentifier identifier) const -> const VulkanImage&;
 
 private:
-    std::unordered_map<BufferResourceIdentifier, VulkanBuffer> m_buffers;
-    std::unordered_map<ImageResourceIdentifier, VulkanImage> m_images;
+    std::unordered_map<BufferResourceIdentifier, std::reference_wrapper<VulkanBuffer>> m_buffers;
+    std::unordered_map<ImageResourceIdentifier, std::reference_wrapper<VulkanImage>> m_images;
 };
 
 }

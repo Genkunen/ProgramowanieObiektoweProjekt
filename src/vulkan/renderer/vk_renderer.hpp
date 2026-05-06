@@ -1,10 +1,9 @@
 #pragma once
 #include "mesh_pool.hpp"
+#include "render_graph/render_graph.hpp"
+#include "simulation_render_graph_passes.hpp"
 #include "vulkan/vk_buffer.hpp"
-#include "vulkan/vk_compute_pipeline.hpp"
-#include "vulkan/vk_graphics_pipeline.hpp"
 #include "vulkan/vk_image.hpp"
-#include "vulkan/vk_pipeline_layout.hpp"
 #include "vulkan/vk_prelude.hpp"
 #include "vulkan/vk_swapchain.hpp"
 #include <cstdint>
@@ -46,13 +45,7 @@ struct FrameInFlight {
 class VulkanRenderer {
 public:
     VulkanRenderer(
-        VulkanSwapchain&& swapchain, VulkanPipelineLayout&& triangle_pipeline_layout, VulkanGraphicsPipeline&& triangle_pipeline,
-        VulkanPipelineLayout&& upload_meshes_cs_layout, VulkanComputePipeline&& upload_meshes_cs,
-        VulkanPipelineLayout&& clear_instance_count_cs_layout, VulkanComputePipeline&& clear_instance_count_cs,
-        VulkanPipelineLayout&& simulation_step_cs_layout, VulkanComputePipeline&& simulation_step_cs,
-        VulkanPipelineLayout&& build_indirect_instance_count_cs_layout, VulkanComputePipeline&& build_indirect_instance_count_cs,
-        VulkanPipelineLayout&& build_indirect_first_instance_cs_layout, VulkanComputePipeline&& build_indirect_first_instance_cs,
-        VulkanPipelineLayout&& build_instance_buffer_cs_layout, VulkanComputePipeline&& build_instance_buffer_cs,
+        VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
         VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
         VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
         VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
@@ -70,26 +63,8 @@ public:
 private:
     VulkanSwapchain m_swapchain;
 
-    VulkanPipelineLayout m_triangle_pipeline_layout;
-    VulkanGraphicsPipeline m_triangle_pipeline;
-
-    VulkanPipelineLayout m_upload_meshes_cs_layout;
-    VulkanComputePipeline m_upload_meshes_cs;
-
-    VulkanPipelineLayout m_clear_instance_count_cs_layout;
-    VulkanComputePipeline m_clear_instance_count_cs;
-
-    VulkanPipelineLayout m_simulation_step_cs_layout;
-    VulkanComputePipeline m_simulation_step_cs;
-
-    VulkanPipelineLayout m_build_indirect_instance_count_cs_layout;
-    VulkanComputePipeline m_build_indirect_instance_count_cs;
-
-    VulkanPipelineLayout m_build_indirect_first_instance_cs_layout;
-    VulkanComputePipeline m_build_indirect_first_instance_cs;
-
-    VulkanPipelineLayout m_build_instance_buffer_cs_layout;
-    VulkanComputePipeline m_build_instance_buffer_cs;
+    render_graph::RenderGraph<SimulationRenderState> m_render_graph;
+    render_graph::PassIndex m_mesh_upload_pass_index;
 
     // Ping-pong buffers for simulation objects data. The simulation step cycles between them.
     VulkanBuffer m_simulation_objects_buffer_pp1;

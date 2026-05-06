@@ -2,7 +2,7 @@
 
 #include "pipelines_push_constants.hpp"
 #include "shaders/shared_consts.hpp"
-#include "systems/filesystem.hpp"
+#include "systems/systems.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -24,7 +24,7 @@ auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
         .add_push_constant_range(0, sizeof(UploadMeshesCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st1_1_upload_meshes.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st1_1_upload_meshes.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -68,7 +68,7 @@ auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
         .add_push_constant_range(0, sizeof(ClearInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st2_clear_instance_count.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st2_clear_instance_count.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -109,7 +109,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
         .add_push_constant_range(0, sizeof(SimulationStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st3_step.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_step.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -157,7 +157,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
         .add_push_constant_range(0, sizeof(BuildIndirectInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st4_build_indirect_instance_count.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st4_build_indirect_instance_count.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -200,7 +200,7 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommand
         .add_push_constant_range(0, sizeof(BuildIndirectFirstInstanceCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st5_build_indirect_first_instance.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st5_build_indirect_first_instance.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -247,7 +247,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
         .add_push_constant_range(0, sizeof(BuildInstanceBufferCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_st6_build_instance_buffer.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st6_build_instance_buffer.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -300,7 +300,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
         .add_push_constant_range(0, 24, vk::ShaderStageFlagBits::eVertex)
         .build();
 
-    auto pipeline_shader_code = SpirvCode::load_from_file(filesystem::relative_path() / "spirv/simulation_entity.spv");
+    auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_entity.spv");
 
     auto pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(pipeline_layout)
