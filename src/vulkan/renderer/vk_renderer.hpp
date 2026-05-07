@@ -48,6 +48,7 @@ public:
         VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
         VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
         VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
+        VulkanBuffer&& acceleration_grid_sort_keys_buffer, VulkanBuffer&& acceleration_grid_sort_values_buffer,
         VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
         std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
@@ -77,6 +78,11 @@ private:
     VulkanBuffer m_drawlocal_instance_ids_buffer;
     // Holds coalesced instance data.
     VulkanBuffer m_instance_data_buffer;
+
+    // Holds sort keys for the acceleration grid.
+    VulkanBuffer m_acceleration_grid_sort_keys_buffer;
+    // Holds sort values corresponding to the above.
+    VulkanBuffer m_acceleration_grid_sort_values_buffer;
 
     // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
 

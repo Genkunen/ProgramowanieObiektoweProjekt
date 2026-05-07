@@ -16,6 +16,12 @@ enum class BufferResourceIdentifier {
     SimulationObjects,
     SimulationNextObjects,
 
+    AccelerationGridSortKeys,
+    AccelerationGridSortValues,
+
+    AccelerationGridCellsStartIndices,
+    AccelerationGridCellsEndIndices,
+
     ObjectsInstanceBuffer,
 };
 

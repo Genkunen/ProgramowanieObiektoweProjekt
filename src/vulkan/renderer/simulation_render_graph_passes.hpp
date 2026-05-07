@@ -23,8 +23,10 @@ inline vk::Offset3D to_offset3d(const vk::Extent3D& extent) {
 struct SimulationRenderState {
     std::reference_wrapper<MeshPool> mesh_pool;
     std::reference_wrapper<const VulkanSwapchainImage> current_swapchain_image;
-    uint32_t object_count;
     ImDrawData* imgui_draw_data;
+    uint32_t object_count;
+    float grid_cell_size;
+    uint32_t grid_width;
 };
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
@@ -67,6 +69,21 @@ public:
     SimulationStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> SimulationStepPass;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanComputePipeline m_compute_pipeline;
+};
+
+// ---- SimulationAccelerationGridSortPreparePass --------------------------------------------------------------------------------------------------------------
+
+class SimulationAccelerationGridSortPreparePass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    SimulationAccelerationGridSortPreparePass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+
+    static auto create() -> SimulationAccelerationGridSortPreparePass;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 

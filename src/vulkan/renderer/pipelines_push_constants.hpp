@@ -21,6 +21,15 @@ struct SimulationStepCSPushConstants {
     uint32_t object_count;
 } __attribute((packed));
 
+struct SimulationAccelerationGridSortPrepareCSPushConstants {
+    vk::DeviceAddress objects;
+    vk::DeviceAddress sort_keys;
+    vk::DeviceAddress sort_values;
+    float grid_cell_size;
+    uint32_t grid_width;
+    uint32_t object_count;
+} __attribute((packed));
+
 struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     vk::DeviceAddress drawlocal_instance_indices;

@@ -19,12 +19,15 @@ VulkanRenderer::VulkanRenderer(
         VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
         VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
         VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
+        VulkanBuffer&& acceleration_grid_sort_keys_buffer, VulkanBuffer&& acceleration_grid_sort_values_buffer,
         VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
         std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_render_graph(std::move(render_graph)), m_mesh_upload_pass_index(mesh_upload_pass_index),
         m_simulation_objects_buffer_pp1(std::move(simulation_objects_buffer_pp1)), m_simulation_objects_buffer_pp2(std::move(simulation_objects_buffer_pp2)),
         m_indirect_draw_commands_buffer(std::move(indirect_draw_commands_buffer)), m_drawlocal_instance_ids_buffer(std::move(drawlocal_instance_ids_buffer)),
-        m_instance_data_buffer(std::move(instance_data_buffer)), m_main_render_target(std::move(main_render_target)), m_depth_buffer(std::move(depth_buffer)),
+        m_instance_data_buffer(std::move(instance_data_buffer)), m_acceleration_grid_sort_keys_buffer(std::move(acceleration_grid_sort_keys_buffer)),
+        m_acceleration_grid_sort_values_buffer(std::move(acceleration_grid_sort_values_buffer)),
+        m_main_render_target(std::move(main_render_target)), m_depth_buffer(std::move(depth_buffer)),
         m_frames_in_flight(std::move(frames_in_flight)) {}
 
 VulkanRenderer::~VulkanRenderer() {
@@ -85,6 +88,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph::PassIndex mesh_upload_pass_index = render_graph.add_pass(std::make_unique<UploadMeshInfoPass>(UploadMeshInfoPass::create()));
     render_graph.add_pass(std::make_unique<IndirectDrawCommandsClearPass>(IndirectDrawCommandsClearPass::create()));
     render_graph.add_pass(std::make_unique<SimulationStepPass>(SimulationStepPass::create()));
+    auto simulation_acceleration_grid_sort_prepare_pass = render_graph.add_pass(std::make_unique<SimulationAccelerationGridSortPreparePass>(SimulationAccelerationGridSortPreparePass::create()));
     render_graph.add_pass(std::make_unique<IndirectDrawCommandsInstanceCountBuildPass>(IndirectDrawCommandsInstanceCountBuildPass::create()));
     render_graph.add_pass(std::make_unique<IndirectDrawCommandsFirstInstanceBuildPass>(IndirectDrawCommandsFirstInstanceBuildPass::create()));
     render_graph.add_pass(std::make_unique<InstanceBufferBuildPass>(InstanceBufferBuildPass::create()));
@@ -92,6 +96,8 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph.add_pass(std::make_unique<ImGuiRenderPass>(ImGuiRenderPass::create()));
     render_graph.add_pass(std::make_unique<BlitMainImageToSwapchainPass>(BlitMainImageToSwapchainPass::create()));
 
+    // TODO: re-enable later once acceleration grid build is done
+    render_graph.get_pass_by_id(simulation_acceleration_grid_sort_prepare_pass).disable();
 
     // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
 
@@ -153,9 +159,24 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
 
+    // ---- Acceleration Grid Buffers --------------------------------------------------------------------------------------------------------------------------
+
+    auto acceleration_grid_sort_keys_buffer = VulkanBuffer::builder()
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(uint32_t))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .build();
+
+    auto acceleration_grid_sort_values_buffer = VulkanBuffer::builder()
+        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(uint32_t))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .build();
+
     return VulkanRenderer{ std::move(swapchain), std::move(render_graph), mesh_upload_pass_index,
-        std::move(simulation_objects_buffer_pp1), std::move(simulation_objects_buffer_pp2), std::move(indirect_draw_commands_buffer), std::move(drawlocal_instance_ids_buffer), std::move(instance_data_buffer),
-        std::move(main_render_target), std::move(depth_buffer), std::move(frames_in_flight) };
+        std::move(simulation_objects_buffer_pp1), std::move(simulation_objects_buffer_pp2), std::move(indirect_draw_commands_buffer),
+        std::move(drawlocal_instance_ids_buffer), std::move(instance_data_buffer), std::move(acceleration_grid_sort_keys_buffer),
+        std::move(acceleration_grid_sort_values_buffer), std::move(main_render_target), std::move(depth_buffer), std::move(frames_in_flight) };
 }
 
 auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult {
@@ -232,14 +253,19 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationNextObjects, get_simulation_objects_dst_buffer());
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer, m_instance_data_buffer);
 
+    pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, m_acceleration_grid_sort_keys_buffer);
+    pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, m_acceleration_grid_sort_values_buffer);
+
     pass_resources.inject_image(render_graph::ImageResourceIdentifier::MainRenderTarget, m_main_render_target);
     pass_resources.inject_image(render_graph::ImageResourceIdentifier::DepthBuffer, m_depth_buffer);
 
     SimulationRenderState simulation_render_state = {
         .mesh_pool = mesh_pool,
         .current_swapchain_image = swapchain_image,
+        .imgui_draw_data = draw_data,
         .object_count = m_gpu_driven_sim_object_count,
-        .imgui_draw_data = draw_data
+        .grid_cell_size = 4.0f,
+        .grid_width = 200
     };
 
     m_render_graph.execute(command_buffer, simulation_render_state, pass_resources);
