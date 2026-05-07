@@ -67,29 +67,6 @@ public:
 
         analyze_current_pass_dependencies(resources);
 
-        /*
-        std::println("Barrier Debug info:");
-
-        for (uint32_t i = 0; i < m_passes.size(); i++) {
-            auto& barrier_params = m_barrier_params[PassIndex { .id = i }];
-            std::println("barrier {}: {} buffer barriers, {} image barriers", i, barrier_params.buffer_barriers.size(), barrier_params.image_barriers.size());
-            for (auto& barrier : barrier_params.buffer_barriers) {
-                std::println("  buffer barrier: srcStageMask: {}, srcAccessMask: {}, dstStageMask: {}, dstAccessMask: {}, buffer: {:016x}",
-                    vk::to_string(barrier.srcStageMask), vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstStageMask), vk::to_string(barrier.dstAccessMask), (uint64_t)static_cast<VkBuffer>(barrier.buffer));
-            }
-            for (auto& barrier : barrier_params.image_barriers) {
-                std::println("  image barrier: oldLayout: {}, srcStageMask: {}, srcAccessMask: {}, newLayout: {}, dstStageMask: {}, dstAccessMask: {}, image: {:016x}",
-                    vk::to_string(barrier.oldLayout),
-                    vk::to_string(barrier.srcStageMask),
-                    vk::to_string(barrier.srcAccessMask),
-                    vk::to_string(barrier.newLayout),
-                    vk::to_string(barrier.dstStageMask),
-                    vk::to_string(barrier.dstAccessMask),
-                    (uint64_t)static_cast<VkImage>(barrier.image));
-            }
-        }
-        */
-
         for (uint32_t i = 0; i < m_passes.size(); i++) {
             auto& pass = m_passes[i];
 
@@ -165,6 +142,40 @@ private:
 
     std::unordered_map<PassIndex, BarrierParams, PassIdHash> m_barrier_params;
 
+    auto eliminate_buffer_barrier_redundant_memory_dependencies(vk::BufferMemoryBarrier2& barrier) -> void {
+        // Memory dependency is needed for RAW and WAW hazards, but not for WAR hazards.
+        // If this is a WAR hazard then access flags can be cleared.
+        bool src_writes = access_flags_has_write_aspect(barrier.srcAccessMask);
+        bool dst_writes = access_flags_has_write_aspect(barrier.dstAccessMask);
+        // There are no read-only situations here, as there is no barrier to be inserted between such situations.
+        bool is_war_hazard = dst_writes && !src_writes;
+
+        if (is_war_hazard) {
+            barrier.srcAccessMask = vk::AccessFlags2{};
+            barrier.dstAccessMask = vk::AccessFlags2{};
+        }
+    }
+
+    auto eliminate_image_barrier_redundant_memory_dependencies(vk::ImageMemoryBarrier2& barrier) -> void {
+        // Memory dependency is needed for RAW and WAW hazards, but if the image layout is changed, then that counts as a write in Vulkan synchronization, which
+        // implicitly causes a RAW/WAW hazard.
+        // src access flags can be cleared if those with the dst access flags create a WAR hazard; similarly so with dst access flags, with the precondition
+        // that no image transition took place.
+        bool src_writes = access_flags_has_write_aspect(barrier.srcAccessMask);
+        bool dst_writes = access_flags_has_write_aspect(barrier.dstAccessMask);
+        // There are no read-only situations here, as there is no barrier to be inserted between such situations.
+        bool is_explicit_war_hazard = dst_writes && !src_writes;
+        bool image_layout_changed = barrier.oldLayout != barrier.newLayout;
+
+        if (is_explicit_war_hazard) {
+            barrier.srcAccessMask = vk::AccessFlags2{};
+        }
+
+        if (is_explicit_war_hazard && !image_layout_changed) {
+            barrier.dstAccessMask = vk::AccessFlags2{};
+        }
+    }
+
     auto process_buffer_dependency(const PassResources& resources, const BufferDependency& dep, const PassIndex of_pass_id) -> void {
         // If the dependency is not hazardous in context of previous usage, we can just OR the usage flags on top of the previous ones.
         if (!is_buffer_dependency_hazardous(dep)) {
@@ -203,6 +214,8 @@ private:
             .setBuffer(buffer.vk_buffer())
             .setOffset(0)
             .setSize(vk::WholeSize);
+
+        eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
         m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
     }
@@ -243,12 +256,14 @@ private:
             .setSrcStageMask(barrier_src_stage_flags)
             .setSrcAccessMask(barrier_src_access_flags)
             .setNewLayout(barrier_dst_image_layout)
-            .setDstStageMask(barrier_dst_stage_flags)
             .setDstAccessMask(barrier_dst_access_flags)
+            .setDstStageMask(barrier_dst_stage_flags)
             .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
             .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
             .setImage(image.vk_image())
             .setSubresourceRange(image.full_subresource_range());
+
+        eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
         m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
     }
@@ -269,6 +284,8 @@ private:
                 .setOffset(0)
                 .setSize(vk::WholeSize);
 
+            eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
+
             m_barrier_params[barrier_params.barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
         }
 
@@ -287,6 +304,8 @@ private:
                 .setDstQueueFamilyIndex(vk::QueueFamilyIgnored)
                 .setImage(image.vk_image())
                 .setSubresourceRange(image.full_subresource_range());
+
+            eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
             m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
         }
@@ -323,6 +342,33 @@ private:
 
         finalize_barriers_at_end_of_execution(resources);
     }
+
+    // ---- Debugging ------------------------------------------------------------------------------------------------------------------------------------------
+
+    [[maybe_unused]] auto debug_print_generated_barriers() -> void {
+        std::println("Barrier Debug info:");
+
+        for (uint32_t i = 0; i < m_passes.size(); i++) {
+            auto& barrier_params = m_barrier_params[PassIndex { .id = i }];
+            std::println("barrier {}: {} buffer barriers, {} image barriers", i, barrier_params.buffer_barriers.size(), barrier_params.image_barriers.size());
+            for (auto& barrier : barrier_params.buffer_barriers) {
+                std::println("  buffer barrier: srcStageMask: {}, srcAccessMask: {}, dstStageMask: {}, dstAccessMask: {}, buffer: {:016x}",
+                    vk::to_string(barrier.srcStageMask), vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstStageMask), vk::to_string(barrier.dstAccessMask), (uint64_t)static_cast<VkBuffer>(barrier.buffer));
+            }
+            for (auto& barrier : barrier_params.image_barriers) {
+                std::println("  image barrier: oldLayout: {}, srcStageMask: {}, srcAccessMask: {}, newLayout: {}, dstStageMask: {}, dstAccessMask: {}, image: {:016x}",
+                    vk::to_string(barrier.oldLayout),
+                    vk::to_string(barrier.srcStageMask),
+                    vk::to_string(barrier.srcAccessMask),
+                    vk::to_string(barrier.newLayout),
+                    vk::to_string(barrier.dstStageMask),
+                    vk::to_string(barrier.dstAccessMask),
+                    (uint64_t)static_cast<VkImage>(barrier.image));
+            }
+        }
+
+    }
+
 };
 
 }
