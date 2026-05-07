@@ -95,14 +95,6 @@ private:
     auto refit_simulation_buffers() -> void;
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
 
-    auto prepare_indirect_draw_mesh_params(vk::raii::CommandBuffer& cmd, FrameInFlight& frame, MeshPool& mesh_pool) -> void;
-    auto clear_indirect_draw_instance_counts(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool) -> void;
-    auto run_gpgpu_simulation_step(vk::raii::CommandBuffer& cmd, FrameInFlight& frame) -> void;
-    auto build_indirect_draw_buffers(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void;
-    auto run_main_renderpass(vk::raii::CommandBuffer& cmd, MeshPool& mesh_pool, FrameInFlight& frame) -> void;
-    auto run_imgui_renderpass(vk::raii::CommandBuffer& cmd, ImDrawData* draw_data) -> void;
-    auto copy_main_render_target_to_swapchain_image(vk::raii::CommandBuffer& cmd, const VulkanSwapchainImage& swapchain_image) -> void;
-
     auto swap_simulation_objects_buffer_rw_direction() -> void;
     auto get_simulation_objects_src_buffer() -> VulkanBuffer&;
     auto get_simulation_objects_dst_buffer() -> VulkanBuffer&;
