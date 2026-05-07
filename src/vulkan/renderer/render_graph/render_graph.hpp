@@ -156,6 +156,21 @@ private:
         }
     }
 
+    auto is_buffer_barrier_no_op(vk::BufferMemoryBarrier2& barrier) -> bool {
+        bool exec_dependency_is_redundant = (barrier.dstStageMask & barrier.srcStageMask) == barrier.dstStageMask;
+        bool no_memory_dependency = barrier.srcAccessMask == vk::AccessFlags2{} && barrier.dstAccessMask == vk::AccessFlags2{};
+        bool no_qfot = barrier.srcQueueFamilyIndex == barrier.dstQueueFamilyIndex;
+        return exec_dependency_is_redundant && no_memory_dependency && no_qfot;
+    }
+
+    auto is_image_barrier_no_op(vk::ImageMemoryBarrier2& barrier) -> bool {
+        bool exec_dependency_is_redundant = (barrier.dstStageMask & barrier.srcStageMask) == barrier.dstStageMask;
+        bool no_memory_dependency = barrier.srcAccessMask == vk::AccessFlags2{} && barrier.dstAccessMask == vk::AccessFlags2{};
+        bool no_qfot = barrier.srcQueueFamilyIndex == barrier.dstQueueFamilyIndex;
+        bool no_layout_transition = barrier.oldLayout == barrier.newLayout;
+        return exec_dependency_is_redundant && no_memory_dependency && no_qfot && no_layout_transition;
+    }
+
     auto eliminate_image_barrier_redundant_memory_dependencies(vk::ImageMemoryBarrier2& barrier) -> void {
         // Memory dependency is needed for RAW and WAW hazards, but if the image layout is changed, then that counts as a write in Vulkan synchronization, which
         // implicitly causes a RAW/WAW hazard.
@@ -217,6 +232,8 @@ private:
 
         eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
+        if (is_buffer_barrier_no_op(buffer_memory_barrier)) return;
+
         m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
     }
 
@@ -265,6 +282,8 @@ private:
 
         eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
+        if (is_image_barrier_no_op(image_memory_barrier)) return;
+
         m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
     }
 
@@ -306,6 +325,8 @@ private:
                 .setSubresourceRange(image.full_subresource_range());
 
             eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
+
+            if (is_image_barrier_no_op(image_memory_barrier)) return;
 
             m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
         }
