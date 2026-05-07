@@ -366,7 +366,29 @@ private:
                     (uint64_t)static_cast<VkImage>(barrier.image));
             }
         }
+    }
 
+    [[maybe_unused]] auto debug_substitute_universal_barriers() -> void {
+        auto univ_barrier_src_stage = vk::PipelineStageFlagBits2::eAllCommands;
+        auto univ_barrier_dst_stage = vk::PipelineStageFlagBits2::eAllCommands;
+        auto univ_barrier_src_access = vk::AccessFlagBits2::eMemoryWrite;
+        auto univ_barrier_dst_access = vk::AccessFlagBits2::eMemoryRead | vk::AccessFlagBits2::eMemoryWrite;
+
+        for (uint32_t i = 0; i < m_passes.size(); i++) {
+            auto& barrier_params = m_barrier_params[PassIndex { .id = i }];
+            for (auto& barrier : barrier_params.buffer_barriers) {
+                barrier.srcStageMask = univ_barrier_src_stage;
+                barrier.dstStageMask = univ_barrier_dst_stage;
+                barrier.srcAccessMask = univ_barrier_src_access;
+                barrier.dstAccessMask = univ_barrier_dst_access;
+            }
+            for (auto& barrier : barrier_params.image_barriers) {
+                barrier.srcStageMask = univ_barrier_src_stage;
+                barrier.dstStageMask = univ_barrier_dst_stage;
+                barrier.srcAccessMask = univ_barrier_src_access;
+                barrier.dstAccessMask = univ_barrier_dst_access;
+            }
+        }
     }
 
 };
