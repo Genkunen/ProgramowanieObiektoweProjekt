@@ -232,9 +232,8 @@ private:
 
         eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
-        if (is_buffer_barrier_no_op(buffer_memory_barrier)) return;
-
-        m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
+        if (!is_buffer_barrier_no_op(buffer_memory_barrier))
+            m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
     }
 
     auto process_image_dependency(const PassResources& resources, const ImageDependency& dep, const PassIndex of_pass_id) -> void {
@@ -282,9 +281,8 @@ private:
 
         eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
-        if (is_image_barrier_no_op(image_memory_barrier)) return;
-
-        m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
+        if (!is_image_barrier_no_op(image_memory_barrier))
+            m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
     }
 
     auto finalize_barriers_at_end_of_execution(const PassResources& resources) {
@@ -305,7 +303,8 @@ private:
 
             eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
-            m_barrier_params[barrier_params.barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
+            if (!is_buffer_barrier_no_op(buffer_memory_barrier))
+                m_barrier_params[barrier_params.barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
         }
 
         for (auto& [res_id, barrier_params] : m_image_resource_states) {
@@ -326,9 +325,8 @@ private:
 
             eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
-            if (is_image_barrier_no_op(image_memory_barrier)) return;
-
-            m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
+            if (!is_image_barrier_no_op(image_memory_barrier))
+                m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
         }
     }
 
