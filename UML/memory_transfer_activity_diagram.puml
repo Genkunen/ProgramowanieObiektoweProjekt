@@ -1,0 +1,23 @@
+@startuml
+!theme black-knight
+
+start 
+:Fetching models (../fih.glb);
+:Loading file from disk (CPU);
+:Parsing vertices and indices;
+:Allocating staging buffer in RAM;
+:Copying data to staging buffer;
+
+note right 
+    Start of an async
+    GPU operation
+end note
+
+:Command transfer registration (vkCmdCopyBuffer);
+:Creating memory barrier;
+:Queue Submit;
+:Freeing staging buffer;
+:Returning Mesh object;
+stop
+
+@enduml

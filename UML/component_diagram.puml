@@ -1,0 +1,28 @@
+@startuml
+!theme black-knight
+
+package "Dependencies" {
+    [3D Models (*.glb)] as models 
+}
+
+package "Graphics Layer" {
+    [Compiled Shaders (*.spv)] as shaders
+}
+
+package "OS" {
+    [vulkan-1.dll / libvulkan.so] as vulkan_lib
+    [SDL3.dll / libSDL3.so] as sdl_lib
+}
+
+component "Executable Application File)" as app {
+    portin "I/O" as app_io
+    portout "API CALLS" as app_api
+}
+
+models --> app_io : Loading through Ktx2Loader and Meshpool
+shaders --> app_io : Loading SpirvCode
+
+app_api -> vulkan_lib : Calling GPU drivers
+app_api --> sdl_lib : Window and input handling
+
+@enduml

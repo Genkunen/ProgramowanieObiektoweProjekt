@@ -19,7 +19,7 @@ namespace pop {
         file "vk_swapchain.hpp" as vk_swapchain
     }
 
-    namespace renderer {
+    namespace vulkan::renderer {
         file "mesh.hpp" as mesh
         file "mesh_pool.hpp" as mesh_pool
         file "pipelines_push_constants.hpp" as pipelines_push_constants
@@ -27,7 +27,7 @@ namespace pop {
         file "vk_renderer.hpp" as vk_renderer
     }
 
-    namespace renderer::render_graph {
+    namespace vulkan::renderer::render_graph {
         file "execution_plan.hpp" as execution_plan
         file "render_graph.hpp" as render_graph
         file "render_graph_pass.hpp" as render_graph_pass

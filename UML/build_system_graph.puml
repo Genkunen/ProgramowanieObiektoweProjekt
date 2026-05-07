@@ -1,0 +1,53 @@
+@startuml
+!theme black-knight
+
+package "System Dependencies" {
+    [Vulkan::Headers] as vulkan 
+    [SDL3::SDL3] as sdl3 
+    [glm::glm] as glm 
+    [slangc] as slangc
+}
+
+package "Fetched Dependencies" {
+    [VulkanMemoryAllocator-Hpp] as vma 
+    [xxhash] as xxhash 
+    [KTX-Software] as ktx 
+    [tinygltf] as tinygltf 
+
+    component "imgui" as imgui {
+        artifact "imgui_sdl_sdl3.cpp"
+        artifact "imgui_impl_vulkan.cpp"
+    }
+}
+
+package "Build Process" {
+    component "ProgramowanieObiektoweProjekt_spv" as shader_target
+    component "ProgrwamownieObiektoweProjekt" as main_target
+}
+
+folder "Binary files" {
+    artifact "*.spv" as spv_files 
+    artifact "persistent.settings" as settings_copy
+}
+
+slangc --> shader_target : executes commands
+shader_target --> spv_files : compile files
+
+imgui --> sdl3 : PRIVATE link 
+imgui --> vulkan : PRIVATE link 
+
+main_target ..> shader_target : add_dependencies
+main_target --> spv_files : loads at runtime
+
+main_target --> vulkan : PRIVATE link 
+main_target --> sdl3 : PRIVATE link 
+main_target --> ktx : PRIVATE link 
+main_target --> vma : PRIVATE link 
+main_target --> xxhash : PRIVATE link 
+main_target --> imgui : PRIVATE link 
+main_target --> glm : PRIVATE link 
+main_target --> tinygltf : PRIVATE link 
+
+main_target --> settings_copy : POST_BUILD
+
+@enduml
