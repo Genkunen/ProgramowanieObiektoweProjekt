@@ -1,0 +1,48 @@
+@startuml
+!theme black-knight
+
+skinparam maxMessageSize 150
+skinparam sequenceMessageAlign center
+
+participant "RenderGraph\n(CPU)" as Host
+participant "ComputePipeline\n(GPU Compute)" as Compute
+database "GPUBuffers\n(VRAM)" as VRAM 
+participant "GraphicsPipeline\n(GPU Raster)" as Raster 
+
+Host -> Compute: Dispatch UploadMeshInfoPass\n(simulation_st1_1_upload_meshes.slang)
+activate Compute
+Compute -> VRAM: Writing default data
+deactivate Compute
+
+Host -> Compute: Dispatch IndirectDrawCommandsClearPass\n(simulation_st2_clear_instance_count.slang)
+activate Compute
+Compute -> VRAM: Zeroing instance count 
+deactivate Compute
+
+Host -> Compute: Dispatch SimulationStepPass\n(simulation_st3_step.slang)
+activate Compute
+Compute -> VRAM: Updating positions, velocity and colisions
+deactivate Compute
+
+Host -> Compute: Dispatch IndirectDrawCommandsInstanceCountBuildPass\n(simulation_st4_build_indirect_instance_count.slang)
+activate Compute 
+Compute -> VRAM: Aggregation instances per grid
+deactivate Compute
+
+Host -> Compute: Dispatch IndirectDrawCommandsFirstInstaneBuildPass\n(simulation_st5_build_indirect_first_instance.slang)
+activate Compute 
+Compute -> VRAM: Calculating offsets
+deactivate Compute
+
+Host -> Compute: Dispatch InstanceBufferBuildPass\n(simulation_st6_build_instance_buffer.slang)
+activate Compute
+Compute -> VRAM: Packing finalized transformation matrices
+deactivate Compute 
+
+Host -> Raster: Execute FishTankRenderPass(vkCmdDrawIndexedIndirect)
+activate Raster 
+Raster -> VRAM: Read of generated commands and instance buffers
+Raster --> Host: Finalizing graphics pipeline 
+deactivate Raster
+
+@enduml

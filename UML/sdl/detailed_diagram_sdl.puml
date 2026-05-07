@@ -8,6 +8,7 @@ namespace pop {
 
     namespace sdl {
         file "sdl_lib.hpp" as sdl_lib
+        note bottom of sdl_lib : contains free-standing functions
         
         class "SdlWindow" as SdlWindow {
             + SdlWindow(const std::string& title, uint32_t width, uint32_t height)

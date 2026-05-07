@@ -1,0 +1,42 @@
+@startuml
+!theme black-knight
+
+[*] --> Initialization
+
+state Initialization {
+    [*] --> SdlInit
+    SdlInit --> VulkanContextCreate
+    VulkanContextCreate --> SwapchainCreate
+    SwapchainCreate --> [*]
+}
+
+Initialization --> NominalRendering : System Ready
+
+state NominalRendering {
+    [*] --> PollingEvents
+    PollingEvents --> RenderingFrame : No Interruptions
+    RenderingFrame --> [*] : FrameComplete
+}
+
+state SurfaceInvalidated {
+    [*] --> AwaitingNewDimensions
+    AwaitingNewDimensions --> RebuildingSwapchain : Dimensions > 0
+    RebuildingSwapchain --> [*] : handle_surface_invalidation()
+}
+
+NominalRendering --> SurfaceInvalidated : Event: SDL_EVENT_WINDOW_RESIZED
+NominalRendering --> SurfaceInvalidated : Action: render_frame()
+
+SurfaceInvalidated --> NominalRendering : Swapchain Recreated
+
+NominalRendering --> Termination : Event: SDL_EVENT_QUIT
+
+state Termination {
+    [*] --> CleanupResources
+    CleanupResources --> SdlQuit
+    SdlQuit --> [*]
+}
+
+Termination --> [*]
+
+@enduml
