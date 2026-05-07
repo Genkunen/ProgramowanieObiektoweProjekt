@@ -11,12 +11,15 @@
 
 namespace pop::vulkan::renderer::render_graph {
 
-inline auto access_flags_has_write_aspect(vk::AccessFlags2 access_flags) -> bool {
+inline auto mask_access_flags_with_write_bit(vk::AccessFlags2 access_flags) -> vk::AccessFlags2 {
     vk::AccessFlags2 mask = vk::AccessFlagBits2::eHostWrite | vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eShaderWrite
         | vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eShaderStorageWrite
         | vk::AccessFlagBits2::eDepthStencilAttachmentWrite;
+    return access_flags & mask;
+}
 
-    return (access_flags & mask) != vk::AccessFlags2{};
+inline auto access_flags_has_write_aspect(vk::AccessFlags2 access_flags) -> bool {
+    return mask_access_flags_with_write_bit(access_flags) != vk::AccessFlags2{};
 }
 
 inline auto is_access_flags_pair_hazardous(vk::AccessFlags2 access_flags1, vk::AccessFlags2 access_flags2) -> bool {
@@ -66,6 +69,7 @@ public:
         clear_resource_states();
 
         analyze_current_pass_dependencies(resources);
+
 
         for (uint32_t i = 0; i < m_passes.size(); i++) {
             auto& pass = m_passes[i];
@@ -156,21 +160,6 @@ private:
         }
     }
 
-    auto is_buffer_barrier_no_op(vk::BufferMemoryBarrier2& barrier) -> bool {
-        bool exec_dependency_is_redundant = (barrier.dstStageMask & barrier.srcStageMask) == barrier.dstStageMask;
-        bool no_memory_dependency = barrier.srcAccessMask == vk::AccessFlags2{} && barrier.dstAccessMask == vk::AccessFlags2{};
-        bool no_qfot = barrier.srcQueueFamilyIndex == barrier.dstQueueFamilyIndex;
-        return exec_dependency_is_redundant && no_memory_dependency && no_qfot;
-    }
-
-    auto is_image_barrier_no_op(vk::ImageMemoryBarrier2& barrier) -> bool {
-        bool exec_dependency_is_redundant = (barrier.dstStageMask & barrier.srcStageMask) == barrier.dstStageMask;
-        bool no_memory_dependency = barrier.srcAccessMask == vk::AccessFlags2{} && barrier.dstAccessMask == vk::AccessFlags2{};
-        bool no_qfot = barrier.srcQueueFamilyIndex == barrier.dstQueueFamilyIndex;
-        bool no_layout_transition = barrier.oldLayout == barrier.newLayout;
-        return exec_dependency_is_redundant && no_memory_dependency && no_qfot && no_layout_transition;
-    }
-
     auto eliminate_image_barrier_redundant_memory_dependencies(vk::ImageMemoryBarrier2& barrier) -> void {
         // Memory dependency is needed for RAW and WAW hazards, but if the image layout is changed, then that counts as a write in Vulkan synchronization, which
         // implicitly causes a RAW/WAW hazard.
@@ -221,7 +210,7 @@ private:
         auto& buffer = resources.get_buffer_by_identifier(dep.resource_id);
         auto buffer_memory_barrier = vk::BufferMemoryBarrier2{}
             .setSrcStageMask(barrier_src_stage_flags)
-            .setSrcAccessMask(barrier_src_access_flags)
+            .setSrcAccessMask(mask_access_flags_with_write_bit(barrier_src_access_flags))
             .setDstStageMask(barrier_dst_stage_flags)
             .setDstAccessMask(barrier_dst_access_flags)
             .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
@@ -232,8 +221,7 @@ private:
 
         eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
-        if (!is_buffer_barrier_no_op(buffer_memory_barrier))
-            m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
+        m_barrier_params[insert_barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
     }
 
     auto process_image_dependency(const PassResources& resources, const ImageDependency& dep, const PassIndex of_pass_id) -> void {
@@ -270,7 +258,7 @@ private:
         auto image_memory_barrier = vk::ImageMemoryBarrier2{}
             .setOldLayout(barrier_src_image_layout)
             .setSrcStageMask(barrier_src_stage_flags)
-            .setSrcAccessMask(barrier_src_access_flags)
+            .setSrcAccessMask(mask_access_flags_with_write_bit(barrier_src_access_flags))
             .setNewLayout(barrier_dst_image_layout)
             .setDstStageMask(barrier_dst_stage_flags)
             .setDstAccessMask(barrier_dst_access_flags)
@@ -281,8 +269,7 @@ private:
 
         eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
-        if (!is_image_barrier_no_op(image_memory_barrier))
-            m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
+        m_barrier_params[insert_barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
     }
 
     auto finalize_barriers_at_end_of_execution(const PassResources& resources) {
@@ -292,7 +279,7 @@ private:
             auto& buffer = resources.get_buffer_by_identifier(res_id);
             auto buffer_memory_barrier = vk::BufferMemoryBarrier2{}
                 .setSrcStageMask(barrier_params.pre_hazard_usage.stages)
-                .setSrcAccessMask(barrier_params.pre_hazard_usage.accesses)
+                .setSrcAccessMask(mask_access_flags_with_write_bit(barrier_params.pre_hazard_usage.accesses))
                 .setDstStageMask(barrier_params.current_usage.stages)
                 .setDstAccessMask(barrier_params.current_usage.accesses)
                 .setSrcQueueFamilyIndex(vk::QueueFamilyIgnored)
@@ -303,8 +290,7 @@ private:
 
             eliminate_buffer_barrier_redundant_memory_dependencies(buffer_memory_barrier);
 
-            if (!is_buffer_barrier_no_op(buffer_memory_barrier))
-                m_barrier_params[barrier_params.barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
+            m_barrier_params[barrier_params.barrier_before_pass_id].buffer_barriers.emplace_back(buffer_memory_barrier);
         }
 
         for (auto& [res_id, barrier_params] : m_image_resource_states) {
@@ -314,7 +300,7 @@ private:
             auto image_memory_barrier = vk::ImageMemoryBarrier2{}
                 .setOldLayout(barrier_params.pre_hazard_usage.layout)
                 .setSrcStageMask(barrier_params.pre_hazard_usage.stages)
-                .setSrcAccessMask(barrier_params.pre_hazard_usage.accesses)
+                .setSrcAccessMask(mask_access_flags_with_write_bit(barrier_params.pre_hazard_usage.accesses))
                 .setNewLayout(barrier_params.current_usage.layout)
                 .setDstStageMask(barrier_params.current_usage.stages)
                 .setDstAccessMask(barrier_params.current_usage.accesses)
@@ -325,8 +311,7 @@ private:
 
             eliminate_image_barrier_redundant_memory_dependencies(image_memory_barrier);
 
-            if (!is_image_barrier_no_op(image_memory_barrier))
-                m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
+            m_barrier_params[barrier_params.barrier_before_pass_id].image_barriers.emplace_back(image_memory_barrier);
         }
     }
 
