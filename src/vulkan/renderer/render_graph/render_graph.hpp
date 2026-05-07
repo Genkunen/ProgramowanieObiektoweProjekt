@@ -29,7 +29,7 @@ inline auto is_access_flags_pair_hazardous(vk::AccessFlags2 access_flags1, vk::A
 struct PassIndex {
     uint32_t id = 0;
 
-    static constexpr auto invalid() -> PassIndex { return PassIndex{ 0xFFFFFFFF }; }
+    static constexpr auto invalid() -> PassIndex { return PassIndex{ 0xffffffff }; }
     static constexpr auto zero() -> PassIndex { return PassIndex{ 0 }; }
 
     bool operator==(const PassIndex& other) const { return id == other.id; }
