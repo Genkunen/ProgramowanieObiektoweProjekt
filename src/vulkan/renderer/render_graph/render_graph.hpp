@@ -155,8 +155,8 @@ private:
         bool is_war_hazard = dst_writes && !src_writes;
 
         if (is_war_hazard) {
-            barrier.srcAccessMask = vk::AccessFlags2{};
-            barrier.dstAccessMask = vk::AccessFlags2{};
+            //barrier.srcAccessMask = vk::AccessFlags2{};
+            //barrier.dstAccessMask = vk::AccessFlags2{};
         }
     }
 
