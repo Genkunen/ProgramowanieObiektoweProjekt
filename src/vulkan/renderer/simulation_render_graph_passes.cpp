@@ -250,11 +250,11 @@ auto SimulationAccelerationGridBitonicSortPass::invoke(vk::raii::CommandBuffer& 
                 acceleration_grid_sort_values_buffer.memory_device_ptr(),
                 stage,
                 step,
-                static_cast<uint32_t>(state.object_count)
+                static_cast<uint32_t>(keys_count)
             };
             cmd.pushConstants<SimulationAccelerationGridBitonicSortCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
             cmd.dispatch(
-                div_ceil(state.object_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_BITONIC_SORT_GROUP_SIZE_X),
+                div_ceil(keys_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_BITONIC_SORT_GROUP_SIZE_X),
                 1,
                 1
             );
