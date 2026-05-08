@@ -5,6 +5,7 @@ struct PushConstants {
     uint* sort_values;
     uint bitonic_sort_stage;
     uint bitonic_sort_step;
+    uint keys_count;
 };
 
 [vk::push_constant] PushConstants push_constants;
@@ -13,7 +14,10 @@ struct PushConstants {
 [numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_BITONIC_SORT_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint i = dtid.x;
+    if (i >= push_constants.keys_count) return;
+
     uint i_xor_j = i ^ push_constants.bitonic_sort_step;
+    if (i_xor_j >= push_constants.keys_count) return;
 
     if (i_xor_j > i) {
         bool is_ascending = (i & push_constants.bitonic_sort_stage) == 0;

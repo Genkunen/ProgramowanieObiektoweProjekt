@@ -92,6 +92,21 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
+// ---- SimulationAccelerationGridBitonicSortPass --------------------------------------------------------------------------------------------------------------
+
+class SimulationAccelerationGridBitonicSortPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    SimulationAccelerationGridBitonicSortPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+
+    static auto create() -> SimulationAccelerationGridBitonicSortPass;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanComputePipeline m_compute_pipeline;
+};
+
 // ---- IndirectDrawCommandsInstanceCountBuildPass -------------------------------------------------------------------------------------------------------------
 
 class IndirectDrawCommandsInstanceCountBuildPass : public render_graph::PassBase<SimulationRenderState> {

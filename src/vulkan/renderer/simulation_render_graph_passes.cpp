@@ -191,6 +191,76 @@ auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& 
     );
 }
 
+
+SimulationAccelerationGridBitonicSortPass::SimulationAccelerationGridBitonicSortPass(render_graph::PassDependencies&& deps,
+    VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
+        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+
+auto SimulationAccelerationGridBitonicSortPass::create() -> SimulationAccelerationGridBitonicSortPass {
+    auto dependencies = render_graph::PassDependencies::builder()
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .build();
+
+    auto cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(SimulationAccelerationGridBitonicSortCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .build();
+
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_2b_bitonic_sort.spv");
+
+    auto cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(cs_layout)
+        .set_shader(cs_code)
+        .build();
+
+    return SimulationAccelerationGridBitonicSortPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+}
+
+auto SimulationAccelerationGridBitonicSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
+    const render_graph::PassResources& resources) -> void {
+    auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
+    auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
+
+    assert(acceleration_grid_sort_keys_buffer.size() == acceleration_grid_sort_values_buffer.size());
+
+    auto keys_count = acceleration_grid_sort_keys_buffer.size() / sizeof(uint32_t);
+
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
+    bool needs_barrier = false;
+    for (uint32_t stage = 2; stage <= keys_count; stage <<= 1) {
+        for (uint32_t step = stage >> 1; step > 0; step >>= 1) {
+            if (needs_barrier) {
+                VulkanPipelineBarriers::builder()
+                    .insert_buffer_memory_barrier(acceleration_grid_sort_keys_buffer.vk_buffer(), vk::WholeSize, 0,
+                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite
+                    )
+                    .insert_buffer_memory_barrier(acceleration_grid_sort_values_buffer.vk_buffer(), vk::WholeSize, 0,
+                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite
+                    )
+                    .flush(cmd);
+            }
+
+            SimulationAccelerationGridBitonicSortCSPushConstants consts = {
+                acceleration_grid_sort_keys_buffer.memory_device_ptr(),
+                acceleration_grid_sort_values_buffer.memory_device_ptr(),
+                stage,
+                step,
+                static_cast<uint32_t>(keys_count)
+            };
+            cmd.pushConstants<SimulationAccelerationGridBitonicSortCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+            cmd.dispatch(
+                div_ceil(keys_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_BITONIC_SORT_GROUP_SIZE_X),
+                1,
+                1
+            );
+
+            needs_barrier = true;
+        }
+    }
+}
+
 // ---- IndirectDrawCommandsInstanceCountBuildPass -------------------------------------------------------------------------------------------------------------
 
 IndirectDrawCommandsInstanceCountBuildPass::IndirectDrawCommandsInstanceCountBuildPass(render_graph::PassDependencies&& deps,

@@ -30,6 +30,19 @@ struct SimulationAccelerationGridSortPrepareCSPushConstants {
     uint32_t object_count;
 } __attribute((packed));
 
+constexpr auto round_to_next_power_of_two(uint32_t x) -> uint32_t {
+    if (x == 1) return 1;
+    return 1 << (32 - __builtin_clz(x - 1));
+}
+
+struct SimulationAccelerationGridBitonicSortCSPushConstants {
+    vk::DeviceAddress sort_keys;
+    vk::DeviceAddress sort_values;
+    uint32_t bitonic_sort_stage;
+    uint32_t bitonic_sort_step;
+    uint32_t keys_count;
+};
+
 struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     vk::DeviceAddress drawlocal_instance_indices;
