@@ -54,7 +54,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
                 float dist_squared = dot(direction_to_foreign_object, direction_to_foreign_object);
 
                 float2 vel = push_constants.objects[tid].velocity;
-                vel += 0.00025f * direction_to_foreign_object * (1.0f / dist_squared);
+                vel += 0.5f * direction_to_foreign_object * (1.0f / dist_squared);
 
                 vel = clamp(vel, float2(-10.0f), float2(10.0f));
                 push_constants.objects[tid].velocity = vel;

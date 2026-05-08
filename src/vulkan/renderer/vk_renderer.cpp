@@ -16,8 +16,8 @@
 
 namespace pop::vulkan::renderer {
 
-static constexpr auto SIMULATION_BOUNDS = glm::vec2(80.0f, 40.0f);
-static constexpr float ACCELERATION_GRID_TILE_EXTENT = 2.0f;
+static constexpr auto SIMULATION_BOUNDS = glm::vec2(8000.0f, 4000.0f);
+static constexpr float ACCELERATION_GRID_TILE_EXTENT = 5.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
@@ -48,7 +48,7 @@ VulkanRenderer::~VulkanRenderer() {
 // TODO: temporary view
 inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
     // near and far swapped for reverse Z
-    glm::mat4 proj = glm::perspectiveLH_ZO(glm::radians(100.0f), aspect_ratio, 1000.0f,  0.01f);
+    glm::mat4 proj = glm::perspectiveLH_ZO(glm::radians(100.0f), aspect_ratio, 10000.0f,  0.01f);
 
     // must flip Y for Vulkan
     proj[1][1] *= -1.0f;
@@ -224,7 +224,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
         std::move(acceleration_grid_tile_end_indices_buffer), std::move(main_render_target), std::move(depth_buffer), std::move(frames_in_flight) };
 }
 
-auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult {
+auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time, glm::vec3 cam_pos) -> RenderResult {
     auto& frame = m_frames_in_flight[m_current_frame];
     auto& device = VulkanContext::get().vk_device();
     std::ignore = device.waitForFences(*frame.frame_finished_fence, true, std::numeric_limits<uint64_t>::max());
@@ -249,7 +249,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     // ---- Fill simulation data buffer ------------------------------------------------------------------------------------------------------------------------
 
     float aspect_ratio = static_cast<float>(m_main_render_target.extent().width) / static_cast<float>(m_main_render_target.extent().height);
-    glm::mat4 projview = build_projview({40.0f, 20.0f, -20.0f}, aspect_ratio);
+    glm::mat4 projview = build_projview(cam_pos, aspect_ratio);
     float time_since_start = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - m_start_timepoint).count();
 
     shaders::SimulationData simulation_data = shaders::SimulationData{projview, delta_time, time_since_start};

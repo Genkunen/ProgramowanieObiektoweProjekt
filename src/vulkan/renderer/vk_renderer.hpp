@@ -56,7 +56,7 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
-    auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time) -> RenderResult;
+    auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time, glm::vec3 cam_pos) -> RenderResult;
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
     auto swapchain() const -> const VulkanSwapchain&;
 
