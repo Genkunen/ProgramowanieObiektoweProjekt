@@ -46,7 +46,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
             if (tile_start_index == 0xffffffff) continue;
 
-            for (uint i = tile_start_index; i <= tile_end_index && i < 8192; i++) {
+            for (uint i = tile_start_index; i <= tile_end_index && i < tile_end_index + 256; i++) {
                 uint foreign_object_id = push_constants.acceleration_grid_tile_object_ids[i];
                 if (foreign_object_id == tid) continue;
 
@@ -54,9 +54,9 @@ void main(uint3 dtid : SV_DispatchThreadID) {
                 float dist_squared = dot(direction_to_foreign_object, direction_to_foreign_object);
 
                 float2 vel = push_constants.objects[tid].velocity;
-                vel += 0.5f * direction_to_foreign_object * (1.0f / dist_squared);
+                vel += 0.025f * direction_to_foreign_object * (1.0f / dist_squared);
 
-                vel = clamp(vel, float2(-10.0f), float2(10.0f));
+                vel = clamp(vel, float2(-100.0f), float2(100.0f));
                 push_constants.objects[tid].velocity = vel;
             }
         }

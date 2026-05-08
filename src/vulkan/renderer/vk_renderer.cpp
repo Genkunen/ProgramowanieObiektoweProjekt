@@ -17,7 +17,7 @@
 namespace pop::vulkan::renderer {
 
 static constexpr auto SIMULATION_BOUNDS = glm::vec2(8000.0f, 4000.0f);
-static constexpr float ACCELERATION_GRID_TILE_EXTENT = 5.0f;
+static constexpr float ACCELERATION_GRID_TILE_EXTENT = 16.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;

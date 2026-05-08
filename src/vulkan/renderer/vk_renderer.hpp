@@ -13,7 +13,7 @@ struct ImDrawData;
 namespace pop::vulkan::renderer {
 
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
-constexpr uint64_t DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT = 1000;
+constexpr uint64_t DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT = 40000;
 
 enum class RenderResult {
     Ok,
