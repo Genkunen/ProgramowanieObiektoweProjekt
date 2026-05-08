@@ -1,12 +1,10 @@
 #include "../shared_consts.hpp"
 
-struct RadixHistogram<T, let N : int> where T : IInteger {
-    T buckets[N];
-};
+import "../radix_sort/histogram";
 
 struct PushConstants {
     uint* sort_keys;
-    RadixHistogram<uint, pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS>* global_histograms;
+    RadixHistogram<uint, pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS>* global_histogram;
     uint sort_keys_count;
     uint radix_bit_shift;
 };
@@ -40,6 +38,6 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     GroupMemoryBarrierWithGroupSync();
 
     if (is_group_helper_thread) {
-        push_constants.global_histograms[group_id].buckets[group_tid] = gs_histogram.buckets[group_tid];
+        InterlockedAdd(push_constants.global_histogram[group_id].buckets[group_tid], gs_histogram.buckets[group_tid]);
     }
 }
