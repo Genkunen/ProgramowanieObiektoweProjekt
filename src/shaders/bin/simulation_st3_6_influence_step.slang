@@ -46,7 +46,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
             if (tile_start_index == 0xffffffff) continue;
 
-            for (uint i = tile_start_index; i <= tile_end_index; i++) {
+            for (uint i = tile_start_index; i <= tile_end_index && i < 8192; i++) {
                 uint foreign_object_id = push_constants.acceleration_grid_tile_object_ids[i];
                 if (foreign_object_id == tid) continue;
 
