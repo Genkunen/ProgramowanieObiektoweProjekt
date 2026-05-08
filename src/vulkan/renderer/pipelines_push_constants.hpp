@@ -18,6 +18,7 @@ struct SimulationStepCSPushConstants {
     vk::DeviceAddress simulation_data;
     vk::DeviceAddress objects;
     vk::DeviceAddress dst_updated_objects;
+    glm::vec2 simulation_bounds;
     uint32_t object_count;
 } __attribute((packed));
 
@@ -41,7 +42,14 @@ struct SimulationAccelerationGridBitonicSortCSPushConstants {
     uint32_t bitonic_sort_stage;
     uint32_t bitonic_sort_step;
     uint32_t keys_count;
-};
+} __attribute((packed));
+
+struct SimulationAccelerationGridBoundScanCSPushConstants {
+    vk::DeviceAddress sort_keys;
+    vk::DeviceAddress tile_start_indices;
+    vk::DeviceAddress tile_end_indices;
+    uint32_t keys_count;
+} __attribute((packed));
 
 struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;

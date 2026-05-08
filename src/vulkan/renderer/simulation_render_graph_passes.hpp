@@ -24,6 +24,7 @@ struct SimulationRenderState {
     std::reference_wrapper<MeshPool> mesh_pool;
     std::reference_wrapper<const VulkanSwapchainImage> current_swapchain_image;
     ImDrawData* imgui_draw_data;
+    glm::vec2 simulation_bounds;
     uint32_t object_count;
     float grid_cell_size;
     uint32_t grid_width;
@@ -99,6 +100,32 @@ public:
     SimulationAccelerationGridBitonicSortPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> SimulationAccelerationGridBitonicSortPass;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanComputePipeline m_compute_pipeline;
+};
+
+// ---- SimulationAccelerationGridBoundClearPass ---------------------------------------------------------------------------------------------------------------
+
+class SimulationAccelerationGridBoundClearPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    SimulationAccelerationGridBoundClearPass(render_graph::PassDependencies&& deps);
+
+    static auto create() -> SimulationAccelerationGridBoundClearPass;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+};
+
+// ---- SimulationAccelerationGridBoundScanPass ----------------------------------------------------------------------------------------------------------------
+
+class SimulationAccelerationGridBoundScanPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    SimulationAccelerationGridBoundScanPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+
+    static auto create() -> SimulationAccelerationGridBoundScanPass;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
