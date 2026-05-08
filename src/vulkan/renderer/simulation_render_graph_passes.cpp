@@ -282,8 +282,7 @@ auto SimulationAccelerationGridBoundClearPass::invoke(vk::raii::CommandBuffer& c
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
 
-    cmd.fillBuffer(acceleration_grid_cells_end_indices_buffer.vk_buffer(), 0, acceleration_grid_cells_end_indices_buffer.size(), 0);
-    cmd.fillBuffer(acceleration_grid_cells_start_indices_buffer.vk_buffer(), 0, acceleration_grid_cells_start_indices_buffer.size(), 0);
+    cmd.fillBuffer(acceleration_grid_cells_end_indices_buffer.vk_buffer(), 0, acceleration_grid_cells_end_indices_buffer.size(), 0xffffffff);
 }
 
 // ---- SimulationAccelerationGridBoundScanPass ----------------------------------------------------------------------------------------------------------------
