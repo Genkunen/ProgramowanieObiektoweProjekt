@@ -42,7 +42,8 @@ inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
     // must flip Y for Vulkan
     proj[1][1] *= -1.0f;
 
-    glm::mat4 view = glm::lookAtLH(pos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    glm::vec3 forward = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::mat4 view = glm::lookAtLH(pos, pos + forward, glm::vec3(0.0f, 1.0f, 0.0f));
     return proj * view;
 }
 
@@ -204,7 +205,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     // ---- Fill simulation data buffer ------------------------------------------------------------------------------------------------------------------------
 
     float aspect_ratio = static_cast<float>(m_main_render_target.extent().width) / static_cast<float>(m_main_render_target.extent().height);
-    glm::mat4 projview = build_projview({0.0f, 0.0f, -20.0f}, aspect_ratio);
+    glm::mat4 projview = build_projview({40.0f, 20.0f, -20.0f}, aspect_ratio);
     float time_since_start = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - m_start_timepoint).count();
 
     shaders::SimulationData simulation_data = shaders::SimulationData{projview, delta_time, time_since_start};
@@ -361,6 +362,15 @@ inline glm::vec2 random_ndc() {
     return glm::vec2(dist(gen), dist(gen));
 }
 
+inline glm::vec2 random_zero_to_one() {
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+    return glm::vec2(dist(gen), dist(gen));
+}
+
+
 inline uint32_t object_random_seed() {
     return static_cast<uint32_t>(rand());
 }
@@ -397,7 +407,7 @@ auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshe
     auto dst_ptr = reinterpret_cast<shaders::SimulationObject*>(get_simulation_objects_src_buffer().memory_host_ptr());
     for (uint32_t i = 0; i < m_gpu_driven_sim_object_count; ++i) {
         dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
-        dst_ptr[i].position = random_ndc() * glm::vec2(40.0f, 20.0f);
+        dst_ptr[i].position = random_zero_to_one() * glm::vec2(80.0f, 40.0f);
         dst_ptr[i].velocity = random_ndc() * 5.0f;
         dst_ptr[i].randseed = object_random_seed();
     }
