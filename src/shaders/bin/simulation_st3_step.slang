@@ -24,11 +24,11 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     float2 bounds = push_constants.simulation_bounds;
 
-    if (object.position.x <     0.0f) { object.position.x =     0.0f; object.velocity.x *= -1.0f; }
-    if (object.position.y <     0.0f) { object.position.y =     0.0f; object.velocity.y *= -1.0f; }
+    if (object.position.x <     0.0f) { object.position.x =     0.0f; object.velocity.x *= -1.0f; object.velocity.x += 0.1f; }
+    if (object.position.y <     0.0f) { object.position.y =     0.0f; object.velocity.y *= -1.0f; object.velocity.y += 0.1f; }
 
-    if (object.position.x > bounds.x) { object.position.x = bounds.x; object.velocity.x *= -1.0f; }
-    if (object.position.y > bounds.y) { object.position.y = bounds.y; object.velocity.y *= -1.0f; }
+    if (object.position.x > bounds.x) { object.position.x = bounds.x; object.velocity.x *= -1.0f; object.velocity.x -= 0.1f; }
+    if (object.position.y > bounds.y) { object.position.y = bounds.y; object.velocity.y *= -1.0f; object.velocity.y -= 0.1f; }
 
     push_constants.dst_updated_objects[tid] = object;
 }

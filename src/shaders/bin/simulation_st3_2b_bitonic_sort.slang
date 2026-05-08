@@ -19,6 +19,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint i_xor_j = i ^ push_constants.bitonic_sort_step;
     if (i_xor_j >= push_constants.keys_count) return;
 
+
     if (i_xor_j > i) {
         bool is_ascending = (i & push_constants.bitonic_sort_stage) == 0;
 

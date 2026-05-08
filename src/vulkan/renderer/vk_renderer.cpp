@@ -17,7 +17,7 @@
 namespace pop::vulkan::renderer {
 
 static constexpr auto SIMULATION_BOUNDS = glm::vec2(80.0f, 40.0f);
-static constexpr float ACCELERATION_GRID_TILE_EXTENT = 0.5f;
+static constexpr float ACCELERATION_GRID_TILE_EXTENT = 2.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
@@ -117,6 +117,9 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph.add_pass(std::make_unique<IndirectDrawCommandsFirstInstanceBuildPass>(IndirectDrawCommandsFirstInstanceBuildPass::create()));
     render_graph.add_pass(std::make_unique<InstanceBufferBuildPass>(InstanceBufferBuildPass::create()));
 
+    // Simulation Influence Step
+    render_graph.add_pass(std::make_unique<SimulationInfluenceStepPass>(SimulationInfluenceStepPass::create()));
+
     // Main renderpass
     render_graph.add_pass(std::make_unique<FishTankRenderPass>(FishTankRenderPass::create()));
     render_graph.add_pass(std::make_unique<ImGuiRenderPass>(ImGuiRenderPass::create()));
@@ -197,7 +200,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     memset(acceleration_grid_sort_keys_buffer.memory_host_ptr(), 0xff, acceleration_grid_sort_keys_buffer.size());
 
     auto acceleration_grid_sort_values_buffer = VulkanBuffer::builder()
-        .set_size(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(uint32_t))
+        .set_size(round_to_next_power_of_two(DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT * sizeof(uint32_t)))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
@@ -310,7 +313,8 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         .simulation_bounds = SIMULATION_BOUNDS,
         .object_count = m_gpu_driven_sim_object_count,
         .grid_cell_size = ACCELERATION_GRID_TILE_EXTENT,
-        .grid_width = ACCELERATION_GRID_WIDTH
+        .grid_width = ACCELERATION_GRID_WIDTH,
+        .grid_height = ACCELERATION_GRID_HEIGHT
     };
 
     m_render_graph.execute(command_buffer, simulation_render_state, pass_resources);

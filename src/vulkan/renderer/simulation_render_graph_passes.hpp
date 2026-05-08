@@ -28,6 +28,7 @@ struct SimulationRenderState {
     uint32_t object_count;
     float grid_cell_size;
     uint32_t grid_width;
+    uint32_t grid_height;
 };
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
@@ -126,6 +127,21 @@ public:
     SimulationAccelerationGridBoundScanPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> SimulationAccelerationGridBoundScanPass;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanComputePipeline m_compute_pipeline;
+};
+
+// ---- SimulationInfluenceStepPass ----------------------------------------------------------------------------------------------------------------------------
+
+class SimulationInfluenceStepPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    SimulationInfluenceStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+
+    static auto create() -> SimulationInfluenceStepPass;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 

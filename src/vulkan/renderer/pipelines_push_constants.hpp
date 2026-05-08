@@ -51,6 +51,17 @@ struct SimulationAccelerationGridBoundScanCSPushConstants {
     uint32_t keys_count;
 } __attribute((packed));
 
+struct SimulationInfluenceStepCSPushConstants {
+    vk::DeviceAddress objects;
+    vk::DeviceAddress acceleration_grid_values;
+    vk::DeviceAddress acceleration_grid_tile_start_indices;
+    vk::DeviceAddress acceleration_grid_tile_end_indices;
+    float grid_cell_size;
+    uint32_t grid_width;
+    uint32_t grid_height;
+    uint32_t object_count;
+} __attribute((packed));
+
 struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     vk::DeviceAddress drawlocal_instance_indices;
