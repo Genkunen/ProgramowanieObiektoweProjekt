@@ -349,7 +349,7 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
         .add_push_constant_range(0, sizeof(SimulationInfluenceStepPass), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_6_influence_step.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_6_influence_step_v2.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -380,7 +380,7 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
     cmd.pushConstants<SimulationInfluenceStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
-        div_ceil(state.object_count, shader_consts::CS_SIMULATION_INFLUENCE_STEP_GROUP_SIZE_X),
+        state.grid_width * state.grid_height,
           1,
           1
     );
