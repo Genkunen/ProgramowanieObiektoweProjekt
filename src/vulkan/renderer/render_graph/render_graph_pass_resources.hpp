@@ -14,7 +14,7 @@ enum class BufferResourceIdentifier {
 
     FrameLocalSimulationData,
     SimulationObjects,
-    SimulationNextObjects,
+    SimulationObjectsScratch,
 
     AccelerationGridSortKeys,
     AccelerationGridSortValues,

@@ -17,7 +17,7 @@
 namespace pop::vulkan::renderer {
 
 static constexpr auto SIMULATION_BOUNDS = glm::vec2(8000.0f, 4000.0f);
-static constexpr float ACCELERATION_GRID_TILE_EXTENT = 16.0f;
+static constexpr float ACCELERATION_GRID_TILE_EXTENT = 2.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
@@ -295,7 +295,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets, m_drawlocal_instance_ids_buffer);
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, frame.simulation_data_buffer);
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationObjects, get_simulation_objects_src_buffer());
-    pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationNextObjects, get_simulation_objects_dst_buffer());
+    pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, get_simulation_objects_dst_buffer());
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer, m_instance_data_buffer);
 
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, m_acceleration_grid_sort_keys_buffer);
@@ -345,7 +345,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         .setImageIndices(swapchain_acquire_result.value);
 
     m_current_frame = (m_current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
-    swap_simulation_objects_buffer_rw_direction();
+    // swap_simulation_objects_buffer_rw_direction();
 
     auto present_result = VulkanContext::get().vk_present_queue().presentKHR(present_info);
 

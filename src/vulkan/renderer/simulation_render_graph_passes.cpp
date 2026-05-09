@@ -102,7 +102,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
-        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationNextObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
@@ -122,7 +122,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
 auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
-    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationNextObjects);
+    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
 
     SimulationStepCSPushConstants consts = {
         frame_local_simulation_data_buffer.memory_device_ptr(),
@@ -149,7 +149,7 @@ SimulationAccelerationGridSortPreparePass::SimulationAccelerationGridSortPrepare
 
 auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerationGridSortPreparePass {
     auto dependencies = render_graph::PassDependencies::builder()
-        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationNextObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
@@ -170,7 +170,7 @@ auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerati
 
 auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
-    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationNextObjects);
+    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
 
@@ -339,7 +339,8 @@ SimulationInfluenceStepPass::SimulationInfluenceStepPass(render_graph::PassDepen
 
 auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
-        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationNextObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
@@ -361,13 +362,15 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
 
 auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
-    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationNextObjects);
+    auto& simulation_objects_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
+    auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
 
     SimulationInfluenceStepCSPushConstants consts = {
-        simulation_next_objects_buffer.memory_device_ptr(),
+        simulation_objects_scratch_buffer.memory_device_ptr(),
+        simulation_objects_buffer.memory_device_ptr(),
         acceleration_grid_sort_values_buffer.memory_device_ptr(),
         acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
         acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),
@@ -395,7 +398,7 @@ IndirectDrawCommandsInstanceCountBuildPass::IndirectDrawCommandsInstanceCountBui
 auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommandsInstanceCountBuildPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
-        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationNextObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .build();
 
@@ -416,13 +419,13 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
 auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
-    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationNextObjects);
+    auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
 
     BuildIndirectInstanceCountCSPushConstants instance_count_cs_consts = {
         simulation_draw_indirect_commands_buffer.memory_device_ptr(),
         draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
-        simulation_next_objects_buffer.memory_device_ptr(),
+        simulation_objects_buffer.memory_device_ptr(),
         state.object_count
     };
 
@@ -485,7 +488,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
-        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationNextObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
 
@@ -508,7 +511,7 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
-    auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationNextObjects);
+    auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& objects_instance_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer);
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
@@ -517,7 +520,7 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
         simulation_draw_indirect_commands_buffer.memory_device_ptr(),
         draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
         frame_local_simulation_data_buffer.memory_device_ptr(),
-        simulation_next_objects_buffer.memory_device_ptr(),
+        simulation_objects_buffer.memory_device_ptr(),
         objects_instance_buffer.memory_device_ptr(),
         state.object_count
     };

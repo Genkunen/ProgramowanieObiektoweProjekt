@@ -3,6 +3,7 @@
 
 struct PushConstants {
     pop::shaders::SimulationObject* objects;
+    pop::shaders::SimulationObject* next_objects;
 
     uint* acceleration_grid_tile_object_ids;
     uint* acceleration_grid_tile_start_indices;
@@ -38,10 +39,10 @@ groupshared pop::shaders::SimulationObject master_tile_objects[MAX_OBJECTS_PER_T
 groupshared pop::shaders::SimulationObject neighbor_tile_objects[MAX_OBJECTS_PER_TILE];
 
 void interact(inout pop::shaders::SimulationObject object, inout pop::shaders::SimulationObject other) {
-    float2 direction = normalize(other.position - object.position);
-    float dist_squared = max(dot(direction, direction), 1e-4f);
+    float2 pos_delta = other.position - object.position;
+    float dist_squared = dot(pos_delta, pos_delta);
 
-    object.velocity += 0.01f * direction * (1.0f / dist_squared);
+    object.velocity += clamp(pos_delta / (dist_squared + 1e-2f), float2(-100.0f), float2(100.0f));
 }
 
 [shader("compute")]
@@ -132,7 +133,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     }
 
     if (thread_has_object) {
-        thread_object.velocity = clamp(thread_object.velocity, float2(-10.0f), float2(10.0f));
-        push_constants.objects[thread_object_id] = thread_object;
+        push_constants.next_objects[thread_object_id] = thread_object;
     }
+    // All objects must be part of the grid so no objects are missed in next_objects update
 }
