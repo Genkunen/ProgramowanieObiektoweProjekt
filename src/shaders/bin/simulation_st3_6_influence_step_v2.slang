@@ -134,5 +134,14 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     if (thread_has_object) {
         push_constants.next_objects[thread_object_id] = thread_object;
     }
-    // All objects must be part of the grid so no objects are missed in next_objects update
+
+    // If there are more objects in this group's tile than threads in it then copy the remaining objects
+    if (master_tile_object_count > MAX_OBJECTS_PER_TILE) {
+        if (is_group_tile_helper_thread) {
+            for (uint i = MAX_OBJECTS_PER_TILE + group_tid; i < master_tile_object_count; i += MAX_OBJECTS_PER_TILE) {
+                uint object_id = push_constants.acceleration_grid_tile_object_ids[neighborhood_tile_start_indices[1][1] + i];
+                push_constants.next_objects[object_id] = push_constants.objects[object_id];
+            }
+        }
+    }
 }
