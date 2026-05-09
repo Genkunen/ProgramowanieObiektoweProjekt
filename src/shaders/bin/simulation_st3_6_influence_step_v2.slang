@@ -35,8 +35,7 @@ static const uint MAX_OBJECTS_PER_TILE = 64;
 groupshared uint neighborhood_tile_start_indices[3][3];
 groupshared uint neighborhood_tile_end_indices[3][3];
 
-groupshared pop::shaders::SimulationObject master_tile_objects[MAX_OBJECTS_PER_TILE];
-groupshared pop::shaders::SimulationObject neighbor_tile_objects[MAX_OBJECTS_PER_TILE];
+groupshared pop::shaders::SimulationObject tile_objects_scratch[MAX_OBJECTS_PER_TILE];
 
 void interact(inout pop::shaders::SimulationObject object, const inout pop::shaders::SimulationObject other) {
     float2 pos_delta = other.position - object.position;
@@ -86,7 +85,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
 
     if (thread_has_object) {
         thread_object = push_constants.objects[thread_object_id];
-        master_tile_objects[group_tid] = thread_object;
+        tile_objects_scratch[group_tid] = thread_object;
     }
     GroupMemoryBarrierWithGroupSync();
 
@@ -95,7 +94,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
         for (uint i = 0; i < master_tile_object_count; i++) {
             if (i == group_tid) continue;
 
-            pop::shaders::SimulationObject neighbor_object = master_tile_objects[i];
+            pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
             interact(thread_object, neighbor_object);
         }
     }
@@ -115,7 +114,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
 
             if (is_group_tile_helper_thread && group_tid < neighbor_tile_object_count) {
                 uint object_id = push_constants.acceleration_grid_tile_object_ids[neighbor_tile_start_index + group_tid];
-                neighbor_tile_objects[group_tid] = push_constants.objects[object_id];
+                tile_objects_scratch[group_tid] = push_constants.objects[object_id];
             }
             GroupMemoryBarrierWithGroupSync();
 
@@ -123,7 +122,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             // GTID - object index in master tile, i - object index in the neighboring tile
             if (thread_has_object) {
                 for (uint i = 0; i < neighbor_tile_object_count && i < MAX_OBJECTS_PER_TILE; i++) {
-                    pop::shaders::SimulationObject neighbor_object = neighbor_tile_objects[i];
+                    pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
 
                     interact(thread_object, neighbor_object);
                 }
