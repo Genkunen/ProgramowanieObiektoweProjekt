@@ -71,7 +71,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
                 if (foreign_object_id == tid) continue;
 
                 float2 direction_to_foreign_object = normalize(push_constants.objects[foreign_object_id].position - object_pos);
-                float dist_squared = dot(direction_to_foreign_object, direction_to_foreign_object);
+                float dist_squared = max(dot(direction_to_foreign_object, direction_to_foreign_object), 1e-4f)
 
                 float2 vel = push_constants.objects[tid].velocity;
                 vel += 0.025f * direction_to_foreign_object * (1.0f / dist_squared);
