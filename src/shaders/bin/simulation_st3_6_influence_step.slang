@@ -22,13 +22,36 @@ uint compute_cell_key(uint2 cell_pos) {
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_SIMULATION_INFLUENCE_STEP_GROUP_SIZE_X, 1, 1)]
-void main(uint3 dtid : SV_DispatchThreadID) {
+void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
     uint tid = dtid.x;
+    uint group_tid = gtid.x;
 
     if (tid >= push_constants.object_count) return;
 
     float2 object_pos = push_constants.objects[tid].position;
     int2 object_grid_tile_pos = int2(object_pos / float2(push_constants.grid_cell_size));
+
+    uint tile_start_indices[3][3];
+    uint tile_end_indices[3][3];
+
+    [ForceUnroll]
+    for (int dy = -1; dy <= 1; dy++) {
+        if (object_grid_tile_pos.y + dy < 0 || object_grid_tile_pos.y + dy >= push_constants.grid_height) continue;
+
+        [ForceUnroll]
+        for (int dx = -1; dx <= 1; dx++) {
+            if (object_grid_tile_pos.x + dx < 0 || object_grid_tile_pos.x + dx >= push_constants.grid_width) continue;
+
+            uint2 cell_pos = object_grid_tile_pos + uint2(dx, dy);
+            uint cell_key = compute_cell_key(cell_pos);
+
+            uint tile_start_index = push_constants.acceleration_grid_tile_start_indices[cell_key];
+            uint tile_end_index = push_constants.acceleration_grid_tile_end_indices[cell_key];
+
+            tile_start_indices[dy + 1][dx + 1] = tile_start_index;
+            tile_end_indices[dy + 1][dx + 1] = tile_end_index;
+        }
+    }
 
     [ForceUnroll]
     for (int dx = -1; dx <= 1; dx++) {
@@ -38,11 +61,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
         for (int dy = -1; dy <= 1; dy++) {
             if (object_grid_tile_pos.y + dy < 0 || object_grid_tile_pos.y + dy >= push_constants.grid_height) continue;
 
-            uint2 cell_pos = object_grid_tile_pos + uint2(dx, dy);
-            uint cell_key = compute_cell_key(cell_pos);
-
-            uint tile_start_index = push_constants.acceleration_grid_tile_start_indices[cell_key];
-            uint tile_end_index = push_constants.acceleration_grid_tile_end_indices[cell_key];
+            uint tile_start_index = tile_start_indices[dy + 1][dx + 1];
+            uint tile_end_index = tile_end_indices[dy + 1][dx + 1];
 
             if (tile_start_index == 0xffffffff) continue;
 
@@ -61,5 +81,4 @@ void main(uint3 dtid : SV_DispatchThreadID) {
             }
         }
     }
-
 }
