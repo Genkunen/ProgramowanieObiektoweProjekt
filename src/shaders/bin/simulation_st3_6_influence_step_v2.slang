@@ -38,7 +38,7 @@ groupshared uint neighborhood_tile_end_indices[3][3];
 groupshared pop::shaders::SimulationObject master_tile_objects[MAX_OBJECTS_PER_TILE];
 groupshared pop::shaders::SimulationObject neighbor_tile_objects[MAX_OBJECTS_PER_TILE];
 
-void interact(inout pop::shaders::SimulationObject object, inout pop::shaders::SimulationObject other) {
+void interact(inout pop::shaders::SimulationObject object, const inout pop::shaders::SimulationObject other) {
     float2 pos_delta = other.position - object.position;
     float dist_squared = dot(pos_delta, pos_delta);
 
