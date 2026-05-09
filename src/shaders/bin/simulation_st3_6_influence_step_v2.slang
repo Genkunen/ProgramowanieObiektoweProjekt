@@ -37,7 +37,7 @@ groupshared uint neighborhood_tile_end_indices[3][3];
 
 groupshared pop::shaders::SimulationObject tile_objects_scratch[MAX_OBJECTS_PER_TILE];
 
-void interact(inout pop::shaders::SimulationObject object, const inout pop::shaders::SimulationObject other) {
+void interact(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other) {
     float2 pos_delta = other.position - object.position;
     float dist_squared = dot(pos_delta, pos_delta);
 
@@ -91,7 +91,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
 
     if (thread_has_object) {
         // Compute influence from the same tile
-        for (uint i = 0; i < master_tile_object_count; i++) {
+        for (uint i = 0; i < master_tile_object_count && i < MAX_OBJECTS_PER_TILE; i++) {
             if (i == group_tid) continue;
 
             pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
