@@ -13,6 +13,36 @@ struct PushConstants {
 
 static const float SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR = 0.01f;
 
+float2 hash22(float2 p) {
+    p = float2(dot(p, float2(127.1, 311.7)),
+               dot(p, float2(269.5, 183.3)));
+    return frac(sin(p) * 43758.5453) * 2.0 - 1.0;
+}
+
+float smooth_noise(float2 p) {
+    float2 i = floor(p);
+    float2 f = frac(p);
+
+    float2 u = f * f * (3.0 - 2.0 * f);
+
+    float a = dot(hash22(i + float2(0,0)), float2(1,0));
+    float b = dot(hash22(i + float2(1,0)), float2(1,0));
+    float c = dot(hash22(i + float2(0,1)), float2(1,0));
+    float d = dot(hash22(i + float2(1,1)), float2(1,0));
+
+    return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
+}
+
+float2 vector_field(float2 p, float t)
+{
+    float2 sp = p / 4.0;
+
+    float nx = smooth_noise(sp + float2(0.0,  0.0) + t * 0.5);
+    float ny = smooth_noise(sp + float2(5.2, 1.3) + t * 0.5);
+
+    return float2(nx, ny) * 3.0;
+}
+
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
@@ -54,7 +84,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
         object.velocity.y -= pow(dist, 4) * 0.01f;
     }
 
-    object.velocity *= 0.995f;
+    object.velocity += vector_field(object.position, push_constants.simulation_data->simulation_time_since_start);
+    object.velocity *= 0.95f;
 
     push_constants.dst_updated_objects[tid] = object;
 }
