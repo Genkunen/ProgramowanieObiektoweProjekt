@@ -41,7 +41,7 @@ void interact(inout pop::shaders::SimulationObject object, const in pop::shaders
     float2 pos_delta = other.position - object.position;
     float dist_squared = dot(pos_delta, pos_delta);
 
-    object.velocity += clamp(pos_delta / (dist_squared + 1e-2f), float2(-100.0f), float2(100.0f));
+    object.velocity += clamp( 2.0f * pos_delta / (dist_squared + 1e-2f), float2(-100.0f), float2(100.0f));
 }
 
 [shader("compute")]
@@ -76,12 +76,13 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     }
 
     // Parameters about this this thread's object in the master tile
+    bool is_in_bounds = neighborhood_tile_start_indices[1][1] + group_tid < neighborhood_tile_end_indices[1][1] + 1;
     pop::shaders::SimulationObject thread_object;
-    uint thread_object_id = push_constants.acceleration_grid_tile_object_ids[neighborhood_tile_start_indices[1][1] + group_tid];
+    uint thread_object_id = is_in_bounds ? push_constants.acceleration_grid_tile_object_ids[neighborhood_tile_start_indices[1][1] + group_tid] : 0xffffffff;
 
     // Load dispatch's tile objects
     uint master_tile_object_count = neighborhood_tile_end_indices[1][1] - neighborhood_tile_start_indices[1][1] + 1;
-    bool thread_has_object = group_tid < master_tile_object_count;
+    bool thread_has_object = (group_tid < master_tile_object_count) && is_in_bounds;
 
     if (thread_has_object) {
         thread_object = push_constants.objects[thread_object_id];
