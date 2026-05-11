@@ -194,73 +194,197 @@ auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& 
 
 // ---- SimulationAccelerationGridBitonicSortPass --------------------------------------------------------------------------------------------------------------
 
-SimulationAccelerationGridBitonicSortPass::SimulationAccelerationGridBitonicSortPass(render_graph::PassDependencies&& deps,
-    VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+SimulationAccelerationGridRadixSortPass::SimulationAccelerationGridRadixSortPass(render_graph::PassDependencies&& deps,
+    VulkanPipelineLayout&& histogram_pass_pipeline_layout, VulkanComputePipeline&& histogram_pass_compute_pipeline,
+    VulkanPipelineLayout&& prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& prefix_sum_pass_compute_pipeline,
+    VulkanPipelineLayout&& scatter_pass_pipeline_layout, VulkanComputePipeline&& scatter_pass_compute_pipeline)
+    : PassBase<SimulationRenderState>(std::move(deps)), m_histogram_pass_pipeline_layout(std::move(histogram_pass_pipeline_layout)),
+      m_histogram_pass_compute_pipeline(std::move(histogram_pass_compute_pipeline)),
+      m_prefix_sum_pass_pipeline_layout(std::move(prefix_sum_pass_pipeline_layout)),
+      m_prefix_sum_pass_compute_pipeline(std::move(prefix_sum_pass_compute_pipeline)), m_scatter_pass_pipeline_layout(std::move(scatter_pass_pipeline_layout)),
+      m_scatter_pass_compute_pipeline(std::move(scatter_pass_compute_pipeline)) {}
 
-auto SimulationAccelerationGridBitonicSortPass::create() -> SimulationAccelerationGridBitonicSortPass {
+auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAccelerationGridRadixSortPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortKeysScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValuesScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortGlobalHistogram, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortGroupLocalHistograms, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .build();
 
-    auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridBitonicSortCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+    auto histogram_cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortHistogramCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_2b_bitonic_sort.spv");
-
-    auto cs = VulkanComputePipeline::builder()
-        .set_pipeline_layout(cs_layout)
-        .set_shader(cs_code)
+    auto prefix_sum_cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortPrefixSumCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    return SimulationAccelerationGridBitonicSortPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+    auto scatter_cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortScatterCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .build();
+
+    auto histogram_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_2_radix_sort_histogram_build.spv");
+    auto prefix_sum_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_3_radix_sort_prefix_sum_build.spv");
+    auto scatter_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_4_radix_sort_scatter.spv");
+
+    auto histogram_cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(histogram_cs_layout)
+        .set_shader(histogram_cs_code)
+        .build();
+
+    auto prefix_sum_cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(prefix_sum_cs_layout)
+        .set_shader(prefix_sum_cs_code)
+        .build();
+
+    auto scatter_cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(scatter_cs_layout)
+        .set_shader(scatter_cs_code)
+        .build();
+
+    return SimulationAccelerationGridRadixSortPass(std::move(dependencies),
+        std::move(histogram_cs_layout), std::move(histogram_cs),
+        std::move(prefix_sum_cs_layout), std::move(prefix_sum_cs),
+        std::move(scatter_cs_layout), std::move(scatter_cs) );
 }
 
-auto SimulationAccelerationGridBitonicSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
+auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
+    auto& acceleration_grid_sort_keys_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeysScratch);
+    auto& acceleration_grid_sort_values_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValuesScratch);
+    auto& acceleration_grid_sort_global_histogram_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortGlobalHistogram);
+    auto& acceleration_grid_sort_group_local_histograms_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortGroupLocalHistograms);
 
-    auto keys_count = acceleration_grid_sort_keys_buffer.size() / sizeof(uint32_t);
+    bool regular_buffer_is_scratch_buffer = false;
+    uint32_t keys_count = acceleration_grid_sort_keys_buffer.size() / sizeof(uint32_t);
+    uint32_t pass_count = (8 * sizeof(uint32_t)) / shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_BITS;
+    assert(pass_count % 2 == 0 && "radix sort pass count must be even");
 
-    assert(acceleration_grid_sort_keys_buffer.size() == acceleration_grid_sort_values_buffer.size());
-    assert(round_to_next_power_of_two(keys_count) == keys_count);
+    uint32_t group_count = div_ceil(keys_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_GROUP);
 
-    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    bool needs_barrier = false;
-    for (uint32_t stage = 2; stage <= keys_count; stage <<= 1) {
-        for (uint32_t step = stage >> 1; step > 0; step >>= 1) {
-            if (needs_barrier) {
-                VulkanPipelineBarriers::builder()
-                    .insert_buffer_memory_barrier(acceleration_grid_sort_keys_buffer.vk_buffer(), vk::WholeSize, 0,
+    for (uint32_t pass_index = 0; pass_index < pass_count; pass_index++) {
+        uint32_t radix_bit_shift = pass_index * shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_BITS;
+        bool is_last_pass = pass_index == pass_count - 1;
+
+        auto& real_keys_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_keys_scratch_buffer : acceleration_grid_sort_keys_buffer;
+        auto& real_values_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_values_scratch_buffer : acceleration_grid_sort_values_buffer;
+        auto& real_keys_scratch_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_keys_buffer : acceleration_grid_sort_keys_scratch_buffer;
+        auto& real_values_scratch_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_values_buffer : acceleration_grid_sort_values_scratch_buffer;
+
+        SimulationAccelerationGridRadixSortHistogramCSPushConstants histogram_consts = {
+            real_keys_buffer.memory_device_ptr(),
+            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            group_count,
+            keys_count,
+            radix_bit_shift
+        };
+
+        SimulationAccelerationGridRadixSortPrefixSumCSPushConstants prefix_sum_consts = {
+            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            group_count
+        };
+
+        SimulationAccelerationGridRadixSortScatterCSPushConstants scatter_consts = {
+            real_keys_buffer.memory_device_ptr(),
+            real_values_buffer.memory_device_ptr(),
+            real_keys_scratch_buffer.memory_device_ptr(),
+            real_values_scratch_buffer.memory_device_ptr(),
+            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            group_count,
+            keys_count,
+            radix_bit_shift
+        };
+
+        VulkanPipelineBarriers::builder()
+            .insert_buffer_memory_barrier(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), vk::WholeSize, 0,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                vk::PipelineStageFlagBits2::eClear, vk::AccessFlagBits2::eTransferWrite
+            )
+            .flush(cmd);
+
+        cmd.fillBuffer(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), 0, acceleration_grid_sort_global_histogram_buffer.size(), 0);
+
+        VulkanPipelineBarriers::builder()
+            .insert_buffer_memory_barrier(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), vk::WholeSize, 0,
+                vk::PipelineStageFlagBits2::eClear, vk::AccessFlagBits2::eTransferWrite,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite
+            )
+            .flush(cmd);
+
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_histogram_pass_compute_pipeline.vk_pipeline());
+        cmd.pushConstants<SimulationAccelerationGridRadixSortHistogramCSPushConstants>(m_histogram_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, histogram_consts);
+        cmd.dispatch(
+            group_count,
+            1,
+            1
+        );
+
+        VulkanPipelineBarriers::builder()
+            .insert_buffer_memory_barrier(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), vk::WholeSize, 0,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
+                )
+                .insert_buffer_memory_barrier(acceleration_grid_sort_group_local_histograms_buffer.vk_buffer(), vk::WholeSize, 0,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
+                )
+            .flush(cmd);
+
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_prefix_sum_pass_compute_pipeline.vk_pipeline());
+        cmd.pushConstants<SimulationAccelerationGridRadixSortPrefixSumCSPushConstants>(m_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, prefix_sum_consts);
+        cmd.dispatch(shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1);
+
+        VulkanPipelineBarriers::builder()
+            .insert_buffer_memory_barrier(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), vk::WholeSize, 0,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
+                )
+                    .insert_buffer_memory_barrier(acceleration_grid_sort_group_local_histograms_buffer.vk_buffer(), vk::WholeSize, 0,
                         vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
-                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite
+                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
                     )
-                    .insert_buffer_memory_barrier(acceleration_grid_sort_values_buffer.vk_buffer(), vk::WholeSize, 0,
-                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
-                        vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite
-                    )
-                    .flush(cmd);
-            }
+            .flush(cmd);
 
-            SimulationAccelerationGridBitonicSortCSPushConstants consts = {
-                acceleration_grid_sort_keys_buffer.memory_device_ptr(),
-                acceleration_grid_sort_values_buffer.memory_device_ptr(),
-                stage,
-                step,
-                static_cast<uint32_t>(keys_count)
-            };
-            cmd.pushConstants<SimulationAccelerationGridBitonicSortCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
-            cmd.dispatch(
-                div_ceil(keys_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_BITONIC_SORT_GROUP_SIZE_X),
-                1,
-                1
-            );
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_scatter_pass_compute_pipeline.vk_pipeline());
+        cmd.pushConstants<SimulationAccelerationGridRadixSortScatterCSPushConstants>(m_scatter_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, scatter_consts);
+        cmd.dispatch(
+            group_count,
+             1,
+             1
+        );
 
-            needs_barrier = true;
+        if (!is_last_pass) {
+            regular_buffer_is_scratch_buffer = !regular_buffer_is_scratch_buffer;
+
+            // TODO: this likely oversynchronizes but is fine for now
+            VulkanPipelineBarriers::builder()
+                .insert_buffer_memory_barrier(real_keys_buffer.vk_buffer(), vk::WholeSize, 0,
+                    vk::PipelineStageFlagBits2::eComputeShader, {},
+                    vk::PipelineStageFlagBits2::eComputeShader, {}
+                )
+                .insert_buffer_memory_barrier(real_values_buffer.vk_buffer(), vk::WholeSize, 0,
+                    vk::PipelineStageFlagBits2::eComputeShader, {},
+                    vk::PipelineStageFlagBits2::eComputeShader, {}
+                )
+                .insert_buffer_memory_barrier(real_keys_scratch_buffer.vk_buffer(), vk::WholeSize, 0,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
+                )
+                .insert_buffer_memory_barrier(real_values_scratch_buffer.vk_buffer(), vk::WholeSize, 0,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead
+                )
+                .flush(cmd);
         }
+
     }
 }
 

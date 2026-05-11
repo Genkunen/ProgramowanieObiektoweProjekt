@@ -96,17 +96,27 @@ private:
 
 // ---- SimulationAccelerationGridBitonicSortPass --------------------------------------------------------------------------------------------------------------
 
-class SimulationAccelerationGridBitonicSortPass : public render_graph::PassBase<SimulationRenderState> {
+class SimulationAccelerationGridRadixSortPass : public render_graph::PassBase<SimulationRenderState> {
 public:
-    SimulationAccelerationGridBitonicSortPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+    SimulationAccelerationGridRadixSortPass(render_graph::PassDependencies&& deps,
+        VulkanPipelineLayout&& histogram_pass_pipeline_layout, VulkanComputePipeline&& histogram_pass_compute_pipeline,
+        VulkanPipelineLayout&& prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& prefix_sum_pass_compute_pipeline,
+        VulkanPipelineLayout&& scatter_pass_pipeline_layout, VulkanComputePipeline&& scatter_pass_compute_pipeline
+    );
 
-    static auto create() -> SimulationAccelerationGridBitonicSortPass;
+    static auto create() -> SimulationAccelerationGridRadixSortPass;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
 private:
-    VulkanPipelineLayout m_pipeline_layout;
-    VulkanComputePipeline m_compute_pipeline;
+    VulkanPipelineLayout m_histogram_pass_pipeline_layout;
+    VulkanComputePipeline m_histogram_pass_compute_pipeline;
+
+    VulkanPipelineLayout m_prefix_sum_pass_pipeline_layout;
+    VulkanComputePipeline m_prefix_sum_pass_compute_pipeline;
+
+    VulkanPipelineLayout m_scatter_pass_pipeline_layout;
+    VulkanComputePipeline m_scatter_pass_compute_pipeline;
 };
 
 // ---- SimulationAccelerationGridBoundClearPass ---------------------------------------------------------------------------------------------------------------

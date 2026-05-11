@@ -31,10 +31,38 @@ struct SimulationAccelerationGridSortPrepareCSPushConstants {
     uint32_t object_count;
 } __attribute((packed));
 
-constexpr auto round_to_next_power_of_two(uint32_t x) -> uint32_t {
-    if (x == 1) return 1;
-    return 1 << (32 - __builtin_clz(x - 1));
-}
+struct SimulationAccelerationGridRadixSortHistogramCSPushConstants {
+    vk::DeviceAddress sort_keys;
+
+    vk::DeviceAddress global_histogram;
+    vk::DeviceAddress group_local_histograms;
+
+    uint32_t group_count;
+    uint32_t keys_count;
+    uint32_t radix_bit_shift;
+} __attribute((packed));
+
+struct SimulationAccelerationGridRadixSortPrefixSumCSPushConstants {
+    vk::DeviceAddress global_histogram;
+    vk::DeviceAddress group_local_histograms;
+
+    uint32_t group_count;
+} __attribute((packed));
+
+// TODO: reduce size (<= 13 DWORDs)
+struct SimulationAccelerationGridRadixSortScatterCSPushConstants {
+    vk::DeviceAddress sort_keys;
+    vk::DeviceAddress sort_values;
+    vk::DeviceAddress dst_sort_keys;
+    vk::DeviceAddress dst_sort_values;
+
+    vk::DeviceAddress global_histogram;
+    vk::DeviceAddress group_local_histograms;
+
+    uint32_t group_count;
+    uint32_t keys_count;
+    uint32_t radix_bit_shift;
+} __attribute((packed));
 
 struct SimulationAccelerationGridBitonicSortCSPushConstants {
     vk::DeviceAddress sort_keys;

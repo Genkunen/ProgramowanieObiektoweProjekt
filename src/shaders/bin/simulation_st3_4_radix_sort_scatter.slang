@@ -1,0 +1,94 @@
+#include "../shared_consts.hpp"
+
+struct PushConstants {
+    uint* sort_keys;
+    uint* sort_values;
+    uint* dst_sort_keys;
+    uint* dst_sort_values;
+
+    uint* global_histogram;       // table in the format [radix_bucket]
+    uint* group_local_histograms; // 2D table in the format [radix_bucket][group_id]
+
+    uint group_count;
+    uint sort_key_count;
+    uint radix_bit_shift;
+};
+
+[vk::push_constant] PushConstants push_constants;
+
+
+uint div_ceil(uint a, uint b) {
+    return (a + b - 1) / b;
+}
+
+groupshared uint gs_rank_elem_values[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
+
+uint compute_element_rank256(uint value, uint group_tid) {
+    gs_rank_elem_values[group_tid] = value;
+    GroupMemoryBarrierWithGroupSync();
+
+    uint rank = 0;
+
+    for (uint i = 0; i < group_tid; i++) {
+        if (gs_rank_elem_values[i] == value) rank++;
+    }
+    return rank;
+}
+
+groupshared uint gs_elem_write_offset_bases[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
+
+[shader("compute")]
+[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1)]
+void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
+    uint tid = dtid.x;
+    uint group_tid = gtid.x;
+    uint group_id = gid.x;
+
+    uint hardware_wave_lane_count = WaveGetLaneCount();
+    uint wave_lane = WaveGetLaneIndex();
+
+    uint wave_count = div_ceil(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, hardware_wave_lane_count);
+    uint wave_index = group_tid / hardware_wave_lane_count;
+
+    // --------------------------------------------------------------------------------------------------------------------------------------------------------
+    // First load the local group prefix sums and add the global ones on top.
+
+    uint bin_write_offset = push_constants.group_local_histograms[group_tid * push_constants.group_count + group_id];
+    uint global_write_offset_base = push_constants.global_histogram[group_tid];
+    gs_elem_write_offset_bases[group_tid] = global_write_offset_base + bin_write_offset;
+
+    GroupMemoryBarrierWithGroupSync();
+
+    // --------------------------------------------------------------------------------------------------------------------------------------------------------
+    // Using a similar execution model to that of the histogram pass, now we can scatter the elements to new positions.
+
+    // base_index - index to the first key in the chunk of keys that this group is responsible for.
+    uint base_index = group_id * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_GROUP;
+
+    for (uint i = 0; i < pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD; i++) {
+        // This index formula gives a thread-interleaved access pattern, i.e. if we had 4 threads A,B,C,D working in the group, taking many elements
+        // at a time, then the access pattern is to the chunk is ABCDABCDABCDABCD...
+        //
+        // Here it's especially important, because it makes it much easier to compute the element ranks if the order of those in hardware registers
+        // is the same as [wave_index][wave_lane].
+        uint index = base_index + group_tid + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
+
+        if (index >= push_constants.sort_key_count) break;
+
+        uint key = push_constants.sort_keys[index];
+        uint val = push_constants.sort_values[index];
+
+        uint digit = (key >> push_constants.radix_bit_shift) & pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_MASK;
+
+        uint rank = compute_element_rank256(digit, group_tid);
+
+        uint dst_local_write_offset = gs_elem_write_offset_bases[digit] + rank;
+
+        push_constants.dst_sort_keys[dst_local_write_offset] = key;
+        push_constants.dst_sort_values[dst_local_write_offset] = val;
+
+        GroupMemoryBarrierWithGroupSync();
+        InterlockedAdd(gs_elem_write_offset_bases[digit], 1u);
+        GroupMemoryBarrierWithGroupSync();
+    }
+}

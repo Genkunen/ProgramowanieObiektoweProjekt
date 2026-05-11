@@ -18,6 +18,10 @@ enum class BufferResourceIdentifier {
 
     AccelerationGridSortKeys,
     AccelerationGridSortValues,
+    AccelerationGridSortKeysScratch,
+    AccelerationGridSortValuesScratch,
+    AccelerationGridSortGlobalHistogram,
+    AccelerationGridSortGroupLocalHistograms,
 
     AccelerationGridCellsStartIndices,
     AccelerationGridCellsEndIndices,

@@ -49,6 +49,8 @@ public:
         VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
         VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
         VulkanBuffer&& acceleration_grid_sort_keys_buffer, VulkanBuffer&& acceleration_grid_sort_values_buffer,
+        VulkanBuffer&& acceleration_grid_sort_keys_scratch_buffer, VulkanBuffer&& acceleration_grid_sort_values_scratch_buffer,
+        VulkanBuffer&& acceleration_grid_sort_global_histogram_buffer, VulkanBuffer&& acceleration_grid_sort_group_local_histograms_buffer,
         VulkanBuffer&& acceleration_grid_tile_start_indices_buffer, VulkanBuffer&& acceleration_grid_tile_end_indices_buffer,
         VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
         std::vector<FrameInFlight>&& frames_in_flight);
@@ -82,8 +84,13 @@ private:
 
     // Holds sort keys for the acceleration grid.
     VulkanBuffer m_acceleration_grid_sort_keys_buffer;
+    VulkanBuffer m_acceleration_grid_sort_keys_scratch_buffer;
     // Holds sort values corresponding to the above.
     VulkanBuffer m_acceleration_grid_sort_values_buffer;
+    VulkanBuffer m_acceleration_grid_sort_values_scratch_buffer;
+
+    VulkanBuffer m_acceleration_grid_sort_global_histogram_buffer;
+    VulkanBuffer m_acceleration_grid_sort_group_local_histograms_buffer;
 
     // Holds start indices of grid tile indices in the sort keys buffer after sorting.
     VulkanBuffer m_acceleration_grid_tile_start_indices_buffer;
