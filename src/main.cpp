@@ -115,10 +115,16 @@ auto sdl_entry_main() -> void {
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
 
-        auto render_result = renderer.render_frame(mesh_pool, meshes, imgui.draw_data(), delta_time, camera_position);
+        try {
+            auto render_result = renderer.render_frame(mesh_pool, meshes, imgui.draw_data(), delta_time, camera_position);
 
-        if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
-            renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
+            if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
+                renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
+            }
+        } catch (const std::exception& e) {
+            std::println("Vulkan Rendering Error: {}", e.what());
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", e.what(), window.get());
+            running = false;
         }
     }
 }
