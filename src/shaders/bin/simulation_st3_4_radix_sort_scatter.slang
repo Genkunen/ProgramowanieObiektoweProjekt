@@ -60,10 +60,15 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     GroupMemoryBarrierWithGroupSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
-    // Using a similar execution model to that of the histogram pass, now we can scatter the elements to new positions.
+    // Load all the elements belonging to the thread.
 
     // base_index - index to the first key in the chunk of keys that this group is responsible for.
     uint base_index = group_id * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_GROUP;
+
+    uint keys[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD];
+    uint values[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD];
+
+    uint thread_kv_count = 0;
 
     for (uint i = 0; i < pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD; i++) {
         // This index formula gives a thread-interleaved access pattern, i.e. if we had 4 threads A,B,C,D working in the group, taking many elements
@@ -71,12 +76,24 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         //
         // Here it's especially important, because it makes it much easier to compute the element ranks if the order of those in hardware registers
         // is the same as [wave_index][wave_lane].
-        uint index = base_index + group_tid + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
+        uint index = base_index
+            + group_tid
+            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
 
         if (index >= push_constants.sort_key_count) break;
 
-        uint key = push_constants.sort_keys[index];
-        uint val = push_constants.sort_values[index];
+        keys[i] = push_constants.sort_keys[index];
+        values[i] = push_constants.sort_values[index];
+        thread_kv_count++;
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------------------------------------
+    // Using a similar execution model to that of the histogram pass, now we can scatter the elements to new positions.
+
+
+    for (uint i = 0; i < thread_kv_count; i++) {
+        uint key = keys[i];
+        uint val = values[i];
 
         uint digit = (key >> push_constants.radix_bit_shift) & pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_MASK;
 
