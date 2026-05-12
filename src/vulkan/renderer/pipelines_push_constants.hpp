@@ -1,5 +1,6 @@
 #pragma once
 #include "../vk_prelude.hpp"
+#include <glm/glm.hpp>
 
 namespace pop::vulkan::renderer {
 
