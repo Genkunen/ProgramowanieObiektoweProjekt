@@ -29,12 +29,12 @@ public:
 
     [[nodiscard]] constexpr static auto builder() -> VulkanImageBuilder;
 
-    [[nodiscard]] auto vk_image() const -> const vk::raii::Image& { return m_image; }
-    [[nodiscard]] auto vk_full_image_view() const -> const vk::raii::ImageView& { return m_full_image_view; }
-    [[nodiscard]] auto vma_allocation() const -> const vma::raii::Allocation& { return m_allocation; }
-    [[nodiscard]] auto format() const -> vk::Format { return m_format; }
-    [[nodiscard]] auto extent() const -> vk::Extent3D { return m_extent; }
-    [[nodiscard]] auto full_subresource_range() const -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, 1, 0, 1 }; }
+    [[nodiscard]] auto vk_image() const noexcept -> const vk::raii::Image& { return m_image; }
+    [[nodiscard]] auto vk_full_image_view() const noexcept -> const vk::raii::ImageView& { return m_full_image_view; }
+    [[nodiscard]] auto vma_allocation() const noexcept -> const vma::raii::Allocation& { return m_allocation; }
+    [[nodiscard]] auto format() const noexcept -> vk::Format { return m_format; }
+    [[nodiscard]] auto extent() const noexcept -> vk::Extent3D { return m_extent; }
+    [[nodiscard]] auto full_subresource_range() const noexcept -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, 1, 0, 1 }; }
 private:
     vk::raii::Image m_image;
     vk::raii::ImageView m_full_image_view;

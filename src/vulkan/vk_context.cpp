@@ -7,7 +7,7 @@
 
 namespace pop::vulkan {
 
-auto VulkanContext::get() -> VulkanContext& {
+auto VulkanContext::get() noexcept -> VulkanContext& {
     return *g_vulkan_context;
 }
 

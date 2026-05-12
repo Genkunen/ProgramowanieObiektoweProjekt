@@ -11,7 +11,7 @@ public:
 
     [[nodiscard]] constexpr static auto builder() -> VulkanPipelineLayoutBuilder;
 
-    [[nodiscard]] auto vk_pipeline_layout() const -> const vk::raii::PipelineLayout& { return m_pipeline_layout; }
+    [[nodiscard]] auto vk_pipeline_layout() const noexcept -> const vk::raii::PipelineLayout& { return m_pipeline_layout; }
 private:
     vk::raii::PipelineLayout m_pipeline_layout;
 };

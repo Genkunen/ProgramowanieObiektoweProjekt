@@ -36,13 +36,13 @@ auto VulkanSwapchain::create(vk::Extent2D swapchain_extent, std::optional<Vulkan
     auto surface_present_modes = vk_physical_device.getSurfacePresentModesKHR(vk_surface);
 
 
-    auto surface_format_iter = std::ranges::find_if(surface_formats, [&](const vk::SurfaceFormatKHR& sformat) -> bool {
+    auto surface_format_iter = std::ranges::find_if(surface_formats, [&](const vk::SurfaceFormatKHR& sformat) noexcept -> bool {
         return (sformat.format == vk::Format::eR8G8B8A8Srgb || sformat.format == vk::Format::eB8G8R8A8Srgb) && sformat.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear;
     });
     auto surface_format = surface_format_iter != surface_formats.end() ? *surface_format_iter : surface_formats[0];
 
     auto& present_mode_priority = vsync_enable ? PRESENT_MODE_PRIORITY_VSYNC : PRESENT_MODE_PRIORITY_NO_VSYNC;
-    auto present_mode = *std::ranges::find_if(present_mode_priority, [&](const vk::PresentModeKHR& pmode) -> bool {
+    auto present_mode = *std::ranges::find_if(present_mode_priority, [&](const vk::PresentModeKHR& pmode) noexcept -> bool {
         return std::ranges::contains(surface_present_modes, pmode);
     });
 

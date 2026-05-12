@@ -16,17 +16,17 @@ public:
     ~VulkanContext();
 
     static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
-    static auto get()                      -> VulkanContext&;
+    static auto get()                 noexcept -> VulkanContext&;
 
-    [[nodiscard]] constexpr auto vk_instance() const              -> const vk::raii::Instance& { return m_instance; }
-    [[nodiscard]] constexpr auto vk_surface() const               -> const vk::raii::SurfaceKHR& { return m_surface; }
-    [[nodiscard]] constexpr auto vk_physical_device() const       -> const vk::raii::PhysicalDevice& { return m_physical_device; }
-    [[nodiscard]] constexpr auto vk_device() const                -> const vk::raii::Device& { return m_device; }
-    [[nodiscard]] constexpr auto vk_graphics_queue() const        -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
-    [[nodiscard]] constexpr auto vk_present_queue() const         -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
-    [[nodiscard]] constexpr auto vk_graphics_queue_family() const -> uint32_t { return m_graphics_queue_family; }
-    [[nodiscard]] constexpr auto vk_present_queue_family() const  -> uint32_t { return m_present_queue_family; }
-    [[nodiscard]] constexpr auto vma_allocator() const            -> const vma::raii::Allocator& { return m_vma_allocator; }
+    [[nodiscard]] constexpr auto vk_instance() const noexcept              -> const vk::raii::Instance& { return m_instance; }
+    [[nodiscard]] constexpr auto vk_surface() const noexcept               -> const vk::raii::SurfaceKHR& { return m_surface; }
+    [[nodiscard]] constexpr auto vk_physical_device() const noexcept       -> const vk::raii::PhysicalDevice& { return m_physical_device; }
+    [[nodiscard]] constexpr auto vk_device() const noexcept                -> const vk::raii::Device& { return m_device; }
+    [[nodiscard]] constexpr auto vk_graphics_queue() const noexcept        -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
+    [[nodiscard]] constexpr auto vk_present_queue() const noexcept         -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
+    [[nodiscard]] constexpr auto vk_graphics_queue_family() const noexcept -> uint32_t { return m_graphics_queue_family; }
+    [[nodiscard]] constexpr auto vk_present_queue_family() const noexcept  -> uint32_t { return m_present_queue_family; }
+    [[nodiscard]] constexpr auto vma_allocator() const noexcept            -> const vma::raii::Allocator& { return m_vma_allocator; }
 
 private:
     vk::detail::DynamicLoader m_dynamic_loader;
@@ -39,10 +39,8 @@ private:
     vma::raii::Allocator      m_vma_allocator;
 
     std::unordered_map<uint32_t, vk::raii::Queue> m_queue_storage;
-    uint32_t m_graphics_queue_family = 0;
-    uint32_t m_present_queue_family = 0;
-
-
+    uint32_t m_graphics_queue_family{};
+    uint32_t m_present_queue_family{};
 
     static auto create_instance(vk::raii::Context& raii_context) -> vk::raii::Instance;
     static auto select_physical_device(const vk::raii::Instance& instance) -> vk::raii::PhysicalDevice;
@@ -52,6 +50,6 @@ private:
     static auto create_vma_allocator(const vk::raii::Instance& instance, const vk::raii::PhysicalDevice& physical_device, const vk::raii::Device& device) -> vma::raii::Allocator;
 };
 
-inline static VulkanContext* g_vulkan_context = nullptr;
+inline VulkanContext* g_vulkan_context{};
 
 } // namespace pop::vulkan

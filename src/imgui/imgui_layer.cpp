@@ -46,7 +46,7 @@ ImGuiLayer::ImGuiLayer(const pop::sdl::SdlWindow& window, const pop::vulkan::Vul
 
     if (!ImGui_ImplVulkan_LoadFunctions(
         VK_API_VERSION_1_4,
-        [](const char* name, void* user_data) -> PFN_vkVoidFunction {
+        [](const char* name, void* user_data) static noexcept -> PFN_vkVoidFunction {
             auto* ctx = static_cast<VulkanLoaderContext*>(user_data);
             return ctx->loader(ctx->instance, name);
         },

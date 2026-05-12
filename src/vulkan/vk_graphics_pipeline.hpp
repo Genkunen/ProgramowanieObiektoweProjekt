@@ -15,7 +15,7 @@ public:
 
     constexpr static auto builder() -> VulkanGraphicsPipelineBuilder;
 
-    [[nodiscard]] auto vk_pipeline() const -> const vk::raii::Pipeline& { return m_pipeline; }
+    [[nodiscard]] auto vk_pipeline() const noexcept -> const vk::raii::Pipeline& { return m_pipeline; }
 
 private:
     vk::raii::Pipeline m_pipeline;
@@ -115,7 +115,7 @@ public:
         m_rendering_create_info = m_rendering_create_info.setColorAttachmentFormats(m_rendering_color_attachment_formats);
 
         auto raw_stage_list = m_shader_stages
-            | std::views::transform([](const vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo>& chain) -> vk::PipelineShaderStageCreateInfo { return chain.get<vk::PipelineShaderStageCreateInfo>(); })
+            | std::views::transform([](const vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo>& chain) static -> vk::PipelineShaderStageCreateInfo { return chain.get<vk::PipelineShaderStageCreateInfo>(); })
             | std::ranges::to<std::vector>();
 
         auto pipelineInfo = vk::GraphicsPipelineCreateInfo()
@@ -139,11 +139,11 @@ public:
 
 private:
     vk::PipelineLayout m_pipeline_layout = nullptr;
-    vk::PipelineInputAssemblyStateCreateInfo m_input_assembly_state = {};
-    vk::PipelineRasterizationStateCreateInfo m_rasterization_state = {};
-    vk::PipelineMultisampleStateCreateInfo m_multisample_state = {};
-    vk::PipelineDepthStencilStateCreateInfo m_depth_stencil_state = {};
-    vk::PipelineRenderingCreateInfo m_rendering_create_info = {};
+    vk::PipelineInputAssemblyStateCreateInfo m_input_assembly_state{};
+    vk::PipelineRasterizationStateCreateInfo m_rasterization_state{};
+    vk::PipelineMultisampleStateCreateInfo m_multisample_state{};
+    vk::PipelineDepthStencilStateCreateInfo m_depth_stencil_state{};
+    vk::PipelineRenderingCreateInfo m_rendering_create_info{};
     std::vector<vk::PipelineColorBlendAttachmentState> m_rendering_color_attachment_blend_states;
     std::vector<vk::Format> m_rendering_color_attachment_formats;
 

@@ -11,7 +11,7 @@ public:
 
     constexpr static auto builder() -> VulkanComputePipelineBuilder;
 
-    [[nodiscard]] auto vk_pipeline() const -> const vk::raii::Pipeline& { return m_pipeline; }
+    [[nodiscard]] auto vk_pipeline() const noexcept -> const vk::raii::Pipeline& { return m_pipeline; }
 
 private:
     vk::raii::Pipeline m_pipeline;
@@ -26,7 +26,7 @@ public:
     VulkanComputePipelineBuilder& operator=(const VulkanComputePipelineBuilder&) = delete;
     VulkanComputePipelineBuilder& operator=(VulkanComputePipelineBuilder&&) = default;
 
-    [[nodiscard]] constexpr auto set_shader(const SpirvCode& shader_code) noexcept -> VulkanComputePipelineBuilder& {
+    [[nodiscard]] constexpr auto set_shader(const SpirvCode& shader_code) -> VulkanComputePipelineBuilder& {
         auto stage_tuple = vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo>{
             vk::PipelineShaderStageCreateInfo()
                 .setStage(vk::ShaderStageFlagBits::eCompute)
@@ -50,8 +50,8 @@ public:
     }
 
 private:
-    vk::PipelineLayout m_pipeline_layout = nullptr;
-    vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo> m_shader_stage_create_info = {};
+    vk::PipelineLayout m_pipeline_layout{ nullptr };
+    vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo> m_shader_stage_create_info{};
 };
 
 constexpr auto VulkanComputePipeline::builder() -> VulkanComputePipelineBuilder { return VulkanComputePipelineBuilder(); }

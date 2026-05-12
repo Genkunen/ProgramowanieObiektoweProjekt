@@ -11,14 +11,14 @@ public:
 
     [[nodiscard]] constexpr static auto builder() -> VulkanBufferBuilder;
 
-    [[nodiscard]] auto vk_buffer() const -> const vk::raii::Buffer& { return m_buffer; }
-    [[nodiscard]] auto vma_allocation() const -> const vma::raii::Allocation& { return m_allocation; }
-    [[nodiscard]] auto memory_host_ptr() const -> uint8_t* { return m_memory_host_ptr; }
-    [[nodiscard]] auto memory_device_ptr() const -> vk::DeviceAddress { return m_memory_device_ptr; }
-    [[nodiscard]] auto size() const -> uint64_t { return m_size; }
+    [[nodiscard]] auto vk_buffer() const noexcept -> const vk::raii::Buffer& { return m_buffer; }
+    [[nodiscard]] auto vma_allocation() const noexcept -> const vma::raii::Allocation& { return m_allocation; }
+    [[nodiscard]] auto memory_host_ptr() const noexcept -> uint8_t* { return m_memory_host_ptr; }
+    [[nodiscard]] auto memory_device_ptr() const noexcept -> vk::DeviceAddress { return m_memory_device_ptr; }
+    [[nodiscard]] auto size() const noexcept -> uint64_t { return m_size; }
 
 private:
-    vk::raii::Buffer m_buffer;
+    vk::raii::Buffer      m_buffer;
     vma::raii::Allocation m_allocation;
 
     uint8_t*          m_memory_host_ptr;
@@ -37,6 +37,7 @@ public:
     [[nodiscard]] constexpr auto map_for_sequential_write() noexcept -> VulkanBufferBuilder& { m_allocation_flags |= vma::AllocationCreateFlagBits::eMapped | vma::AllocationCreateFlagBits::eHostAccessSequentialWrite; return *this; }
     [[nodiscard]] constexpr auto map_for_random_access() noexcept -> VulkanBufferBuilder& { m_allocation_flags |= vma::AllocationCreateFlagBits::eMapped | vma::AllocationCreateFlagBits::eHostAccessRandom; return *this; }
     [[nodiscard]] constexpr auto build() -> VulkanBuffer {
+        
         auto graphics_queue_family_index = VulkanContext::get().vk_graphics_queue_family();
 
         auto buffer_create_info = vk::BufferCreateInfo()
@@ -49,9 +50,11 @@ public:
             .setUsage(m_memory_usage)
             .setFlags(m_allocation_flags);
 
-        auto [allocation, buffer] = VulkanContext::get().vma_allocator().createBuffer(buffer_create_info, allocation_create_info).split();
+        auto [allocation, buffer] = VulkanContext::get().vma_allocator()
+            .createBuffer(buffer_create_info, allocation_create_info)
+            .split();
 
-        uint8_t* memory_host_ptr = nullptr;
+        uint8_t* memory_host_ptr{};
         if (m_allocation_flags & vma::AllocationCreateFlagBits::eMapped) {
             memory_host_ptr = static_cast<uint8_t*>(allocation.getInfo().pMappedData);
         }
