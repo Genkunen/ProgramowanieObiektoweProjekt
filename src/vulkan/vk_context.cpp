@@ -7,16 +7,20 @@
 
 namespace pop::vulkan {
 
+// TODO: move somewhere else
+constexpr bool DEBUG_UTILS_TRY_ENABLE = true;
+
 auto VulkanContext::get() noexcept -> VulkanContext& {
     return *g_vulkan_context;
 }
 
 VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
-        uint32_t graphics_queue_family, uint32_t present_queue_family)
+        uint32_t graphics_queue_family, uint32_t present_queue_family, bool debug_utils_enabled)
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
         m_physical_device(std::move(physical_device)), m_device(std::move(device)), m_vma_allocator(std::move(vma_allocator)), m_queue_storage(std::move(queue_storage)),
-        m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family) {}
+        m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family), m_debug_utils_enabled(debug_utils_enabled) {}
+
 VulkanContext::~VulkanContext() {
     m_device.waitIdle();
 }
@@ -30,7 +34,14 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
     VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 
     auto raii_context = vk::raii::Context();
-    auto instance = create_instance(raii_context);
+
+    auto debug_markers_enable = DEBUG_UTILS_TRY_ENABLE && instance_supports_debug_utils();
+
+    if (DEBUG_UTILS_TRY_ENABLE && !debug_markers_enable) {
+        std::println("VulkanContext: Warning: Requested to enable VK_EXT_debug_utils instance extension, but it is not supported on this system.");
+    }
+
+    auto instance = create_instance(raii_context, debug_markers_enable);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*instance);
 
@@ -43,6 +54,7 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
     auto [graphics_queue_index, present_queue_index] = select_physical_device_queue_families(surface, physical_device);
 
     auto unique_queue_families = std::unordered_set<uint32_t>{graphics_queue_index, present_queue_index};
+
     auto device = create_device(physical_device, unique_queue_families);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
@@ -51,12 +63,18 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
     auto vma_allocator = create_vma_allocator(instance, physical_device, device);
 
     auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface),
-            std::move(physical_device), std::move(device), std::move(vma_allocator), std::move(queues), graphics_queue_index, present_queue_index);
+            std::move(physical_device), std::move(device), std::move(vma_allocator), std::move(queues), graphics_queue_index, present_queue_index,
+            debug_markers_enable);
     g_vulkan_context = ptr.get();
     return ptr;
 }
 
-auto VulkanContext::create_instance(vk::raii::Context& raii_context) -> vk::raii::Instance {
+auto VulkanContext::instance_supports_debug_utils() -> bool {
+    auto instance_extensions = vk::enumerateInstanceExtensionProperties();
+    return std::ranges::any_of(instance_extensions,
+        [](const auto& extension) -> bool { return strcmp(extension.extensionName, vk::EXTDebugUtilsExtensionName) == 0; });
+}
+auto VulkanContext::create_instance(vk::raii::Context& raii_context, bool debug_utils_enabled) -> vk::raii::Instance {
     auto application_info = vk::ApplicationInfo()
         .setApplicationVersion(vk::makeApiVersion(0, 0, 1, 0))
         .setPApplicationName("pop")
@@ -67,10 +85,13 @@ auto VulkanContext::create_instance(vk::raii::Context& raii_context) -> vk::raii
     uint32_t instance_extension_count = 0;
     auto instance_extensions = SDL_Vulkan_GetInstanceExtensions(&instance_extension_count);
 
+    std::vector<const char*> instance_extensions_vec(instance_extensions, instance_extensions + instance_extension_count);
+    if (debug_utils_enabled) instance_extensions_vec.push_back(vk::EXTDebugUtilsExtensionName);
+
     auto instance_create_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&application_info)
-        .setEnabledExtensionCount(instance_extension_count)
-        .setPpEnabledExtensionNames(instance_extensions)
+        .setEnabledExtensionCount(instance_extensions_vec.size())
+        .setPpEnabledExtensionNames(instance_extensions_vec.data())
         .setEnabledLayerCount(0);
 
     return vk::raii::Instance(raii_context, instance_create_info);

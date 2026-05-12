@@ -39,10 +39,9 @@ public:
 
     static auto create() -> UploadMeshInfoPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
-
-    UploadMeshInfoPass(UploadMeshInfoPass&& other) = default;
-
 
 private:
     VulkanPipelineLayout m_pipeline_layout;
@@ -56,6 +55,8 @@ public:
     IndirectDrawCommandsClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> IndirectDrawCommandsClearPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -72,6 +73,8 @@ public:
 
     static auto create() -> SimulationStepPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
 private:
@@ -86,6 +89,8 @@ public:
     SimulationAccelerationGridSortPreparePass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> SimulationAccelerationGridSortPreparePass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -105,6 +110,8 @@ public:
     );
 
     static auto create() -> SimulationAccelerationGridRadixSortPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -127,6 +134,8 @@ public:
 
     static auto create() -> SimulationAccelerationGridBoundClearPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 };
 
@@ -137,6 +146,8 @@ public:
     SimulationAccelerationGridBoundScanPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> SimulationAccelerationGridBoundScanPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -153,6 +164,8 @@ public:
 
     static auto create() -> SimulationInfluenceStepPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
 private:
@@ -167,6 +180,8 @@ public:
     IndirectDrawCommandsInstanceCountBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> IndirectDrawCommandsInstanceCountBuildPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -183,6 +198,8 @@ public:
 
     static auto create() -> IndirectDrawCommandsFirstInstanceBuildPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
 private:
@@ -197,6 +214,8 @@ public:
     InstanceBufferBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
     static auto create() -> InstanceBufferBuildPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
@@ -213,6 +232,8 @@ public:
 
     static auto create() -> FishTankRenderPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 
 private:
@@ -228,6 +249,8 @@ public:
 
     static auto create() -> ImGuiRenderPass;
 
+    auto debug_name() const noexcept -> std::string override;
+
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 };
 
@@ -238,6 +261,8 @@ public:
     BlitMainImageToSwapchainPass(render_graph::PassDependencies&& deps);
 
     static auto create() -> BlitMainImageToSwapchainPass;
+
+    auto debug_name() const noexcept -> std::string override;
 
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 };

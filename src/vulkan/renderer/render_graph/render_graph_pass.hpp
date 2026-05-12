@@ -64,6 +64,7 @@ public:
 
     [[nodiscard]] auto dependencies() const noexcept -> const PassDependencies& { return m_dependencies; }
 
+    virtual auto debug_name() const noexcept -> std::string { return std::format("(unnamed pass 0x{:016x})", reinterpret_cast<uintptr_t>(this)); }
     auto is_enabled() const noexcept -> bool { return m_is_enabled; }
     auto enable() noexcept -> void { m_is_enabled = true; }
     auto disable() noexcept -> void { m_is_enabled = false; }

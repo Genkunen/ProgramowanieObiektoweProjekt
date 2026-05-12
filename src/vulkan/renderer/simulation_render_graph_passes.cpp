@@ -34,6 +34,8 @@ auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
     return UploadMeshInfoPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
+auto UploadMeshInfoPass::debug_name() const noexcept -> std::string { return "Upload Mesh Info"; }
+
 auto UploadMeshInfoPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
     auto& frame_local_mesh_info_staging_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalMeshInfoStagingBuffer);
@@ -78,6 +80,8 @@ auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
     return IndirectDrawCommandsClearPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
+auto IndirectDrawCommandsClearPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands Clear"; }
+
 auto IndirectDrawCommandsClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     uint32_t mesh_count = static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size());
@@ -118,6 +122,8 @@ auto SimulationStepPass::create() -> SimulationStepPass {
 
     return SimulationStepPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto SimulationStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Independent Step"; }
 
 auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
@@ -167,6 +173,8 @@ auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerati
 
     return SimulationAccelerationGridSortPreparePass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto SimulationAccelerationGridSortPreparePass::debug_name() const noexcept -> std::string { return "Acceleration Grid Sort Prepare"; }
 
 auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
@@ -250,6 +258,8 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
         std::move(prefix_sum_cs_layout), std::move(prefix_sum_cs),
         std::move(scatter_cs_layout), std::move(scatter_cs) );
 }
+
+auto SimulationAccelerationGridRadixSortPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Radix Sort"; }
 
 auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
     const render_graph::PassResources& resources) -> void {
@@ -400,6 +410,9 @@ auto SimulationAccelerationGridBoundClearPass::create() -> SimulationAcceleratio
 
     return SimulationAccelerationGridBoundClearPass(std::move(dependencies));
 }
+
+auto SimulationAccelerationGridBoundClearPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Bounds Clear"; }
+
 auto SimulationAccelerationGridBoundClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
@@ -433,6 +446,9 @@ auto SimulationAccelerationGridBoundScanPass::create() -> SimulationAcceleration
 
     return SimulationAccelerationGridBoundScanPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto SimulationAccelerationGridBoundScanPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Bounds Scan"; }
+
 auto SimulationAccelerationGridBoundScanPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
@@ -483,6 +499,8 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
 
     return SimulationInfluenceStepPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto SimulationInfluenceStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Influences Step"; }
 
 auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
@@ -540,6 +558,8 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
     return IndirectDrawCommandsInstanceCountBuildPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
+auto IndirectDrawCommandsInstanceCountBuildPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands instanceCount Build"; }
+
 auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
@@ -582,6 +602,8 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommand
 
     return IndirectDrawCommandsFirstInstanceBuildPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto IndirectDrawCommandsFirstInstanceBuildPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands firstInstance Build"; }
 
 auto IndirectDrawCommandsFirstInstanceBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
@@ -629,6 +651,8 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
 
     return InstanceBufferBuildPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
+
+auto InstanceBufferBuildPass::debug_name() const noexcept -> std::string { return "Rendering Instance Buffer Build"; }
 
 auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
@@ -696,6 +720,8 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
 
     return FishTankRenderPass(std::move(dependencies), std::move(pipeline_layout), std::move(pipeline));
 }
+
+auto FishTankRenderPass::debug_name() const noexcept -> std::string { return "Fish Tank Render Pass"; }
 
 auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& objects_instance_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer);
@@ -775,6 +801,8 @@ auto ImGuiRenderPass::create() -> ImGuiRenderPass {
     return ImGuiRenderPass(std::move(dependencies));
 }
 
+auto ImGuiRenderPass::debug_name() const noexcept -> std::string { return "ImGui Render Pass"; }
+
 auto ImGuiRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);
 
@@ -825,6 +853,8 @@ auto BlitMainImageToSwapchainPass::create() -> BlitMainImageToSwapchainPass {
 
     return BlitMainImageToSwapchainPass(std::move(dependencies));
 }
+
+auto BlitMainImageToSwapchainPass::debug_name() const noexcept -> std::string { return "Blit Main Image to Swapchain"; }
 
 auto BlitMainImageToSwapchainPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);

@@ -70,10 +70,9 @@ public:
 
         analyze_current_pass_dependencies(resources);
 
-
+        bool insert_debug_labels = VulkanContext::get().debug_utils_enabled();
         for (uint32_t i = 0; i < m_passes.size(); i++) {
             auto& pass = m_passes[i];
-
             auto pass_index = PassIndex{ .id = i };
             if (m_barrier_params.contains(pass_index)) {
                 auto& barrier_params = m_barrier_params[pass_index];
@@ -87,7 +86,16 @@ public:
             }
 
             if (pass->is_enabled()) {
+                if (insert_debug_labels) {
+                    auto debug_name = pass->debug_name();
+                    auto debug_label = vk::DebugUtilsLabelEXT{}
+                    .setPLabelName(debug_name.c_str());
+
+                    cmd.beginDebugUtilsLabelEXT(debug_label);
+                }
+
                 pass->invoke(cmd, state, resources);
+                if (insert_debug_labels) cmd.endDebugUtilsLabelEXT();
             }
         }
     }
