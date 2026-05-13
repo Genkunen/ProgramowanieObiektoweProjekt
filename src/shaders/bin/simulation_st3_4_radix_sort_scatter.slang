@@ -149,7 +149,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
 
         GroupMemoryBarrierWithGroupSync();
         InterlockedAdd(gs_elem_write_offset_bases[digit], 1u);
-        GroupMemoryBarrierWithGroupSync();
+        // synchronized by barrier in compute_element_rank256v2
     }
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
