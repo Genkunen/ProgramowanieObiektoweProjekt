@@ -35,37 +35,38 @@ uint compute_element_rank256(uint value, uint group_tid) {
     return rank;
 }
 
-uint wave_lanes_before_with_same_value(uint value) {
-    uint lane = WaveGetLaneIndex();
-
-    uint match_count = 0;
-    for (uint i = 0; i < lane; i++) {
-        if (WaveReadLaneAt(value, i) == value) match_count++;
-    }
-
-    return match_count;
-}
-
 uint countbits128(uint4 val) {
     return countbits(val.x) + countbits(val.y) + countbits(val.z) + countbits(val.w);
 }
 
-uint compute_element_rank256v2(uint value, uint group_tid, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
+uint wave_lt_lanecount_with_same_value(uint value) {
+    uint4 mask_before = WaveGetLaneLtMask();
+
+    while (true) {
+        bool match_condition = WaveReadLaneFirst(value) == value;
+        uint4 matching = WaveActiveBallot(match_condition);
+
+        if (match_condition) {
+            return countbits128(mask_before & matching);
+        }
+    }
+    return 0;
+}
+
+uint compute_element_rank256v2(uint value, uint group_tid, uint group_id, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
     gs_rank_elem_values[group_tid] = value;
+
+    uint intrawave_matches = wave_lt_lanecount_with_same_value(value);
     GroupMemoryBarrierWithGroupSync();
 
-    uint intrawave_matches = wave_lanes_before_with_same_value(value);
-
-    uint other_wave_value = 0;
-    uint other_wave_matches = 0;
-    for (uint i = 0; i < wave_index; i++) {
-        other_wave_value = gs_rank_elem_values[i * hardware_wave_lane_count + wave_lane];
-        GroupMemoryBarrierWithWaveSync();
-        uint4 mask = WaveActiveBallot(other_wave_value == value);
-        other_wave_matches += countbits128(mask);
+    uint iters = wave_index * hardware_wave_lane_count;
+    uint foreign_wave_matches = 0;
+    for (uint i = 0; i < iters; i++) {
+        uint neighbor_element = gs_rank_elem_values[i];
+        if (neighbor_element == value) foreign_wave_matches++;
     }
 
-    return intrawave_matches + other_wave_matches;
+    return intrawave_matches + foreign_wave_matches;
 }
 
 groupshared uint gs_elem_write_offset_bases[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
@@ -129,7 +130,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         uint key = keys[i];
 
         uint digit = (key >> push_constants.radix_bit_shift) & pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_MASK;
-        uint rank = compute_element_rank256(digit, group_tid);
+        uint rank = compute_element_rank256v2(digit, group_tid, group_id, hardware_wave_lane_count, wave_index, wave_lane);
 
         uint dst_local_write_offset = gs_elem_write_offset_bases[digit] + rank;
         kv_write_indices[i] = dst_local_write_offset;
