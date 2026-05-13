@@ -12,74 +12,81 @@
 namespace pop::systems {
 
 /* SETTING */
-Setting::Setting(std::string key) : m_key{ std::move(key) } {}
-Setting::~Setting() = default;
+Option::Option(std::string key) : m_key{ std::move(key) } {}
+Option::~Option() = default;
 
-auto Setting::key() const -> const std::string& {
+auto Option::key() const -> const std::string& {
     return m_key;
 }
 
-auto Setting::to_string() const -> std::string {
+auto Option::to_string() const -> std::string {
     return std::format("{}={}", m_key, value());
 }
 
 /* SETTING NUMBER */
-SettingNumber::SettingNumber(std::string key, float value) 
-: Setting(std::move(key)), m_value{ value } {}
+OptionNumber::OptionNumber(std::string key, float value) 
+: Option(std::move(key)), m_value{ value } {}
 
-auto SettingNumber::value() const -> std::string {
+auto OptionNumber::value() const -> std::string {
     return std::to_string(m_value);
 }
 
-void SettingNumber::set_value(float v) { 
-    m_value = v;
-}
-
-auto SettingNumber::clone() const -> std::unique_ptr<Setting> {
-    return std::make_unique<SettingNumber>(*this);
-}
-
-/* SETTING STRING */
-SettingString::SettingString(std::string key, std::string value) 
-: Setting(std::move(key)), m_value{ value } {}
-
-auto SettingString::value() const -> std::string {
+auto OptionNumber::real_value() const -> float {
     return m_value;
 }
 
-void SettingString::set_value(std::string v) { 
+void OptionNumber::set_value(float v) { 
+    m_value = v;
+}
+
+auto OptionNumber::clone() const -> std::unique_ptr<Option> {
+    return std::make_unique<OptionNumber>(*this);
+}
+
+/* SETTING STRING */
+OptionString::OptionString(std::string key, std::string value) 
+: Option(std::move(key)), m_value{ value } {}
+
+auto OptionString::value() const -> std::string {
+    return m_value;
+}
+
+void OptionString::set_value(std::string v) { 
     m_value = std::move(v);
 }
 
-auto SettingString::clone() const -> std::unique_ptr<Setting> {
-    return std::make_unique<SettingString>(*this);
+auto OptionString::clone() const -> std::unique_ptr<Option> {
+    return std::make_unique<OptionString>(*this);
 }
 
 /* PersistentSettings */ 
 void PersistentSettings::amend(std::string key, float value) {
+    m_dirty = true;
     if (auto s = get(key); s != nullptr) {
-        if (auto number = dynamic_cast<SettingNumber*>(s)) {
+        if (auto number = dynamic_cast<OptionNumber*>(s)) {
             number->set_value(value);
         }
     }
     else {
-        settings.emplace_back(std::make_unique<SettingNumber>(key, value));
+        settings.emplace_back(std::make_unique<OptionNumber>(key, value));
     }
 }
 
 void PersistentSettings::amend(std::string key, std::string value) {
+    m_dirty = true;
     if (auto s = get(key); s != nullptr) {
-        if (auto number = dynamic_cast<SettingString*>(s)) {
+        if (auto number = dynamic_cast<OptionString*>(s)) {
             number->set_value(std::move(value));
         }
     }
     else {
-        settings.emplace_back(std::make_unique<SettingString>(key, value));
+        settings.emplace_back(std::make_unique<OptionString>(key, value));
     }
 }
 
-void PersistentSettings::amend(const Setting& setting) {
-    auto pred = [&setting](const std::unique_ptr<Setting>& ptr) {
+void PersistentSettings::amend(const Option& setting) {
+    m_dirty = true;
+    auto pred = [&setting](const std::unique_ptr<Option>& ptr) {
         return ptr->key() == setting.key();
     };
     auto it = std::ranges::find_if(settings, std::move(pred));
@@ -92,7 +99,8 @@ void PersistentSettings::amend(const Setting& setting) {
     }
 }
 
-void PersistentSettings::save() {
+void PersistentSettings::save_all() {
+    m_dirty = false;
     auto new_buffer = [] static {
         auto lines = buffer 
             | std::views::split('\n')
@@ -124,7 +132,7 @@ void PersistentSettings::save() {
     file << new_buffer;
 }
 
-void PersistentSettings::load() {
+void PersistentSettings::load_all() {
     std::ifstream file(file_path, std::ios::binary);
     if (!file.is_open()) {
         return;
@@ -139,13 +147,13 @@ void PersistentSettings::load() {
     parse_buffer();
 }
 
-void PersistentSettings::reload() {
+void PersistentSettings::reload_all() {
     settings.clear();
-    save();
-    load();
+    save_all();
+    load_all();
 }
 
-auto PersistentSettings::get(const std::string& key) -> Setting* {
+auto PersistentSettings::get(const std::string& key) -> Option* {
     auto proj = [] (const auto& ptr) static -> const std::string& {
         return ptr->key();
     };

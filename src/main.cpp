@@ -5,6 +5,7 @@
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
 #include "vulkan/vk_swapchain.hpp"
+#include "systems/persistent_settings.hpp"
 
 #include <backends/imgui_impl_sdl3.h>
 #include <imgui/imgui_layer.hpp>
@@ -38,6 +39,21 @@ auto sdl_entry_main() -> void {
 
     bool is_mouse_dragging = false;
     glm::vec2 mouse_drag_start_pos = {0.0f, 0.0f};
+
+    pop::systems::PersistentSettings::load_all();
+    
+    struct {
+        struct {
+            float r{}, g{}, b{}, a{};
+        } clr_colors{};
+    } imgui_variables{};
+
+    auto populate_imgui_variables = [&imgui_variables] {
+        auto clrs = pop::systems::PersistentSettings::clear_color();
+        imgui_variables.clr_colors = { clrs[0], clrs[1], clrs[2], clrs[3] };
+
+    };
+    populate_imgui_variables();
 
     while (running) {
         SDL_Event event;
@@ -111,6 +127,27 @@ auto sdl_entry_main() -> void {
         if (simulation_object_count >= 50000) {
             ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "Warning: Using high-poly meshes with a high object count can degrade performance");
         }
+
+        {
+            ImGuiColorEditFlags colorEdiFlags =
+                ImGuiColorEditFlags_NoSmallPreview |
+                ImGuiColorEditFlags_NoSidePreview |
+                ImGuiColorEditFlags_PickerHueBar |
+                ImGuiColorEditFlags_NoTooltip |
+                ImGuiColorEditFlags_NoAlpha;
+            auto& clrs = imgui_variables.clr_colors;
+            if (ImGui::ColorPicker4("Background Color", (float*)&imgui_variables.clr_colors, colorEdiFlags)) {
+                pop::systems::PersistentSettings::set_clear_color({ clrs.r, clrs.g, clrs.b, 1.f });
+            }
+        }
+
+        {
+            if (ImGui::Button("Reset To Default Settings")) {
+                pop::systems::PersistentSettings::reload_all();
+                populate_imgui_variables();
+            }
+        }
+
         ImGui::End();
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
@@ -125,6 +162,10 @@ auto sdl_entry_main() -> void {
             std::println("Vulkan Rendering Error: {}", e.what());
             SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", e.what(), window.get());
             running = false;
+        }
+
+        if (pop::systems::PersistentSettings::is_dirty()) {
+            pop::systems::PersistentSettings::save_all();
         }
     }
 }

@@ -3,6 +3,7 @@
 #include "pipelines_push_constants.hpp"
 #include "shaders/shared_consts.hpp"
 #include "systems/systems.hpp"
+#include "systems/persistent_settings.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -738,7 +739,7 @@ auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
         .setLoadOp(vk::AttachmentLoadOp::eClear)
         .setStoreOp(vk::AttachmentStoreOp::eStore)
-        .setClearValue(vk::ClearColorValue{0.0f, 0.0f, 0.0f, 1.0f});
+        .setClearValue(vk::ClearColorValue{ pop::systems::PersistentSettings::clear_color() });
 
     auto depth_buffer_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(depth_buffer.vk_full_image_view())
