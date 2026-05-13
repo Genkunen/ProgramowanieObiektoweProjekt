@@ -105,22 +105,27 @@ function(add_slang_shaders TARGET)
             -target spirv
             -profile spirv_1_6
             -fvk-use-scalar-layout
+            -O3
     )
 
     foreach(SHADER ${SLANG_SOURCES})
         get_filename_component(NAME_WE ${SHADER} NAME_WE)
         set(OUTPUT_BINARY ${SLANG_TARGET_DIR}/${NAME_WE}.spv)
+        set(OUTPUT_DEPFILE ${OUTPUT_BINARY}.d)
         set(CMD
                 ${SLANGC_EXECUTABLE}
                 ${SHADER}
                 ${SLANGC_FLAGS}
                 -o
                 ${OUTPUT_BINARY}
+                -depfile
+                ${OUTPUT_DEPFILE}
         )
 
         add_custom_command(
                 OUTPUT ${OUTPUT_BINARY}
                 COMMAND ${CMD}
+                DEPFILE ${OUTPUT_DEPFILE}
                 DEPENDS ${SHADER}
                 COMMENT "Compiling Slang shader ${SHADER} (${OUTPUT_BINARY})"
                 VERBATIM
