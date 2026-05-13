@@ -35,6 +35,39 @@ uint compute_element_rank256(uint value, uint group_tid) {
     return rank;
 }
 
+uint wave_lanes_before_with_same_value(uint value) {
+    uint lane = WaveGetLaneIndex();
+
+    uint match_count = 0;
+    for (uint i = 0; i < lane; i++) {
+        if (WaveReadLaneAt(value, i) == value) match_count++;
+    }
+
+    return match_count;
+}
+
+uint countbits128(uint4 val) {
+    return countbits(val.x) + countbits(val.y) + countbits(val.z) + countbits(val.w);
+}
+
+uint compute_element_rank256v2(uint value, uint group_tid, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
+    gs_rank_elem_values[group_tid] = value;
+    GroupMemoryBarrierWithGroupSync();
+
+    uint intrawave_matches = wave_lanes_before_with_same_value(value);
+
+    uint other_wave_value = 0;
+    uint other_wave_matches = 0;
+    for (uint i = 0; i < wave_index; i++) {
+        other_wave_value = gs_rank_elem_values[i * hardware_wave_lane_count + wave_lane];
+        GroupMemoryBarrierWithWaveSync();
+        uint4 mask = WaveActiveBallot(other_wave_value == value);
+        other_wave_matches += countbits128(mask);
+    }
+
+    return intrawave_matches + other_wave_matches;
+}
+
 groupshared uint gs_elem_write_offset_bases[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
 
 [shader("compute")]
@@ -88,24 +121,33 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     }
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
-    // Using a similar execution model to that of the histogram pass, now we can scatter the elements to new positions.
+    // Rank elements across the group and compute the element write offsets.
 
+    uint kv_write_indices[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD];
 
     for (uint i = 0; i < thread_kv_count; i++) {
         uint key = keys[i];
-        uint val = values[i];
 
         uint digit = (key >> push_constants.radix_bit_shift) & pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_MASK;
-
         uint rank = compute_element_rank256(digit, group_tid);
 
         uint dst_local_write_offset = gs_elem_write_offset_bases[digit] + rank;
-
-        push_constants.dst_sort_keys[dst_local_write_offset] = key;
-        push_constants.dst_sort_values[dst_local_write_offset] = val;
+        kv_write_indices[i] = dst_local_write_offset;
 
         GroupMemoryBarrierWithGroupSync();
         InterlockedAdd(gs_elem_write_offset_bases[digit], 1u);
         GroupMemoryBarrierWithGroupSync();
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------------------------------------
+    // Using a similar execution model to that of the histogram pass, now we can scatter the elements to new positions.
+
+    for (uint i = 0; i < thread_kv_count; i++) {
+        uint key = keys[i];
+        uint val = values[i];
+        uint dst_local_write_offset = kv_write_indices[i];
+
+        push_constants.dst_sort_keys[dst_local_write_offset] = key;
+        push_constants.dst_sort_values[dst_local_write_offset] = val;
     }
 }
