@@ -1,10 +1,9 @@
-#include "../shared_types.hpp"
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
 struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommandNonatomic* draw_commands;
+    vk_structs::DrawIndexedIndirectCommand* draw_commands;
     uint* drawlocal_instance_indices;
     pop::shaders::SimulationObject* objects;
     uint object_count;

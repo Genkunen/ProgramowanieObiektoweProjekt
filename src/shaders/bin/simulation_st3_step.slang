@@ -1,5 +1,6 @@
-#include "../shared_types.hpp"
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
+
+import "../behavior/object_behavior_dispatch";
 
 struct PushConstants {
     pop::shaders::SimulationData* simulation_data;
@@ -25,22 +26,21 @@ float smooth_noise(float2 p) {
 
     float2 u = f * f * (3.0 - 2.0 * f);
 
-    float a = dot(hash22(i + float2(0,0)), float2(1,0));
-    float b = dot(hash22(i + float2(1,0)), float2(1,0));
-    float c = dot(hash22(i + float2(0,1)), float2(1,0));
-    float d = dot(hash22(i + float2(1,1)), float2(1,0));
+    float a = hash22(i + float2(0,0)).x;
+    float b = hash22(i + float2(1,0)).x;
+    float c = hash22(i + float2(0,1)).x;
+    float d = hash22(i + float2(1,1)).x;
 
     return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
 }
 
-float2 vector_field(float2 p, float t)
-{
+float2 vector_field(float2 p, float t) {
     float2 sp = p / 4.0;
 
-    float nx = smooth_noise(sp + float2(0.0,  0.0) + t * 0.5);
-    float ny = smooth_noise(sp + float2(5.2, 1.3) + t * 0.5);
+    float nx = smooth_noise(sp + float2(t * 0.11, 17.3));
+    float ny = smooth_noise(sp + float2(-23.1, t * 0.13));
 
-    return float2(nx, ny) * 3.0;
+    return float2(nx, ny) * 50.0;
 }
 
 [shader("compute")]
@@ -50,9 +50,11 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (tid >= push_constants.object_count) return;
 
+    float dt = push_constants.simulation_data->delta_time;
+
     var object = push_constants.objects[tid];
 
-    object.position += object.velocity * push_constants.simulation_data->delta_time;
+    object.position += object.velocity * dt;
 
     float2 bounds = push_constants.simulation_bounds;
 
@@ -84,8 +86,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
         object.velocity.y -= pow(dist, 4) * 0.01f;
     }
 
-    object.velocity += vector_field(object.position, push_constants.simulation_data->simulation_time_since_start);
-    object.velocity *= 0.95f;
+    object.velocity += vector_field(object.position, push_constants.simulation_data->simulation_time_since_start) * 0.1f;
+    simulation::dispatch_self_simulation_behavior(object, dt);
 
     push_constants.dst_updated_objects[tid] = object;
 }

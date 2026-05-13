@@ -82,6 +82,7 @@ struct SimulationAccelerationGridBoundScanCSPushConstants {
 
 // TODO: reduce size (<= 13 DWORDs)
 struct SimulationInfluenceStepCSPushConstants {
+    vk::DeviceAddress simulation_data;
     vk::DeviceAddress objects;
     vk::DeviceAddress dst_objects;
     vk::DeviceAddress acceleration_grid_values;

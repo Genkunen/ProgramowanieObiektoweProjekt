@@ -479,6 +479,7 @@ SimulationInfluenceStepPass::SimulationInfluenceStepPass(render_graph::PassDepen
 
 auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
@@ -504,6 +505,7 @@ auto SimulationInfluenceStepPass::debug_name() const noexcept -> std::string { r
 
 auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
+    auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
@@ -511,6 +513,7 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
 
     SimulationInfluenceStepCSPushConstants consts = {
+        frame_local_simulation_data_buffer.memory_device_ptr(),
         simulation_objects_scratch_buffer.memory_device_ptr(),
         simulation_objects_buffer.memory_device_ptr(),
         acceleration_grid_sort_values_buffer.memory_device_ptr(),

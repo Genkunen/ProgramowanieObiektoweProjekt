@@ -1,4 +1,4 @@
-#include "../shared_types.hpp"
+import "../shared_code_shim";
 
 struct PushConstants {
     pop::shaders::Vertex* vertices;
@@ -45,7 +45,6 @@ float3 generate(uint3 x) {
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-
     uint3 seed = uint3(input.randseed, input.randseed >> 4, input.randseed >> 9);
     float3 col = 0.25 * input.color + 0.75 * generate(seed);
 

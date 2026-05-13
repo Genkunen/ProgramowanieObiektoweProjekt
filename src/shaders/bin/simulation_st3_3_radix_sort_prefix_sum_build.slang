@@ -1,4 +1,4 @@
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
 
 struct PushConstants {
     uint* global_histogram;

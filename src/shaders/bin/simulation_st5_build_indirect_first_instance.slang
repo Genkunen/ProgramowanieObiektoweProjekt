@@ -1,15 +1,15 @@
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
 struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommandNonatomic* draw_commands;
+    vk_structs::DrawIndexedIndirectCommand* draw_commands;
     uint draw_commands_count;
 };
 
 [vk::push_constant] PushConstants push_constants;
 
-groupshared Atomic<uint> gs_prefix_sum;
+groupshared uint gs_prefix_sum;
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_BUILD_INDIRECT_FIRST_INSTANCE_GROUP_SIZE_X, 1, 1)]
@@ -18,11 +18,14 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (tid >= push_constants.draw_commands_count) return;
 
-    if (tid == 0) gs_prefix_sum.store(0, MemoryOrder.Relaxed);
+    if (tid == 0) gs_prefix_sum = 0;
 
     GroupMemoryBarrierWithGroupSync();
 
     let instance_count = push_constants.draw_commands[tid].instanceCount;
-    let base = gs_prefix_sum.add(instance_count, MemoryOrder.Relaxed);
+
+    uint base = 0;
+    InterlockedAdd(gs_prefix_sum, instance_count, base);
+
     push_constants.draw_commands[tid].firstInstance = base;
 }

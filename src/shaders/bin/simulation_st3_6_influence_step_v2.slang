@@ -1,7 +1,9 @@
-#include "../shared_types.hpp"
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
+
+import "../behavior/object_behavior_dispatch";
 
 struct PushConstants {
+    pop::shaders::SimulationData* simulation_data;
     pop::shaders::SimulationObject* objects;
     pop::shaders::SimulationObject* next_objects;
 
@@ -37,18 +39,13 @@ groupshared uint neighborhood_tile_end_indices[3][3];
 
 groupshared pop::shaders::SimulationObject tile_objects_scratch[MAX_OBJECTS_PER_TILE];
 
-void interact(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other) {
-    float2 pos_delta = other.position - object.position;
-    float dist_squared = dot(pos_delta, pos_delta);
-
-    object.velocity += clamp( 2.0f * pos_delta / (dist_squared + 1e-2f), float2(-100.0f), float2(100.0f));
-}
-
 [shader("compute")]
 [numthreads(64, 1, 1)]
 void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint group_tid = gtid.x;
     uint group_id = gid.x;
+
+    float dt = push_constants.simulation_data->delta_time;
 
     bool is_group_indices_helper_thread = group_tid <  9; // to cooperatively fill tile start/end indices
     bool is_group_tile_helper_thread    = group_tid < 64; // to cooperatively load object data into tiles
@@ -96,7 +93,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             if (i == group_tid) continue;
 
             pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
-            interact(thread_object, neighbor_object);
+            simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, dt);
         }
     }
 
@@ -125,7 +122,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
                 for (uint i = 0; i < neighbor_tile_object_count && i < MAX_OBJECTS_PER_TILE; i++) {
                     pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
 
-                    interact(thread_object, neighbor_object);
+                    simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, dt);
                 }
             }
             GroupMemoryBarrierWithGroupSync();

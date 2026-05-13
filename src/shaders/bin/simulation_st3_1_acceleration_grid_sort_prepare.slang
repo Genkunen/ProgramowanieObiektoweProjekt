@@ -1,5 +1,4 @@
-#include "../shared_types.hpp"
-#include "../shared_consts.hpp"
+import "../shared_code_shim";
 
 struct PushConstants {
     pop::shaders::SimulationObject* objects;
