@@ -651,6 +651,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
         .set_shader(cs_code)
+        .set_preferred_wave_lane_count(32)
         .build();
 
     return InstanceBufferBuildPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
