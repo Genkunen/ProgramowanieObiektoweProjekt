@@ -8,7 +8,7 @@
 namespace pop::vulkan {
 
 // TODO: move somewhere else
-constexpr bool DEBUG_UTILS_TRY_ENABLE = true;
+constexpr bool DEBUG_ENABLE = true;
 
 auto VulkanContext::get() noexcept -> VulkanContext& {
     return *g_vulkan_context;
@@ -16,11 +16,11 @@ auto VulkanContext::get() noexcept -> VulkanContext& {
 
 VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
-        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled)
+        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled, bool ext_device_fault_enabled)
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
         m_physical_device(std::move(physical_device)), m_device(std::move(device)), m_vma_allocator(std::move(vma_allocator)), m_queue_storage(std::move(queue_storage)),
         m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family), m_physical_device_vulkan13_properties(physical_device_vulkan13_properties),
-        m_debug_utils_enabled(debug_utils_enabled) {}
+        m_debug_utils_enabled(debug_utils_enabled), m_ext_device_fault_enabled(ext_device_fault_enabled) {}
 
 VulkanContext::~VulkanContext() {
     m_device.waitIdle();
@@ -36,9 +36,9 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
 
     auto raii_context = vk::raii::Context();
 
-    auto debug_utils_enable = DEBUG_UTILS_TRY_ENABLE && instance_supports_debug_utils();
+    auto debug_utils_enable = DEBUG_ENABLE && instance_supports_debug_utils();
 
-    if (DEBUG_UTILS_TRY_ENABLE && !debug_utils_enable) {
+    if (DEBUG_ENABLE && !debug_utils_enable) {
         std::println("VulkanContext: Warning: Requested to enable VK_EXT_debug_utils instance extension, but it is not supported on this system.");
     }
 
@@ -56,8 +56,13 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
 
     auto unique_queue_families = std::unordered_set<uint32_t>{graphics_queue_index, present_queue_index};
 
+    bool ext_device_fault_enable = DEBUG_ENABLE && physical_device_supports_ext_device_fault(physical_device);
+    if (DEBUG_ENABLE && !ext_device_fault_enable) {
+        std::println("VulkanContext: Warning: Requested to enable VK_EXT_device_fault device extension, but it is not supported.");
+    }
+
     auto physical_device_vulkan13_properties = get_physical_device_vulkan13_properties(physical_device);
-    auto device = create_device(physical_device, unique_queue_families);
+    auto device = create_device(physical_device, unique_queue_families, ext_device_fault_enable);
 
     VULKAN_HPP_DEFAULT_DISPATCHER.init(*device);
 
@@ -66,7 +71,7 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
 
     auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface),
             std::move(physical_device), std::move(device), std::move(vma_allocator), std::move(queues), graphics_queue_index, present_queue_index,
-            physical_device_vulkan13_properties, debug_utils_enable);
+            physical_device_vulkan13_properties, debug_utils_enable, ext_device_fault_enable);
     g_vulkan_context = ptr.get();
     return ptr;
 }
@@ -138,6 +143,12 @@ auto VulkanContext::get_physical_device_vulkan13_properties(const vk::raii::Phys
     return sc.get<vk::PhysicalDeviceVulkan13Properties>();
 }
 
+auto VulkanContext::physical_device_supports_ext_device_fault(const vk::raii::PhysicalDevice& physical_device) -> bool {
+    auto extensions = physical_device.enumerateDeviceExtensionProperties();
+    return std::ranges::any_of(extensions,
+        [](const auto& extension) -> bool { return strcmp(extension.extensionName, vk::EXTDeviceFaultExtensionName) == 0; });
+}
+
 auto VulkanContext::acquire_device_queues(const vk::raii::Device& device, const std::unordered_set<uint32_t>& unique_queues)
     -> std::unordered_map<uint32_t, vk::raii::Queue> {
     std::unordered_map<uint32_t, vk::raii::Queue> queue_storage;
@@ -147,7 +158,7 @@ auto VulkanContext::acquire_device_queues(const vk::raii::Device& device, const 
     return queue_storage;
 }
 
-auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_device, const std::unordered_set<uint32_t>& unique_queue_families) -> vk::raii::Device {
+auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_device, const std::unordered_set<uint32_t>& unique_queue_families, bool ext_device_fault_enable) -> vk::raii::Device {
     static float queue_priority = 1.0f;
     std::vector<vk::DeviceQueueCreateInfo> queue_create_infos;
     queue_create_infos.reserve(unique_queue_families.size());
@@ -160,6 +171,8 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
     }
 
     auto device_extensions = std::vector<const char*> { vk::KHRSwapchainExtensionName };
+
+    if (ext_device_fault_enable) device_extensions.emplace_back(vk::EXTDeviceFaultExtensionName);
 
     auto core_features = vk::PhysicalDeviceFeatures()
         .setDrawIndirectFirstInstance(true)

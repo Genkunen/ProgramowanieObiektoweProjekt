@@ -1,11 +1,12 @@
 #include "sdl/sdl_lib.hpp"
 #include "sphere_geometry_gen.hpp"
 #include "systems/ktx2_loader.hpp"
+#include "systems/persistent_settings.hpp"
 #include "vulkan/renderer/mesh_pool.hpp"
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
+#include "vulkan/vk_device_fault_dump.hpp"
 #include "vulkan/vk_swapchain.hpp"
-#include "systems/persistent_settings.hpp"
 
 #include <backends/imgui_impl_sdl3.h>
 #include <imgui/imgui_layer.hpp>
@@ -159,8 +160,20 @@ auto sdl_entry_main() -> void {
                 renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
             }
         } catch (const std::exception& e) {
-            std::println("Vulkan Rendering Error: {}", e.what());
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", e.what(), window.get());
+            std::string error_message = "An error occurred during Vulkan command execution:\n    " + std::string{ e.what() } + "\n\n";
+
+            if (auto vk_error = dynamic_cast<const vk::SystemError*>(&e)) {
+                if (vk_error->code() == vk::Result::eErrorDeviceLost) {
+                    if (pop::vulkan::VulkanDeviceFaultDump::is_dumping_supported()) {
+                        auto fault_dump = pop::vulkan::VulkanDeviceFaultDump::dump_device_fault_info();
+                        error_message += fault_dump.format_as_fault_message();
+                    } else {
+                        error_message += "Debugging isn't enabled or VK_EXT_device_fault is not supported, no extra debug information available.";
+                    }
+                }
+            }
+            std::println("{}", error_message);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error_message.c_str(), window.get());
             running = false;
         }
 

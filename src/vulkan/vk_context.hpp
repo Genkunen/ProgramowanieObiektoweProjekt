@@ -12,7 +12,8 @@ class VulkanContext {
 public:
     VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
-        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled);
+        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled,
+        bool ext_device_fault_enabled);
     ~VulkanContext();
 
     static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
@@ -31,6 +32,7 @@ public:
     [[nodiscard]] constexpr auto physical_device_vulkan13_properties() const noexcept -> const vk::PhysicalDeviceVulkan13Properties& { return m_physical_device_vulkan13_properties; }
 
     [[nodiscard]] constexpr auto debug_utils_enabled() const noexcept      -> bool { return m_debug_utils_enabled; }
+    [[nodiscard]] constexpr auto ext_device_fault_enabled() const noexcept -> bool { return m_ext_device_fault_enabled; }
 
 private:
     vk::detail::DynamicLoader m_dynamic_loader;
@@ -50,12 +52,15 @@ private:
 
     bool m_debug_utils_enabled;
 
+    bool m_ext_device_fault_enabled;
+
     static auto instance_supports_debug_utils() -> bool;
     static auto create_instance(vk::raii::Context& raii_context, bool debug_utils_enable) -> vk::raii::Instance;
     static auto select_physical_device(const vk::raii::Instance& instance) -> vk::raii::PhysicalDevice;
     static auto select_physical_device_queue_families(const vk::raii::SurfaceKHR& surface, const vk::raii::PhysicalDevice& physical_device) -> std::tuple<uint32_t, uint32_t>;
+    static auto physical_device_supports_ext_device_fault(const vk::raii::PhysicalDevice& physical_device) -> bool;
     static auto get_physical_device_vulkan13_properties(const vk::raii::PhysicalDevice& physical_device) -> vk::PhysicalDeviceVulkan13Properties;
-    static auto create_device(const vk::raii::PhysicalDevice& physical_device, const std::unordered_set<uint32_t>& unique_queue_families) -> vk::raii::Device;
+    static auto create_device(const vk::raii::PhysicalDevice& physical_device, const std::unordered_set<uint32_t>& unique_queue_families, bool ext_device_fault_enable) -> vk::raii::Device;
     static auto acquire_device_queues(const vk::raii::Device& device, const std::unordered_set<uint32_t>& unique_queue_families) -> std::unordered_map<uint32_t, vk::raii::Queue>;
     static auto create_vma_allocator(const vk::raii::Instance& instance, const vk::raii::PhysicalDevice& physical_device, const vk::raii::Device& device) -> vma::raii::Allocator;
 };
