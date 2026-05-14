@@ -19,17 +19,27 @@ struct PushConstants {
 
 [vk::push_constant] PushConstants push_constants;
 
-int2 compute_tile_position(uint tile_id) {
-    return int2(tile_id % push_constants.grid_width, tile_id / push_constants.grid_width);
+uint morton_code_stride2_decode(uint code) {
+    uint x = code & 0x55555555u;
+    x = (x | (x >> 1)) & 0x33333333u;
+    x = (x | (x >> 2)) & 0x0f0f0f0fu;
+    x = (x | (x >> 4)) & 0x00ff00ffu;
+    x = (x | (x >> 8)) & 0x0000ffffu;
+    return x;
 }
 
-bool is_tile_in_bounds(int2 current, int dx, int dy) {
-    int2 neighbor = current + int2(dx, dy);
-    return neighbor.x >= 0 && neighbor.x < push_constants.grid_width && neighbor.y >= 0 && neighbor.y < push_constants.grid_height;
+uint2 group_id_morton_decode(uint group_id) {
+    uint x = morton_code_stride2_decode(group_id);
+    uint y = morton_code_stride2_decode(group_id >> 1);
+    return uint2(x, y);
 }
 
-uint compute_neighbor_tile_key(uint current, int dx, int dy) {
-    return current + dx + dy * push_constants.grid_width;
+bool is_tile_in_bounds(int2 tile_position) {
+    return tile_position.x >= 0 && tile_position.x < push_constants.grid_width && tile_position.y >= 0 && tile_position.y < push_constants.grid_height;
+}
+
+uint compute_tile_key(int2 tile_position) {
+    return tile_position.x + tile_position.y * push_constants.grid_width;
 }
 
 static const uint MAX_OBJECTS_PER_TILE = 64;
@@ -50,20 +60,24 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     bool is_group_indices_helper_thread = group_tid <  9; // to cooperatively fill tile start/end indices
     bool is_group_tile_helper_thread    = group_tid < 64; // to cooperatively load object data into tiles
 
-    int2 master_tile_position = compute_tile_position(group_id);
+    int2 master_tile_position = group_id_morton_decode(group_id);
+    if (!is_tile_in_bounds(master_tile_position)) return;
 
     // Load dispatch's neighborhood tile start/end indices
     if (is_group_indices_helper_thread) {
         int dx = (group_tid % 3) - 1;
         int dy = (group_tid / 3) - 1;
 
-        if (is_tile_in_bounds(master_tile_position, dx, dy)) {
-            uint neighbor_tile_key = compute_neighbor_tile_key(group_id, dx, dy);
-            uint neighbor_tile_start_index = push_constants.acceleration_grid_tile_start_indices[neighbor_tile_key];
-            uint neighbor_tile_end_index = push_constants.acceleration_grid_tile_end_indices[neighbor_tile_key];
+        int2 delta = int2(dx, dy);
+        int2 tile_position = master_tile_position + delta;
 
-            neighborhood_tile_start_indices[dx + 1][dy + 1] = neighbor_tile_start_index;
-            neighborhood_tile_end_indices[dx + 1][dy + 1] = neighbor_tile_end_index;
+        if (is_tile_in_bounds(tile_position)) {
+            uint tile_key = compute_tile_key(tile_position);
+            uint tile_start_index = push_constants.acceleration_grid_tile_start_indices[tile_key];
+            uint tile_end_index = push_constants.acceleration_grid_tile_end_indices[tile_key];
+
+            neighborhood_tile_start_indices[dx + 1][dy + 1] = tile_start_index;
+            neighborhood_tile_end_indices[dx + 1][dy + 1] = tile_end_index;
         }
     }
     GroupMemoryBarrierWithGroupSync();
@@ -99,10 +113,10 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
 
     // Loop over neighboring tiles
     for (int dy = -1; dy <= 1; dy++) {
-        if (!is_tile_in_bounds(master_tile_position, 0, dy)) continue;
+        if (!is_tile_in_bounds(master_tile_position + int2(0, dy))) continue;
 
         for (int dx = -1; dx <= 1; dx++) {
-            if (!is_tile_in_bounds(master_tile_position, dx, dy)) continue;
+            if (!is_tile_in_bounds(master_tile_position + int2(dx, dy))) continue;
             if (dx == 0 && dy == 0) continue;                                            // Skip the master tile
             if (neighborhood_tile_start_indices[dx + 1][dy + 1] == 0xffffffff) continue; // Skip tiles that don't have any objects
 

@@ -526,12 +526,14 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
         state.object_count
     };
 
+    uint32_t dispatch_size = std::bit_ceil(state.grid_width * state.grid_height);
+
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
     cmd.pushConstants<SimulationInfluenceStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
-        state.grid_width * state.grid_height,
-          1,
-          1
+        dispatch_size,
+        1,
+        1
     );
 }
 
