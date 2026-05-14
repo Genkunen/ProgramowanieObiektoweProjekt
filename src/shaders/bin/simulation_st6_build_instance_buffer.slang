@@ -47,21 +47,22 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     if (tid >= push_constants.object_count) return;
 
-    let mesh_id = push_constants.objects[tid].mesh_index;
+    let object = push_constants.objects[tid];
+    let mesh_id = object.mesh_index;
     let mesh_instance_base = push_constants.draw_commands[mesh_id].firstInstance;
     let mesh_draw_local_instance = push_constants.draw_instance_indices[tid];
     let mesh_instance_index = mesh_instance_base + mesh_draw_local_instance;
 
-    float animation_sin_phase = generate_animation_sin_phase_offset(push_constants.objects[tid].mesh_index) + 2.7 * push_constants.simulation_data->simulation_time_since_start;
-    float3 displaced_position = float3(push_constants.objects[tid].position, sin(animation_sin_phase) * 0.1);
-    float scale = generate_random_scale(push_constants.objects[tid].randseed);
+    float animation_sin_phase = generate_animation_sin_phase_offset(mesh_id) + 2.7 * push_constants.simulation_data->simulation_time_since_start;
+    float3 displaced_position = float3(object.position, sin(animation_sin_phase) * 0.1);
+    float scale = generate_random_scale(object.randseed);
 
     float direction_angle = 0.0;
-    if (push_constants.objects[tid].velocity.x != 0.0 || push_constants.objects[tid].velocity.y != 0.0) {
-        direction_angle = atan2(push_constants.objects[tid].velocity.y, push_constants.objects[tid].velocity.x);
+    if (object.velocity.x != 0.0 || object.velocity.y != 0.0) {
+        direction_angle = atan2(object.velocity.y, object.velocity.x);
     }
     float4x4 model_matrix = mul(push_constants.simulation_data->projview, build_model_matrix(displaced_position, scale, direction_angle));
 
     push_constants.prepared_objects[mesh_instance_index].transform = model_matrix;
-    push_constants.prepared_objects[mesh_instance_index].randseed = push_constants.objects[tid].randseed;
+    push_constants.prepared_objects[mesh_instance_index].randseed = object.randseed;
 }
