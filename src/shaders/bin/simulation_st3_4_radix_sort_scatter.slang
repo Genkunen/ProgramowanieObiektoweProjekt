@@ -53,18 +53,6 @@ uint wave_lt_lanecount_with_same_value(uint value) {
     return 0;
 }
 
-uint wave_count_pattern_matches(uint pattern, uint value) {
-    uint match_count = 0;
-    uint hardware_wave_lane_count = WaveGetLaneCount();
-
-    // TODO: maybe there is a smart ballot that can do this without a per-lane loop
-    for (uint i = 0; i < hardware_wave_lane_count; i++) {
-        uint other_value = WaveReadLaneAt(value, i);
-        if (other_value == pattern) match_count++;
-    }
-    return match_count;
-}
-
 uint compute_element_rank256v2(uint value, uint group_tid, uint group_id, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
     gs_rank_elem_values[group_tid] = value;
 
@@ -73,9 +61,9 @@ uint compute_element_rank256v2(uint value, uint group_tid, uint group_id, uint h
 
     uint iters = wave_index * hardware_wave_lane_count;
     uint foreign_wave_matches = 0;
-    for (uint i = 0; i < wave_index; i++) {
-        uint other_value = gs_rank_elem_values[i * hardware_wave_lane_count + wave_lane];
-        foreign_wave_matches += wave_count_pattern_matches(value, other_value);
+    for (uint i = 0; i < iters; i++) {
+        uint neighbor_element = gs_rank_elem_values[i];
+        if (neighbor_element == value) foreign_wave_matches++;
     }
 
     return intrawave_matches + foreign_wave_matches;
