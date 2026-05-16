@@ -1,6 +1,8 @@
 #pragma once
 #include "mesh_pool.hpp"
 #include "render_graph/render_graph.hpp"
+#include "render_targets.hpp"
+#include "simulation_buffers.hpp"
 #include "simulation_render_graph_passes.hpp"
 #include "vulkan/vk_buffer.hpp"
 #include "vulkan/vk_image.hpp"
@@ -18,11 +20,6 @@ constexpr uint64_t DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT = 40000;
 enum class RenderResult {
     Ok,
     SwapchainSuboptimal,
-};
-
-enum class SimulationObjectBufferReadWriteDirection {
-    e1to2,
-    e2to1,
 };
 
 struct FrameInFlight {
@@ -46,14 +43,7 @@ class VulkanRenderer {
 public:
     VulkanRenderer(
         VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
-        VulkanBuffer&& simulation_objects_buffer_pp1, VulkanBuffer&& simulation_objects_buffer_pp2,
-        VulkanBuffer&& indirect_draw_commands_buffer, VulkanBuffer&& drawlocal_instance_ids_buffer, VulkanBuffer&& instance_data_buffer,
-        VulkanBuffer&& acceleration_grid_sort_keys_buffer, VulkanBuffer&& acceleration_grid_sort_values_buffer,
-        VulkanBuffer&& acceleration_grid_sort_keys_scratch_buffer, VulkanBuffer&& acceleration_grid_sort_values_scratch_buffer,
-        VulkanBuffer&& acceleration_grid_sort_global_histogram_buffer, VulkanBuffer&& acceleration_grid_sort_group_local_histograms_buffer,
-        VulkanBuffer&& acceleration_grid_tile_start_indices_buffer, VulkanBuffer&& acceleration_grid_tile_end_indices_buffer,
-        VulkanImage&& main_render_target, VulkanImage&& depth_buffer,
-        std::vector<FrameInFlight>&& frames_in_flight);
+        SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
@@ -70,37 +60,9 @@ private:
     render_graph::RenderGraph<SimulationRenderState> m_render_graph;
     render_graph::PassIndex m_mesh_upload_pass_index;
 
-    // Ping-pong buffers for simulation objects data. The simulation step cycles between them.
-    VulkanBuffer m_simulation_objects_buffer_pp1;
-    VulkanBuffer m_simulation_objects_buffer_pp2;
-    SimulationObjectBufferReadWriteDirection m_simulation_objects_buffer_rw_direction = SimulationObjectBufferReadWriteDirection::e1to2;
-    // Holds indirect draw commands.
-    VulkanBuffer m_indirect_draw_commands_buffer;
-    uint64_t m_indirect_draw_commands_mesh_params_generation = 0;
-    // Holds draw-local instance IDs of objects.
-    VulkanBuffer m_drawlocal_instance_ids_buffer;
-    // Holds coalesced instance data.
-    VulkanBuffer m_instance_data_buffer;
+    SimulationBuffersManager m_simulation_buffers_manager;
+    RenderTargetsManager m_render_targets_manager;
 
-    // Holds sort keys for the acceleration grid.
-    VulkanBuffer m_acceleration_grid_sort_keys_buffer;
-    VulkanBuffer m_acceleration_grid_sort_keys_scratch_buffer;
-    // Holds sort values corresponding to the above.
-    VulkanBuffer m_acceleration_grid_sort_values_buffer;
-    VulkanBuffer m_acceleration_grid_sort_values_scratch_buffer;
-
-    VulkanBuffer m_acceleration_grid_sort_global_histogram_buffer;
-    VulkanBuffer m_acceleration_grid_sort_group_local_histograms_buffer;
-
-    // Holds start indices of grid tile indices in the sort keys buffer after sorting.
-    VulkanBuffer m_acceleration_grid_tile_start_indices_buffer;
-    // Holds end indices of grid tile indices in the sort keys buffer after sorting.
-    VulkanBuffer m_acceleration_grid_tile_end_indices_buffer;
-
-    // ---- Render Targets -------------------------------------------------------------------------------------------------------------------------------------
-
-    VulkanImage m_main_render_target;
-    VulkanImage m_depth_buffer;
 
     std::vector<FrameInFlight> m_frames_in_flight;
     size_t m_current_frame = 0;
@@ -111,12 +73,7 @@ private:
 
     std::chrono::time_point<std::chrono::high_resolution_clock> m_start_timepoint = std::chrono::high_resolution_clock::now();
 
-    auto refit_simulation_buffers() -> void;
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
-
-    auto swap_simulation_objects_buffer_rw_direction() -> void;
-    auto get_simulation_objects_src_buffer() -> VulkanBuffer&;
-    auto get_simulation_objects_dst_buffer() -> VulkanBuffer&;
 };
 
 }
