@@ -122,8 +122,8 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph_v2.add_dependency_edge(indirect_draw_commands_clear_pass, indirect_draw_commands_instance_count_build_pass);
     render_graph_v2.add_dependency_edge(simulation_acceleration_grid_bound_clear_pass, simulation_acceleration_grid_bound_scan_pass);
 
-    render_graph_v2.add_dependency_edge(simulation_step_pass, simulation_acceleration_grid_sort_prepare_pass);
     render_graph_v2.add_dependency_edge(simulation_step_pass, indirect_draw_commands_instance_count_build_pass);
+    render_graph_v2.add_dependency_edge(simulation_step_pass, simulation_acceleration_grid_sort_prepare_pass);
 
     render_graph_v2.add_dependency_edge(simulation_acceleration_grid_sort_prepare_pass, simulation_acceleration_grid_radix_sort_pass);
     render_graph_v2.add_dependency_edge(simulation_acceleration_grid_radix_sort_pass, simulation_acceleration_grid_bound_scan_pass);
