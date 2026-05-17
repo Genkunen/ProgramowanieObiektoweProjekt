@@ -1,6 +1,6 @@
 #pragma once
 #include "mesh_pool.hpp"
-#include "render_graph/render_graph.hpp"
+#include "render_graph/render_graph_v2.hpp"
 #include "render_targets.hpp"
 #include "simulation_buffers.hpp"
 #include "simulation_render_graph_passes.hpp"
@@ -42,7 +42,7 @@ struct FrameInFlight {
 class VulkanRenderer {
 public:
     VulkanRenderer(
-        VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
+        VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
         SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
@@ -57,8 +57,8 @@ public:
 private:
     VulkanSwapchain m_swapchain;
 
-    render_graph::RenderGraph<SimulationRenderState> m_render_graph;
-    render_graph::PassIndex m_mesh_upload_pass_index;
+    render_graph::RenderGraphV2<SimulationRenderState> m_render_graph;
+    render_graph::PassIndexV2 m_mesh_upload_pass_index;
 
     SimulationBuffersManager m_simulation_buffers_manager;
     RenderTargetsManager m_render_targets_manager;

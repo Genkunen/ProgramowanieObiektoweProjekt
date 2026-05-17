@@ -4,10 +4,11 @@
 #include "radix_sort.hpp"
 #include "shaders/shared_consts.hpp"
 #include "systems/systems.hpp"
-#include "vulkan/renderer/render_graph/render_graph.hpp"
 #include "vulkan/vk_context.hpp"
 
+#include "render_graph/render_graph_v2.hpp"
 #include "simulation_render_graph_passes.hpp"
+
 #include <imgui.h>
 #include <print>
 #include <random>
@@ -24,7 +25,7 @@ static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / A
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
 
 VulkanRenderer::VulkanRenderer(
-        VulkanSwapchain&& swapchain, render_graph::RenderGraph<SimulationRenderState>&& render_graph, render_graph::PassIndex mesh_upload_pass_index,
+        VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
         SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_render_graph(std::move(render_graph)), m_mesh_upload_pass_index(mesh_upload_pass_index),
         m_simulation_buffers_manager(std::move(simulation_buffers_manager)), m_render_targets_manager(std::move(render_targets_manager)),
@@ -85,36 +86,56 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     // ---- Render Graph Build ---------------------------------------------------------------------------------------------------------------------------------
 
-    render_graph::RenderGraph<SimulationRenderState> render_graph;
-    // Rendering Prepare Passes
-    render_graph::PassIndex mesh_upload_pass_index = render_graph.add_pass(std::make_unique<UploadMeshInfoPass>(UploadMeshInfoPass::create()));
+    render_graph::RenderGraphV2<SimulationRenderState> render_graph_v2;
+
+    auto mesh_upload_pass = render_graph_v2.add_pass(std::make_unique<UploadMeshInfoPass>(UploadMeshInfoPass::create()));
 
     // Transient State Clear Passes
-    render_graph.add_pass(std::make_unique<IndirectDrawCommandsClearPass>(IndirectDrawCommandsClearPass::create()));
-    render_graph.add_pass(std::make_unique<SimulationAccelerationGridBoundClearPass>(SimulationAccelerationGridBoundClearPass::create()));
+    auto indirect_draw_commands_clear_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsClearPass>(IndirectDrawCommandsClearPass::create()));
+    auto simulation_acceleration_grid_bound_clear_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridBoundClearPass>(SimulationAccelerationGridBoundClearPass::create()));
 
     // Simulation Step
-    render_graph.add_pass(std::make_unique<SimulationStepPass>(SimulationStepPass::create()));
+    auto simulation_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationStepPass>(SimulationStepPass::create()));
 
     // Acceleration Grid Build
-    render_graph.add_pass(std::make_unique<SimulationAccelerationGridSortPreparePass>(SimulationAccelerationGridSortPreparePass::create()));
-    render_graph.add_pass(std::make_unique<SimulationAccelerationGridRadixSortPass>(SimulationAccelerationGridRadixSortPass::create()));
-    render_graph.add_pass(std::make_unique<SimulationAccelerationGridBoundScanPass>(SimulationAccelerationGridBoundScanPass::create()));
+    auto simulation_acceleration_grid_sort_prepare_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridSortPreparePass>(SimulationAccelerationGridSortPreparePass::create()));
+    auto simulation_acceleration_grid_radix_sort_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridRadixSortPass>(SimulationAccelerationGridRadixSortPass::create()));
+    auto simulation_acceleration_grid_bound_scan_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridBoundScanPass>(SimulationAccelerationGridBoundScanPass::create()));
 
     // Indirect Draw Build
-    render_graph.add_pass(std::make_unique<IndirectDrawCommandsInstanceCountBuildPass>(IndirectDrawCommandsInstanceCountBuildPass::create()));
-    render_graph.add_pass(std::make_unique<IndirectDrawCommandsFirstInstanceBuildPass>(IndirectDrawCommandsFirstInstanceBuildPass::create()));
-    render_graph.add_pass(std::make_unique<InstanceBufferBuildPass>(InstanceBufferBuildPass::create()));
+    auto indirect_draw_commands_instance_count_build_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsInstanceCountBuildPass>(IndirectDrawCommandsInstanceCountBuildPass::create()));
+    auto indirect_draw_commands_first_instance_build_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsFirstInstanceBuildPass>(IndirectDrawCommandsFirstInstanceBuildPass::create()));
+    auto instance_buffer_build_pass = render_graph_v2.add_pass(std::make_unique<InstanceBufferBuildPass>(InstanceBufferBuildPass::create()));
 
     // Simulation Influence Step
-    render_graph.add_pass(std::make_unique<SimulationInfluenceStepPass>(SimulationInfluenceStepPass::create()));
+    auto simulation_influence_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationInfluenceStepPass>(SimulationInfluenceStepPass::create()));
 
     // Main renderpass
-    render_graph.add_pass(std::make_unique<FishTankRenderPass>(FishTankRenderPass::create()));
-    render_graph.add_pass(std::make_unique<ImGuiRenderPass>(ImGuiRenderPass::create()));
+    auto fish_tank_render_pass = render_graph_v2.add_pass(std::make_unique<FishTankRenderPass>(FishTankRenderPass::create()));
+    auto imgui_render_pass = render_graph_v2.add_pass(std::make_unique<ImGuiRenderPass>(ImGuiRenderPass::create()));
 
     // Finalize
-    render_graph.add_pass(std::make_unique<BlitMainImageToSwapchainPass>(BlitMainImageToSwapchainPass::create()));
+    auto blit_main_image_to_swapchain_pass = render_graph_v2.add_pass(std::make_unique<BlitMainImageToSwapchainPass>(BlitMainImageToSwapchainPass::create()));
+
+    render_graph_v2.add_dependency_edge(mesh_upload_pass, fish_tank_render_pass);
+
+    render_graph_v2.add_dependency_edge(indirect_draw_commands_clear_pass, indirect_draw_commands_instance_count_build_pass);
+    render_graph_v2.add_dependency_edge(simulation_acceleration_grid_bound_clear_pass, simulation_acceleration_grid_bound_scan_pass);
+
+    render_graph_v2.add_dependency_edge(simulation_step_pass, simulation_acceleration_grid_sort_prepare_pass);
+    render_graph_v2.add_dependency_edge(simulation_step_pass, indirect_draw_commands_instance_count_build_pass);
+
+    render_graph_v2.add_dependency_edge(simulation_acceleration_grid_sort_prepare_pass, simulation_acceleration_grid_radix_sort_pass);
+    render_graph_v2.add_dependency_edge(simulation_acceleration_grid_radix_sort_pass, simulation_acceleration_grid_bound_scan_pass);
+    render_graph_v2.add_dependency_edge(simulation_acceleration_grid_bound_scan_pass, simulation_influence_step_pass);
+
+    render_graph_v2.add_dependency_edge(indirect_draw_commands_instance_count_build_pass, indirect_draw_commands_first_instance_build_pass);
+    render_graph_v2.add_dependency_edge(indirect_draw_commands_first_instance_build_pass, instance_buffer_build_pass);
+    render_graph_v2.add_dependency_edge(instance_buffer_build_pass, fish_tank_render_pass);
+
+    render_graph_v2.add_dependency_edge(fish_tank_render_pass, imgui_render_pass);
+
+    render_graph_v2.add_dependency_edge(imgui_render_pass, blit_main_image_to_swapchain_pass);
 
     // ---- Simulation and Rendering Resources -----------------------------------------------------------------------------------------------------------------
 
@@ -127,7 +148,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     auto render_targets_manager = RenderTargetsManager::create(swapchain.image_extent());
 
-    return VulkanRenderer{ std::move(swapchain), std::move(render_graph), mesh_upload_pass_index, std::move(simulation_buffers_manager),
+    return VulkanRenderer{ std::move(swapchain), std::move(render_graph_v2), mesh_upload_pass, std::move(simulation_buffers_manager),
         std::move(render_targets_manager), std::move(frames_in_flight) };
 }
 
@@ -280,8 +301,8 @@ auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent)
 
     m_swapchain = VulkanSwapchain::create(new_window_extent, std::move(m_swapchain), true);
 
-    m_render_graph.reset_tracking_for_image(render_graph::ImageResourceIdentifier::MainRenderTarget);
-    m_render_graph.reset_tracking_for_image(render_graph::ImageResourceIdentifier::DepthBuffer);
+    m_render_graph.reset_image_layout_for_image(render_graph::ImageResourceIdentifier::MainRenderTarget);
+    m_render_graph.reset_image_layout_for_image(render_graph::ImageResourceIdentifier::DepthBuffer);
 }
 
 auto VulkanRenderer::swapchain() const -> const VulkanSwapchain& {
