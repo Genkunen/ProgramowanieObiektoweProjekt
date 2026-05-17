@@ -38,6 +38,8 @@ public:
     }
 
     auto execute(vk::raii::CommandBuffer& cmd, State& state, PassResources& resources) -> void {
+        bool insert_debug_labels = VulkanContext::get().debug_utils_enabled();
+
         auto exec_nodes = graph_toposort_to_exec_nodes();
         generate_barriers_for_exec_nodes(exec_nodes, resources);
 
@@ -50,9 +52,20 @@ public:
 
             for (auto& pass : node.passes) {
                 auto& pass_object = get_pass_by_id(pass);
+                if (insert_debug_labels) {
+                    auto debug_name = pass_object.debug_name();
+                    auto debug_label = vk::DebugUtilsLabelEXT{}
+                        .setPLabelName(debug_name.c_str());
+
+                    cmd.beginDebugUtilsLabelEXT(debug_label);
+                }
 
                 if (pass_object.is_enabled()) {
                     pass_object.invoke(cmd, state, resources);
+                }
+
+                if (insert_debug_labels) {
+                    cmd.endDebugUtilsLabelEXT();
                 }
             }
 
