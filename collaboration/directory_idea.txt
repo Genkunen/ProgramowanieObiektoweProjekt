@@ -1,9 +1,0 @@
-main.cpp
-
-vulkan/
-    ...
-sdl/
-    ...
-systems/
-    ...
-
