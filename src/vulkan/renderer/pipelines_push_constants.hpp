@@ -79,6 +79,7 @@ struct SimulationInfluenceStepCSPushConstants {
     vk::DeviceAddress simulation_data;
     vk::DeviceAddress objects;
     vk::DeviceAddress dst_objects;
+    vk::DeviceAddress object_flags;
     vk::DeviceAddress acceleration_grid_values;
     vk::DeviceAddress acceleration_grid_tile_start_indices;
     vk::DeviceAddress acceleration_grid_tile_end_indices;

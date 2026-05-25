@@ -1,4 +1,5 @@
 import "../shared_code_shim";
+import "../sim_state/sim_state";
 import "object_behavior";
 
 namespace simulation {
@@ -8,11 +9,17 @@ struct SampleBehavior : IObjectBehavior {
         object.velocity *= 0.98f;
     }
 
-    void simulate_with_neighbor(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other, float delta_time) {
+    void simulate_with_neighbor(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other, const uint other_id, inout SimulationState simulation_state, float delta_time) {
         float2 pos_delta = other.position - object.position;
         float dist_squared = dot(pos_delta, pos_delta);
 
         object.velocity += clamp(10.0 * delta_time * pos_delta / (dist_squared + 1e-2f), float2(-100.0f), float2(100.0f));
+
+        if (dist_squared < 1e-2f) {
+            if (length(object.velocity) > length(other.velocity)) {
+                simulation_state.try_set_object_dead(other_id);
+            }
+        }
     }
 };
 

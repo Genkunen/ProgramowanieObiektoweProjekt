@@ -461,6 +461,7 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
@@ -487,6 +488,7 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
@@ -495,6 +497,7 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
         frame_local_simulation_data_buffer.memory_device_ptr(),
         simulation_objects_scratch_buffer.memory_device_ptr(),
         simulation_objects_buffer.memory_device_ptr(),
+        simulation_objects_flags_buffer.memory_device_ptr(),
         acceleration_grid_sort_values_buffer.memory_device_ptr(),
         acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
         acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),

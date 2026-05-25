@@ -1,11 +1,13 @@
 import "../shared_code_shim";
 
+import "../sim_state/sim_state";
 import "../behavior/object_behavior_dispatch";
 
 struct PushConstants {
     pop::shaders::SimulationData* simulation_data;
     pop::shaders::SimulationObject* objects;
     pop::shaders::SimulationObject* next_objects;
+    uint* object_flags;
 
     uint* acceleration_grid_tile_object_ids;
     uint* acceleration_grid_tile_start_indices;
@@ -48,6 +50,7 @@ groupshared uint neighborhood_tile_start_indices[3][3];
 groupshared uint neighborhood_tile_end_indices[3][3];
 
 groupshared pop::shaders::SimulationObject tile_objects_scratch[MAX_OBJECTS_PER_TILE];
+groupshared uint tile_objects_ids_scratch[MAX_OBJECTS_PER_TILE];
 
 [shader("compute")]
 [numthreads(64, 1, 1)]
@@ -95,11 +98,16 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint master_tile_object_count = neighborhood_tile_end_indices[1][1] - neighborhood_tile_start_indices[1][1] + 1;
     bool thread_has_object = (group_tid < master_tile_object_count) && is_in_bounds;
 
+    // Note that we do not have to care about object flags here, as the radix sort prepare pass only considers objects without the dead flag set.
+    // This means that all objects referenced in the built grid tiles are guaranteed to be alive.
     if (thread_has_object) {
         thread_object = push_constants.objects[thread_object_id];
         tile_objects_scratch[group_tid] = thread_object;
+        tile_objects_ids_scratch[group_tid] = thread_object_id;
     }
     GroupMemoryBarrierWithGroupSync();
+
+    SimulationState state = { push_constants.object_flags };
 
     if (thread_has_object) {
         // Compute influence from the same tile
@@ -107,9 +115,14 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             if (i == group_tid) continue;
 
             pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
-            simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, dt);
+            uint neighbor_object_id = tile_objects_ids_scratch[i];
+
+            simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, neighbor_object_id, state, dt);
         }
     }
+
+    // Although objects in this tile could become dead after the above loop, we still consider them alive here for consistency and for potential actions
+    // that the now-dead objects could have tried to perform on the objects in neighboring tiles.
 
     // Loop over neighboring tiles
     for (int dy = -1; dy <= 1; dy++) {
@@ -127,6 +140,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             if (is_group_tile_helper_thread && group_tid < neighbor_tile_object_count) {
                 uint object_id = push_constants.acceleration_grid_tile_object_ids[neighbor_tile_start_index + group_tid];
                 tile_objects_scratch[group_tid] = push_constants.objects[object_id];
+                tile_objects_ids_scratch[group_tid] = object_id;
             }
             GroupMemoryBarrierWithGroupSync();
 
@@ -135,8 +149,9 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             if (thread_has_object) {
                 for (uint i = 0; i < neighbor_tile_object_count && i < MAX_OBJECTS_PER_TILE; i++) {
                     pop::shaders::SimulationObject neighbor_object = tile_objects_scratch[i];
+                    uint neighbor_object_id = tile_objects_ids_scratch[i];
 
-                    simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, dt);
+                    simulation::dispatch_neighbor_simulation_behavior(thread_object, neighbor_object, neighbor_object_id, state, dt);
                 }
             }
             GroupMemoryBarrierWithGroupSync();
