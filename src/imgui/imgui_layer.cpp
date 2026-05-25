@@ -21,7 +21,7 @@ ImGuiLayer::ImGuiLayer(const pop::sdl::SdlWindow& window, const pop::vulkan::Vul
 
     const auto& context = pop::vulkan::VulkanContext::get();
     auto swapchain_image_count = static_cast<uint32_t>(swapchain.images().size());
-    const VkFormat color_format = VK_FORMAT_R16G16B16A16_SFLOAT;
+    const VkFormat color_format = VK_FORMAT_A2R10G10B10_UNORM_PACK32;
     
     struct VulkanLoaderContext {
         PFN_vkGetInstanceProcAddr loader = nullptr;

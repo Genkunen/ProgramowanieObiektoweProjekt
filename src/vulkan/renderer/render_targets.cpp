@@ -17,7 +17,7 @@ auto RenderTargetsManager::resize_render_targets(vk::Extent2D rt_image_extent) -
 auto RenderTargetsManager::create_render_targets(vk::Extent2D rt_image_extent) -> RenderTargets {
     auto main_render_target = VulkanImage::builder()
         .set_extent(vk::Extent3D(rt_image_extent, 1))
-        .set_format(vk::Format::eR16G16B16A16Sfloat)
+        .set_format(vk::Format::eA2R10G10B10UnormPack32)
         .set_initial_layout(vk::ImageLayout::eUndefined)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .set_mip_levels(1)

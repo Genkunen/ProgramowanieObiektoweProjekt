@@ -12,6 +12,7 @@ struct ImageFormatMetadata {
 inline static std::unordered_map<vk::Format, ImageFormatMetadata> IMAGE_FORMAT_METADATA = {
     // Color render target / texture formats
     { vk::Format::eR16G16B16A16Sfloat,           { vk::ImageAspectFlagBits::eColor } },
+    { vk::Format::eA2R10G10B10UnormPack32,       { vk::ImageAspectFlagBits::eColor } },
     { vk::Format::eR8G8B8A8Srgb,                 { vk::ImageAspectFlagBits::eColor } },
     { vk::Format::eB8G8R8A8Srgb,                 { vk::ImageAspectFlagBits::eColor } },
     { vk::Format::eBc7SrgbBlock,                 { vk::ImageAspectFlagBits::eColor } },

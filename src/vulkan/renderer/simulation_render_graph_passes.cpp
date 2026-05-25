@@ -701,7 +701,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
             vk::PipelineColorBlendAttachmentState()
                 .setBlendEnable(false)
                 .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
-            vk::Format::eR16G16B16A16Sfloat
+            vk::Format::eA2R10G10B10UnormPack32
         )
         .set_depth_attachment_format(vk::Format::eD32Sfloat)
         .build();
