@@ -157,6 +157,7 @@ SimulationAccelerationGridSortPreparePass::SimulationAccelerationGridSortPrepare
 auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerationGridSortPreparePass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::AccelerationGridSortValues, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
@@ -180,11 +181,13 @@ auto SimulationAccelerationGridSortPreparePass::debug_name() const noexcept -> s
 auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
 
     SimulationAccelerationGridSortPrepareCSPushConstants consts = {
         simulation_next_objects_buffer.memory_device_ptr(),
+        simulation_objects_flags_buffer.memory_device_ptr(),
         acceleration_grid_sort_keys_buffer.memory_device_ptr(),
         acceleration_grid_sort_values_buffer.memory_device_ptr(),
         state.grid_cell_size,

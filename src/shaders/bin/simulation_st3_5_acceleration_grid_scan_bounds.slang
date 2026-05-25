@@ -34,6 +34,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     uint acceleration_grid_tile_index = push_constants.sort_keys[tid];
 
+    if (acceleration_grid_tile_index == 0xffffffff) return;
+
     if (acceleration_grid_tile_starts_here(tid, acceleration_grid_tile_index))
         push_constants.tile_start_indices[acceleration_grid_tile_index] = tid;
 

@@ -72,6 +72,7 @@ auto SimulationBuffersManager::create_dynamically_sized_buffers(uint32_t max_obj
         .set_size(max_object_count * sizeof(uint32_t))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .map_for_sequential_write()
         .build();
 
     auto draw_local_instance_ids = VulkanBuffer::builder()

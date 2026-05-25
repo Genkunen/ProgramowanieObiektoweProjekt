@@ -337,12 +337,14 @@ inline uint32_t object_random_seed() {
 }
 
 auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshes) -> void {
-    auto dst_ptr = reinterpret_cast<shaders::SimulationObject*>(m_simulation_buffers_manager.simulation_objects().memory_host_ptr());
+    auto simulation_objects_dst_ptr = reinterpret_cast<shaders::SimulationObject*>(m_simulation_buffers_manager.simulation_objects().memory_host_ptr());
+    auto simulation_objects_flags_dst_ptr = reinterpret_cast<uint32_t*>(m_simulation_buffers_manager.simulation_objects_flags().memory_host_ptr());
     for (uint32_t i = 0; i < m_gpu_driven_sim_object_count; ++i) {
-        dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
-        dst_ptr[i].position = random_zero_to_one() * SIMULATION_BOUNDS;
-        dst_ptr[i].velocity = random_ndc() * 5.0f;
-        dst_ptr[i].randseed = object_random_seed();
+        simulation_objects_dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
+        simulation_objects_dst_ptr[i].position = random_zero_to_one() * SIMULATION_BOUNDS;
+        simulation_objects_dst_ptr[i].velocity = random_ndc() * 5.0f;
+        simulation_objects_dst_ptr[i].randseed = object_random_seed();
+        simulation_objects_flags_dst_ptr[i] = 0;
     }
 }
 

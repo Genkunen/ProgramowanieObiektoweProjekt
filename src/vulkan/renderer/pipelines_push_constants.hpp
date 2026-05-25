@@ -25,6 +25,7 @@ struct SimulationStepCSPushConstants {
 
 struct SimulationAccelerationGridSortPrepareCSPushConstants {
     vk::DeviceAddress objects;
+    vk::DeviceAddress object_flags;
     vk::DeviceAddress sort_keys;
     vk::DeviceAddress sort_values;
     float grid_cell_size;
@@ -63,14 +64,6 @@ struct SimulationAccelerationGridRadixSortScatterCSPushConstants {
     uint32_t group_count;
     uint32_t keys_count;
     uint32_t radix_bit_shift;
-} __attribute((packed));
-
-struct SimulationAccelerationGridBitonicSortCSPushConstants {
-    vk::DeviceAddress sort_keys;
-    vk::DeviceAddress sort_values;
-    uint32_t bitonic_sort_stage;
-    uint32_t bitonic_sort_step;
-    uint32_t keys_count;
 } __attribute((packed));
 
 struct SimulationAccelerationGridBoundScanCSPushConstants {
