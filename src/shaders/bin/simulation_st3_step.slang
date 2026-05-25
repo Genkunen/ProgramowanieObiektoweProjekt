@@ -6,6 +6,7 @@ struct PushConstants {
     pop::shaders::SimulationData* simulation_data;
     pop::shaders::SimulationObject* objects;
     pop::shaders::SimulationObject* dst_updated_objects;
+    uint* object_flags;
     float2 simulation_bounds;
     uint object_count;
 };
@@ -49,6 +50,9 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 
     if (tid >= push_constants.object_count) return;
+
+    bool is_alive = (push_constants.object_flags[tid] & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) == 0;
+    if (!is_alive) return;
 
     float dt = push_constants.simulation_data->delta_time;
 

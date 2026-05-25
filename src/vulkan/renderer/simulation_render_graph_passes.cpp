@@ -108,6 +108,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
@@ -130,11 +131,13 @@ auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
 
     SimulationStepCSPushConstants consts = {
         frame_local_simulation_data_buffer.memory_device_ptr(),
         simulation_objects_buffer.memory_device_ptr(),
         simulation_next_objects_buffer.memory_device_ptr(),
+        simulation_objects_flags_buffer.memory_device_ptr(),
         state.simulation_bounds,
         state.object_count
     };

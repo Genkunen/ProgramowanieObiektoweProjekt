@@ -19,6 +19,7 @@ struct SimulationStepCSPushConstants {
     vk::DeviceAddress simulation_data;
     vk::DeviceAddress objects;
     vk::DeviceAddress dst_updated_objects;
+    vk::DeviceAddress object_flags;
     glm::vec2 simulation_bounds;
     uint32_t object_count;
 } __attribute((packed));
