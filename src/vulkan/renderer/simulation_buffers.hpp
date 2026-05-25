@@ -6,6 +6,7 @@ namespace pop::vulkan::renderer {
 struct DynamicallySizedSimulationBuffers {
     VulkanBuffer simulation_objects;
     VulkanBuffer simulation_objects_scratch;
+    VulkanBuffer simulation_objects_flags;
     VulkanBuffer draw_local_instance_ids;
     VulkanBuffer instance_data;
     VulkanBuffer acceleration_grid_sort_keys;
@@ -32,6 +33,7 @@ public:
 
     [[nodiscard]] constexpr auto simulation_objects() noexcept                                       -> VulkanBuffer& { return m_dynamically_sized_buffers.simulation_objects; }
     [[nodiscard]] constexpr auto simulation_objects_scratch() noexcept                               -> VulkanBuffer& { return m_dynamically_sized_buffers.simulation_objects_scratch; }
+    [[nodiscard]] constexpr auto simulation_objects_flags() noexcept                                 -> VulkanBuffer& { return m_dynamically_sized_buffers.simulation_objects_flags; }
     [[nodiscard]] constexpr auto draw_local_instance_ids() noexcept                                  -> VulkanBuffer& { return m_dynamically_sized_buffers.draw_local_instance_ids; }
     [[nodiscard]] constexpr auto instance_data() noexcept                                            -> VulkanBuffer& { return m_dynamically_sized_buffers.instance_data; }
     [[nodiscard]] constexpr auto acceleration_grid_sort_keys() noexcept                              -> VulkanBuffer& { return m_dynamically_sized_buffers.acceleration_grid_sort_keys; }

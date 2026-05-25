@@ -68,6 +68,12 @@ auto SimulationBuffersManager::create_dynamically_sized_buffers(uint32_t max_obj
         .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
         .build();
 
+    auto simulation_objects_flags = VulkanBuffer::builder()
+        .set_size(max_object_count * sizeof(uint32_t))
+        .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
+        .set_memory_usage(vma::MemoryUsage::eAutoPreferDevice)
+        .build();
+
     auto draw_local_instance_ids = VulkanBuffer::builder()
         .set_size(max_object_count * sizeof(uint32_t))
         .set_usage(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress)
@@ -113,6 +119,7 @@ auto SimulationBuffersManager::create_dynamically_sized_buffers(uint32_t max_obj
     return DynamicallySizedSimulationBuffers {
         .simulation_objects                            = std::move(simulation_objects),
         .simulation_objects_scratch                    = std::move(simulation_objects_scratch),
+        .simulation_objects_flags                      = std::move(simulation_objects_flags),
         .draw_local_instance_ids                       = std::move(draw_local_instance_ids),
         .instance_data                                 = std::move(instance_data),
         .acceleration_grid_sort_keys                   = std::move(acceleration_grid_sort_keys),

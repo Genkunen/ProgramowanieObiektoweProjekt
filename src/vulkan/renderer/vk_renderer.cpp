@@ -225,6 +225,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, frame.simulation_data_buffer);
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationObjects, m_simulation_buffers_manager.simulation_objects());
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationObjectsScratch, m_simulation_buffers_manager.simulation_objects_scratch());
+    pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, m_simulation_buffers_manager.simulation_objects_flags());
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer, m_simulation_buffers_manager.instance_data());
 
     pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys, m_simulation_buffers_manager.acceleration_grid_sort_keys());

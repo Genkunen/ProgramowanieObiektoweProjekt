@@ -16,6 +16,8 @@ enum class BufferResourceIdentifier {
     SimulationObjects,
     SimulationObjectsScratch,
 
+    SimulationObjectsFlags,
+
     AccelerationGridSortKeys,
     AccelerationGridSortValues,
     AccelerationGridSortKeysScratch,

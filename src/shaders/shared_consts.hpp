@@ -39,4 +39,8 @@ static POP_CONST uint CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X = 256;
 
 static POP_CONST uint MAX_DRAW_COMMANDS = GPU_WAVE_SIZE;
 
+// ---- Simulation Objects Flags -------------------------------------------------------------------------------------------------------------------------------
+
+static POP_CONST uint SIM_OBJECT_FLAG_DEAD = 1 << 0;
+
 } // namespace pop::shader_consts
