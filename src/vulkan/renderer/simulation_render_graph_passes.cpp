@@ -528,6 +528,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
         .build();
 
@@ -551,12 +552,14 @@ auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer&
     -> void {
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
 
     BuildIndirectInstanceCountCSPushConstants instance_count_cs_consts = {
         simulation_draw_indirect_commands_buffer.memory_device_ptr(),
         draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
         simulation_objects_buffer.memory_device_ptr(),
+        simulation_objects_flags_buffer.memory_device_ptr(),
         state.object_count
     };
 
@@ -622,6 +625,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
 
@@ -648,6 +652,7 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
     auto& objects_instance_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer);
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
@@ -657,6 +662,7 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
         draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
         frame_local_simulation_data_buffer.memory_device_ptr(),
         simulation_objects_buffer.memory_device_ptr(),
+        simulation_objects_flags_buffer.memory_device_ptr(),
         objects_instance_buffer.memory_device_ptr(),
         state.object_count
     };

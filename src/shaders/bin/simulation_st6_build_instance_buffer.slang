@@ -7,6 +7,7 @@ struct PushConstants {
     uint* draw_instance_indices;
     pop::shaders::SimulationData* simulation_data;
     pop::shaders::SimulationObject* objects;
+    uint* object_flags;
     pop::shaders::PreparedSimulationObject* prepared_objects;
     uint object_count;
 };
@@ -46,6 +47,10 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 
     if (tid >= push_constants.object_count) return;
+    uint object_flags = push_constants.object_flags[tid];
+
+    bool object_visible = (object_flags & pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE) != 0;
+    if (!object_visible) return;
 
     let object = push_constants.objects[tid];
     let mesh_id = object.mesh_index;

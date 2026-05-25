@@ -42,5 +42,6 @@ static POP_CONST uint MAX_DRAW_COMMANDS = GPU_WAVE_SIZE;
 // ---- Simulation Objects Flags -------------------------------------------------------------------------------------------------------------------------------
 
 static POP_CONST uint SIM_OBJECT_FLAG_DEAD = 1 << 0;
+static POP_CONST uint SIM_OBJECT_FLAG_VISIBLE = 1 << 1;
 
 } // namespace pop::shader_consts

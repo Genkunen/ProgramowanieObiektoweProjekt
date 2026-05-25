@@ -6,6 +6,7 @@ struct PushConstants {
     vk_structs::DrawIndexedIndirectCommand* draw_commands;
     uint* drawlocal_instance_indices;
     pop::shaders::SimulationObject* objects;
+    uint* object_flags;
     uint object_count;
 };
 
@@ -31,9 +32,25 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
 
     uint mesh_id = 0;
     uint mesh_object_instance_id = 0;
+    bool thread_has_object = false;
     if (is_working_thread) {
-        mesh_id = push_constants.objects[tid].mesh_index;
-        InterlockedAdd(gs_instance_counts[mesh_id], 1, mesh_object_instance_id);
+        uint object_flags = push_constants.object_flags[tid];
+
+        bool is_alive = (object_flags & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) == 0;
+
+        bool is_visible = is_alive; // TODO: frustum cull
+        thread_has_object = is_visible;
+
+        if (is_visible) {
+            mesh_id = push_constants.objects[tid].mesh_index;
+            InterlockedAdd(gs_instance_counts[mesh_id], 1, mesh_object_instance_id);
+        }
+
+        uint new_object_flags = is_visible ?
+            (object_flags | pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE) :
+            (object_flags & (~pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE));
+
+        push_constants.object_flags[tid] = new_object_flags;
     }
     GroupMemoryBarrierWithGroupSync();
 
@@ -48,7 +65,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
 
     GroupMemoryBarrierWithGroupSync();
 
-    if (is_working_thread) {
+    if (thread_has_object) {
         uint global_instance_index = gs_instance_prefixes[mesh_id] + mesh_object_instance_id;
         push_constants.drawlocal_instance_indices[tid] = global_instance_index;
     }

@@ -130,6 +130,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph_v2.add_dependency_edge(simulation_acceleration_grid_bound_scan_pass, simulation_influence_step_pass);
 
     render_graph_v2.add_dependency_edge(indirect_draw_commands_instance_count_build_pass, indirect_draw_commands_first_instance_build_pass);
+    render_graph_v2.add_dependency_edge(indirect_draw_commands_instance_count_build_pass, simulation_influence_step_pass);
     render_graph_v2.add_dependency_edge(indirect_draw_commands_first_instance_build_pass, instance_buffer_build_pass);
     render_graph_v2.add_dependency_edge(instance_buffer_build_pass, fish_tank_render_pass);
 

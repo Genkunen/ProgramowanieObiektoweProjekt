@@ -93,6 +93,7 @@ struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     vk::DeviceAddress drawlocal_instance_indices;
     vk::DeviceAddress simulation_objects;
+    vk::DeviceAddress simulation_object_flags;
     uint32_t object_count;
 } __attribute((packed));
 
@@ -106,6 +107,7 @@ struct BuildInstanceBufferCSPushConstants {
     vk::DeviceAddress drawlocal_instance_indices;
     vk::DeviceAddress simulation_data;
     vk::DeviceAddress simulation_objects;
+    vk::DeviceAddress simulation_object_flags;
     vk::DeviceAddress instance_data;
     uint32_t object_count;
 } __attribute((packed));
