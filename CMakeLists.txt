@@ -183,3 +183,32 @@ target_compile_options(
         -Werror=return-type
 )
 
+# ---- macOS Support ---------------------------------------------------------------------------------------------------
+
+if(APPLE)
+    set(USED_MVK_VERSION "1.4.1")
+
+    FetchContent_Declare(
+            moltenvk
+            URL https://github.com/KhronosGroup/MoltenVK/releases/download/v${USED_MVK_VERSION}/MoltenVK-macos.tar
+    )
+    FetchContent_MakeAvailable(moltenvk)
+
+    set(MVK_DYLIB_PATH      ${moltenvk_SOURCE_DIR}/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib)
+    set(MVK_VULKAN_ICD_PATH ${moltenvk_SOURCE_DIR}/MoltenVK/dynamic/dylib/macOS/MoltenVK_icd.json)
+
+    add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${MVK_DYLIB_PATH} ${CMAKE_CURRENT_BINARY_DIR}/libMoltenVK.dylib
+    )
+
+    add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${MVK_VULKAN_ICD_PATH} ${CMAKE_CURRENT_BINARY_DIR}/MoltenVK_icd.json
+    )
+
+    set_target_properties(ProgramowanieObiektoweProjekt PROPERTIES
+        BUILD_RPATH "@executable_path"
+        INSTALL_RPATH "@executable_path"
+    )
+endif()
