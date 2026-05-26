@@ -670,6 +670,86 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
     cmd.dispatch(div_ceil(state.object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
 }
 
+// ---- BackgroundRenderPass -----------------------------------------------------------------------------------------------------------------------------------
+
+
+BackgroundRenderPass::BackgroundRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline) 
+: render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)) {}
+
+auto BackgroundRenderPass::create() -> BackgroundRenderPass {
+    auto dependencies = render_graph::PassDependencies::builder()
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eVertexShader, vk::AccessFlagBits2::eShaderRead)
+        .add_image_dependency(render_graph::ImageResourceIdentifier::MainRenderTarget, vk::ImageLayout::eColorAttachmentOptimal, vk::PipelineStageFlagBits2::eColorAttachmentOutput, vk::AccessFlagBits2::eColorAttachmentWrite)
+        .build();
+
+    auto pipeline_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(BackgroundCSPushConstants), vk::ShaderStageFlagBits::eVertex)
+        .build();
+
+    auto shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/background.spv");
+
+    auto pipeline = VulkanGraphicsPipeline::builder()
+        .set_pipeline_layout(pipeline_layout)
+        .add_shader(shader_code, vk::ShaderStageFlagBits::eVertex)
+        .add_shader(shader_code, vk::ShaderStageFlagBits::eFragment)
+        .set_input_topology(vk::PrimitiveTopology::eTriangleList)
+        .set_rasterizer_polygon_mode(vk::PolygonMode::eFill)
+        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eFrontAndBack, vk::FrontFace::eCounterClockwise)
+        .disable_multisampling()
+        .set_rasterizer_line_width(1.0f)
+        .add_rendering_attachment(vk::PipelineColorBlendAttachmentState().setBlendEnable(false), vk::Format::eA2R10G10B10UnormPack32)
+        .build();
+
+    return { std::move(dependencies), std::move(pipeline_layout), std::move(pipeline) };
+}
+
+auto BackgroundRenderPass::debug_name() const noexcept -> std::string { return "Background Render Pass"; }
+
+auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]] const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+    auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
+    auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);
+
+    auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
+        .setImageView(main_render_target.vk_full_image_view())
+        .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eStore)
+        .setClearValue(vk::ClearColorValue{ pop::systems::PersistentSettings::clear_color() });
+
+    auto rendering_area = vk::Extent2D(main_render_target.extent().width, main_render_target.extent().height);
+
+    auto viewport = vk::Viewport()
+        .setWidth(rendering_area.width)
+        .setHeight(rendering_area.height)
+        .setMinDepth(0.0f)
+        .setMaxDepth(1.0f);
+
+    auto scissor = vk::Rect2D()
+        .setExtent(rendering_area);
+
+    auto rendering_info = vk::RenderingInfo()
+        .setColorAttachments(main_render_target_attachment_info)
+        .setLayerCount(1)
+        .setRenderArea(scissor);
+
+    cmd.beginRendering(rendering_info);
+    cmd.setViewport(0, viewport);
+    cmd.setScissor(0, scissor);
+
+    cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.vk_pipeline());
+
+    struct PushConstants {
+        vk::DeviceAddress simulation_data;
+    };
+
+    PushConstants consts = { frame_local_simulation_data_buffer.memory_device_ptr() };
+
+    cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);
+    cmd.draw(3, 1, 0, 0);
+
+    cmd.endRendering();
+}
+
 // ---- FishTankRenderPass -------------------------------------------------------------------------------------------------------------------------------------
 
 FishTankRenderPass::FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
@@ -727,7 +807,7 @@ auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setLoadOp(vk::AttachmentLoadOp::eLoad)
         .setStoreOp(vk::AttachmentStoreOp::eStore)
         .setClearValue(vk::ClearColorValue{ pop::systems::PersistentSettings::clear_color() });
 

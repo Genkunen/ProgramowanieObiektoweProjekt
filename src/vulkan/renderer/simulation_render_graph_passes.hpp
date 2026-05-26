@@ -224,6 +224,21 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
+class BackgroundRenderPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    BackgroundRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline);
+
+    static auto create() -> BackgroundRenderPass;
+
+    auto debug_name() const noexcept -> std::string override;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanGraphicsPipeline m_graphics_pipeline;
+};
+
 // ---- FishTankRenderPass -------------------------------------------------------------------------------------------------------------------------------------
 
 class FishTankRenderPass : public render_graph::PassBase<SimulationRenderState> {
