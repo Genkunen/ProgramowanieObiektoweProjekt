@@ -95,11 +95,18 @@ auto VulkanContext::create_instance(vk::raii::Context& raii_context, bool debug_
     std::vector<const char*> instance_extensions_vec(instance_extensions, instance_extensions + instance_extension_count);
     if (debug_utils_enabled) instance_extensions_vec.push_back(vk::EXTDebugUtilsExtensionName);
 
+    auto instance_create_flags = vk::InstanceCreateFlags{};
+#ifdef __APPLE__
+    instance_extensions_vec.emplace_back(vk::KHRPortabilityEnumerationExtensionName);
+    instance_create_flags |= vk::InstanceCreateFlagBits::eEnumeratePortabilityKHR;
+#endif
+
     auto instance_create_info = vk::InstanceCreateInfo()
         .setPApplicationInfo(&application_info)
         .setEnabledExtensionCount(instance_extensions_vec.size())
         .setPpEnabledExtensionNames(instance_extensions_vec.data())
-        .setEnabledLayerCount(0);
+        .setEnabledLayerCount(0)
+        .setFlags(instance_create_flags);
 
     return vk::raii::Instance(raii_context, instance_create_info);
 }

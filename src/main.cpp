@@ -15,6 +15,7 @@
 
 #include <print>
 
+
 auto sdl_entry_main() -> void {
     auto window = pop::sdl::SdlWindow("ProgramowanieObiektoweProjekt", 1920, 1080);
     auto vulkan_context = pop::vulkan::VulkanContext::create(window);
@@ -159,21 +160,20 @@ auto sdl_entry_main() -> void {
             if (render_result == pop::vulkan::renderer::RenderResult::SwapchainSuboptimal) {
                 renderer.handle_surface_invalidation(window.vulkan_window_drawable_extent());
             }
-        } catch (const std::exception& e) {
-            std::string error_message = "An error occurred during Vulkan command execution:\n    " + std::string{ e.what() } + "\n\n";
+        } catch (const vk::SystemError& e) {
+            std::string error_message = "A Vulkan system error has been thrown during rendering:\n    " + std::string{ e.what() } + "\n\n";
 
-            if (auto vk_error = dynamic_cast<const vk::SystemError*>(&e)) {
-                if (vk_error->code() == vk::Result::eErrorDeviceLost) {
-                    if (pop::vulkan::VulkanDeviceFaultDump::is_dumping_supported()) {
-                        auto fault_dump = pop::vulkan::VulkanDeviceFaultDump::dump_device_fault_info();
-                        error_message += fault_dump.format_as_fault_message();
-                    } else {
-                        error_message += "Debugging isn't enabled or VK_EXT_device_fault is not supported, no extra debug information available.";
-                    }
+            if (e.code() == vk::Result::eErrorDeviceLost) {
+                if (pop::vulkan::VulkanDeviceFaultDump::is_dumping_supported()) {
+                    auto fault_dump = pop::vulkan::VulkanDeviceFaultDump::dump_device_fault_info();
+                    error_message += fault_dump.format_as_fault_message();
+                } else {
+                    error_message += "Debugging isn't enabled or VK_EXT_device_fault is not supported, no extra debug information available.";
                 }
             }
+
             std::println("{}", error_message);
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error_message.c_str(), window.get());
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vulkan System Error", error_message.c_str(), window.get());
             running = false;
         }
 
@@ -185,6 +185,11 @@ auto sdl_entry_main() -> void {
 
 auto main() -> int {
     pop::sdl::initializeSdl();
-    sdl_entry_main();
+    try {
+        sdl_entry_main();
+    } catch (const std::exception& e) {
+        std::string error_message = "An error occurred during program execution:\n    " + std::string{ e.what() };
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error", error_message.c_str(), nullptr);
+    }
     pop::sdl::terminateSdl();
 }
