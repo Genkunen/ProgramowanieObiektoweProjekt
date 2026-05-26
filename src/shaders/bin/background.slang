@@ -10,16 +10,12 @@ struct VSOutput {
     float3 color : COLOR;
 };
 
-float3 positions[3] = {
-    { -1, 0, 0 },
-    { 0.5f, 1, 0 },
-    { -1, 0, 0 }
-};
-
 [shader("vertex")]
 VSOutput main(uint vertex_id : SV_VulkanVertexID) {
     VSOutput output;
-    output.position = float4(positions[vertex_id], 1);
+    output.position.x = float(vertex_id & 1) * 4.0 - 1.0;
+    output.position.y = float(vertex_id & 2) * 2.0 - 1.0;
+    output.position.zw = float2(0.0, 1.0);
     output.color = float3(1, 0, 0);
 
     return output;
