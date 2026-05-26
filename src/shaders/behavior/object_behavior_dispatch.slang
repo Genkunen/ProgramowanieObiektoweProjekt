@@ -9,18 +9,21 @@ namespace simulation {
 
 constexpr IObjectBehavior make_behavior(uint type) {
     switch (type) {
-        default: return SampleBehavior();
+        case pop::shader_consts::SIM_OBJECT_TYPE_FOOD:  return FoodBehavior();
+        case pop::shader_consts::SIM_OBJECT_TYPE_FISH:  return SampleBehavior();
+
+        default: return NoBehavior();
     }
 }
 
 void dispatch_self_simulation_behavior(inout pop::shaders::SimulationObject object, float delta_time) {
-    IObjectBehavior behavior = make_behavior(object.mesh_index);
+    IObjectBehavior behavior = make_behavior(object.object_type);
 
     behavior.simulate_self(object, delta_time);
 }
 
 void dispatch_neighbor_simulation_behavior(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other, const uint other_id, inout SimulationState simulation_state, float delta_time) {
-    IObjectBehavior behavior = make_behavior(object.mesh_index);
+    IObjectBehavior behavior = make_behavior(object.object_type);
 
     behavior.simulate_with_neighbor(object, other, other_id, simulation_state, delta_time);
 }

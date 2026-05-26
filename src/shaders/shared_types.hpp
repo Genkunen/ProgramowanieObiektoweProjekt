@@ -30,7 +30,7 @@ struct MeshAllocationData {
 struct SimulationObject {
     float2 position;
     float2 velocity;
-    uint mesh_index;
+    uint object_type;
     uint randseed;
 };
 

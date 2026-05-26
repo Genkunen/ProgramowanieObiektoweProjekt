@@ -13,36 +13,53 @@ struct PushConstants {
 
 [vk::push_constant] PushConstants push_constants;
 
-static const float SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR = 0.01f;
-
-float2 hash22(float2 p) {
-    p = float2(dot(p, float2(127.1, 311.7)),
-               dot(p, float2(269.5, 183.3)));
-    return frac(sin(p) * 43758.5453) * 2.0 - 1.0;
+float2 hash_pos(float2 p) {
+    float2 hp = float2(dot(p, float2(127.1, 311.7)),
+                       dot(p, float2(269.5, 183.3)));
+    return frac(sin(hp) * 43758.5453) * 2.0 - 1.0;
 }
 
-float smooth_noise(float2 p) {
-    float2 i = floor(p);
-    float2 f = frac(p);
+float vnoise(float2 p) {
+    float2 i  = floor(p);
+    float2 f  = frac(p);
+    float2 u  = f * f * (3.0 - 2.0 * f);
 
-    float2 u = f * f * (3.0 - 2.0 * f);
-
-    float a = hash22(i + float2(0,0)).x;
-    float b = hash22(i + float2(1,0)).x;
-    float c = hash22(i + float2(0,1)).x;
-    float d = hash22(i + float2(1,1)).x;
+    float a = dot(hash_pos(i),               f);
+    float b = dot(hash_pos(i + float2(1,0)), f - float2(1,0));
+    float c = dot(hash_pos(i + float2(0,1)), f - float2(0,1));
+    float d = dot(hash_pos(i + float2(1,1)), f - float2(1,1));
 
     return lerp(lerp(a, b, u.x), lerp(c, d, u.x), u.y);
 }
 
-float2 vector_field(float2 p, float t) {
-    float2 sp = p / 4.0;
+float2 curl_noise(float2 p, float t, float scale) {
+    const float EPSILON = 0.001;
+    float2 sp = p * scale;
+    float  tp = t * 0.3;
 
-    float nx = smooth_noise(sp + float2(t * 0.11, 17.3));
-    float ny = smooth_noise(sp + float2(-23.1, t * 0.13));
+    float dFdy = (vnoise(float2(sp.x,           sp.y + EPSILON) + tp)
+                - vnoise(float2(sp.x,           sp.y - EPSILON) + tp)) / (2.0 * EPSILON);
 
-    return float2(nx, ny) * 50.0;
+    float dFdx = (vnoise(float2(sp.x + EPSILON, sp.y)           + tp)
+                - vnoise(float2(sp.x - EPSILON, sp.y)           + tp)) / (2.0 * EPSILON);
+
+    return float2(dFdy, -dFdx);
 }
+
+float2 water_flow_vector_field(float2 pos, float time, float scale) {
+    float2 c1 = curl_noise(pos, time, scale);
+
+    float2 warped_pos = pos + 0.3 * float2(
+        vnoise(pos * scale * 0.7 + float2(5.2, 1.3) + time * 0.15),
+        vnoise(pos * scale * 0.7 + float2(3.7, 8.1) + time * 0.15)
+    );
+
+    float2 c2 = curl_noise(warped_pos, time * 0.7, scale * 1.3);
+
+    return c1 * 0.6 + c2 * 0.4;
+}
+
+static const float SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR = 0.01f;
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X, 1, 1)]
@@ -64,7 +81,6 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     float pushback_zone_width  = SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR * push_constants.simulation_bounds.x;
     float pushback_zone_height = SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR * push_constants.simulation_bounds.y;
-
 
     if (object.position.x <=     0.0f) { object.position.x =     400.0f; object.velocity.x =  1.0f; object.velocity.x += 0.1f; }
     if (object.position.y <=     0.0f) { object.position.y =     400.0f; object.velocity.y =  1.0f; object.velocity.y += 0.1f; }
@@ -90,7 +106,8 @@ void main(uint3 dtid : SV_DispatchThreadID) {
         object.velocity.y -= pow(dist, 4) * 0.01f;
     }
 
-    object.velocity += vector_field(object.position, push_constants.simulation_data->simulation_time_since_start) * 0.1f;
+    object.velocity += water_flow_vector_field(object.position, push_constants.simulation_data->simulation_time_since_start, .1f) * 160.0f * dt;
+    object.velocity *= pow(0.25f, dt);
     simulation::dispatch_self_simulation_behavior(object, dt);
 
     push_constants.dst_updated_objects[tid] = object;

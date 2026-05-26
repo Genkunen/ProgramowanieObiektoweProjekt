@@ -42,7 +42,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
         thread_has_object = is_visible;
 
         if (is_visible) {
-            mesh_id = push_constants.objects[tid].mesh_index;
+            mesh_id = push_constants.objects[tid].object_type;
             InterlockedAdd(gs_instance_counts[mesh_id], 1, mesh_object_instance_id);
         }
 

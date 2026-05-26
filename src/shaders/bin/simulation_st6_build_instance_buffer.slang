@@ -53,14 +53,14 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     if (!object_visible) return;
 
     let object = push_constants.objects[tid];
-    let mesh_id = object.mesh_index;
+    let mesh_id = object.object_type;
     let mesh_instance_base = push_constants.draw_commands[mesh_id].firstInstance;
     let mesh_draw_local_instance = push_constants.draw_instance_indices[tid];
     let mesh_instance_index = mesh_instance_base + mesh_draw_local_instance;
 
     float animation_sin_phase = generate_animation_sin_phase_offset(mesh_id) + 2.7 * push_constants.simulation_data->simulation_time_since_start;
     float3 displaced_position = float3(object.position, sin(animation_sin_phase) * 0.1);
-    float scale = generate_random_scale(object.randseed);
+    float scale = (1.0f + float(mesh_id)) * 10.0f;
 
     float direction_angle = 0.0;
     if (object.velocity.x != 0.0 || object.velocity.y != 0.0) {

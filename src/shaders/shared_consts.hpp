@@ -44,4 +44,9 @@ static POP_CONST uint MAX_DRAW_COMMANDS = GPU_WAVE_SIZE;
 static POP_CONST uint SIM_OBJECT_FLAG_DEAD = 1 << 0;
 static POP_CONST uint SIM_OBJECT_FLAG_VISIBLE = 1 << 1;
 
+// ---- Simulation Object Types --------------------------------------------------------------------------------------------------------------------------------
+
+static POP_CONST uint SIM_OBJECT_TYPE_FOOD = 0;
+static POP_CONST uint SIM_OBJECT_TYPE_FISH = 1;
+
 } // namespace pop::shader_consts

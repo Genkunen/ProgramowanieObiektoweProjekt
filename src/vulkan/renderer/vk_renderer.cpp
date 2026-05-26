@@ -19,7 +19,7 @@
 namespace pop::vulkan::renderer {
 
 static constexpr auto SIMULATION_BOUNDS = glm::vec2(8000.0f, 4000.0f);
-static constexpr float ACCELERATION_GRID_TILE_EXTENT = 8.0f;
+static constexpr float ACCELERATION_GRID_TILE_EXTENT = 16.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
@@ -333,6 +333,17 @@ inline glm::vec2 random_zero_to_one() {
     return glm::vec2(dist(gen), dist(gen));
 }
 
+constexpr uint32_t random_object_type() {
+    constexpr auto random_keys    = std::array<uint32_t, 2>{{shader_consts::SIM_OBJECT_TYPE_FOOD, shader_consts::SIM_OBJECT_TYPE_FISH}};
+    constexpr auto random_weights = std::array<float, 2>{{25.0f, 1.0f}};
+
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::discrete_distribution<uint32_t> dist(random_weights.begin(), random_weights.end());
+
+    return random_keys[dist(gen)];
+}
+
 inline uint32_t object_random_seed() {
     return static_cast<uint32_t>(rand());
 }
@@ -341,9 +352,9 @@ auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshe
     auto simulation_objects_dst_ptr = reinterpret_cast<shaders::SimulationObject*>(m_simulation_buffers_manager.simulation_objects().memory_host_ptr());
     auto simulation_objects_flags_dst_ptr = reinterpret_cast<uint32_t*>(m_simulation_buffers_manager.simulation_objects_flags().memory_host_ptr());
     for (uint32_t i = 0; i < m_gpu_driven_sim_object_count; ++i) {
-        simulation_objects_dst_ptr[i].mesh_index = meshes[i % meshes.size()].allocation_index;
+        simulation_objects_dst_ptr[i].object_type = random_object_type();
         simulation_objects_dst_ptr[i].position = random_zero_to_one() * SIMULATION_BOUNDS;
-        simulation_objects_dst_ptr[i].velocity = random_ndc() * 5.0f;
+        simulation_objects_dst_ptr[i].velocity = random_ndc() * .5f;
         simulation_objects_dst_ptr[i].randseed = object_random_seed();
         simulation_objects_flags_dst_ptr[i] = 0;
     }
