@@ -31,6 +31,7 @@ struct SimulationObject {
     float2 position;
     float2 velocity;
     uint object_type;
+    float size;
     uint randseed;
 };
 

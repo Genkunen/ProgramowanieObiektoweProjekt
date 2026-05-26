@@ -60,7 +60,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     float animation_sin_phase = generate_animation_sin_phase_offset(mesh_id) + 2.7 * push_constants.simulation_data->simulation_time_since_start;
     float3 displaced_position = float3(object.position, sin(animation_sin_phase) * 0.1);
-    float scale = (1.0f + float(mesh_id)) * 10.0f;
+    float scale = (1.0f + float(mesh_id)) * 10.0f + (object.size - 10.0f) / 10.0f;
 
     float direction_angle = 0.0;
     if (object.velocity.x != 0.0 || object.velocity.y != 0.0) {

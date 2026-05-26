@@ -357,6 +357,7 @@ auto VulkanRenderer::preinitialize_simulation(const std::span<const Mesh>& meshe
         simulation_objects_dst_ptr[i].object_type = random_object_type();
         simulation_objects_dst_ptr[i].position = random_zero_to_one() * SIMULATION_BOUNDS;
         simulation_objects_dst_ptr[i].velocity = random_ndc() * .5f;
+        simulation_objects_dst_ptr[i].size = 10.0f;
         simulation_objects_dst_ptr[i].randseed = object_random_seed();
         simulation_objects_flags_dst_ptr[i] = 0;
     }
