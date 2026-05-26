@@ -111,6 +111,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     auto simulation_influence_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationInfluenceStepPass>(SimulationInfluenceStepPass::create()));
 
     // Main renderpass
+    auto background_render_pass = render_graph_v2.add_pass(std::make_unique<BackgroundRenderPass>(BackgroundRenderPass::create()));
     auto fish_tank_render_pass = render_graph_v2.add_pass(std::make_unique<FishTankRenderPass>(FishTankRenderPass::create()));
     auto imgui_render_pass = render_graph_v2.add_pass(std::make_unique<ImGuiRenderPass>(ImGuiRenderPass::create()));
 
@@ -134,6 +135,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     render_graph_v2.add_dependency_edge(indirect_draw_commands_first_instance_build_pass, instance_buffer_build_pass);
     render_graph_v2.add_dependency_edge(instance_buffer_build_pass, fish_tank_render_pass);
 
+    render_graph_v2.add_dependency_edge(background_render_pass, fish_tank_render_pass);
     render_graph_v2.add_dependency_edge(fish_tank_render_pass, imgui_render_pass);
 
     render_graph_v2.add_dependency_edge(imgui_render_pass, blit_main_image_to_swapchain_pass);

@@ -112,4 +112,8 @@ struct BuildInstanceBufferCSPushConstants {
     uint32_t object_count;
 } __attribute((packed));
 
+struct BackgroundCSPushConstants {
+    vk::DeviceAddress simulation_data;
+} __attribute((packed));
+
 }
