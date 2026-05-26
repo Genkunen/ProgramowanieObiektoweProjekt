@@ -11,7 +11,7 @@ struct NoBehavior : IObjectBehavior {
 
 struct FoodBehavior : IObjectBehavior {
     void simulate_self(inout pop::shaders::SimulationObject object, float delta_time) {
-        object.velocity *= pow(0.6f, delta_time);
+        object.velocity *= pow(0.00025f, delta_time);
     }
     void simulate_with_neighbor(inout pop::shaders::SimulationObject object, const in pop::shaders::SimulationObject other, const uint other_id, inout SimulationState simulation_state, float delta_time) {}
 };
