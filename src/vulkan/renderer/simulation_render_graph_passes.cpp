@@ -694,10 +694,15 @@ auto BackgroundRenderPass::create() -> BackgroundRenderPass {
         .add_shader(shader_code, vk::ShaderStageFlagBits::eFragment)
         .set_input_topology(vk::PrimitiveTopology::eTriangleList)
         .set_rasterizer_polygon_mode(vk::PolygonMode::eFill)
-        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eFrontAndBack, vk::FrontFace::eCounterClockwise)
+        .set_rasterizer_cull_mode(vk::CullModeFlagBits::eNone, vk::FrontFace::eCounterClockwise)
         .disable_multisampling()
         .set_rasterizer_line_width(1.0f)
-        .add_rendering_attachment(vk::PipelineColorBlendAttachmentState().setBlendEnable(false), vk::Format::eA2R10G10B10UnormPack32)
+        .add_rendering_attachment(
+            vk::PipelineColorBlendAttachmentState()
+                .setBlendEnable(false)
+                .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
+            vk::Format::eA2R10G10B10UnormPack32
+        )
         .build();
 
     return { std::move(dependencies), std::move(pipeline_layout), std::move(pipeline) };
@@ -712,9 +717,8 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-        .setLoadOp(vk::AttachmentLoadOp::eClear)
-        .setStoreOp(vk::AttachmentStoreOp::eStore)
-        .setClearValue(vk::ClearColorValue{ pop::systems::PersistentSettings::clear_color() });
+        .setLoadOp(vk::AttachmentLoadOp::eDontCare)
+        .setStoreOp(vk::AttachmentStoreOp::eStore);
 
     auto rendering_area = vk::Extent2D(main_render_target.extent().width, main_render_target.extent().height);
 
@@ -745,7 +749,7 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
     PushConstants consts = { frame_local_simulation_data_buffer.memory_device_ptr() };
 
     cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);
-    cmd.draw(3, 1, 0, 0);
+    cmd.draw(6, 1, 0, 0);
 
     cmd.endRendering();
 }

@@ -10,10 +10,13 @@ struct VSOutput {
     float3 color : COLOR;
 };
 
-float3 positions[3] = {
-    { -1, 0, 0 },
-    { 0.5f, 1, 0 },
-    { -1, 0, 0 }
+static float3 positions[6] = {
+    { -1.0f, -1.0f, 0 },
+    { -1.0f,  1.0f, 0 },
+    {  1.0f, 1.0f,  0 },
+    { 1.0f, 1.0f, 0 },
+    { 1.0f, -1.0f, 0 },
+    {  -1.0f, -1.0f,  0 },
 };
 
 [shader("vertex")]
