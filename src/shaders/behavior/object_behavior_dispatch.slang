@@ -9,8 +9,9 @@ namespace simulation {
 
 constexpr IObjectBehavior make_behavior(uint type) {
     switch (type) {
-        case pop::shader_consts::SIM_OBJECT_TYPE_FOOD:  return FoodBehavior();
-        case pop::shader_consts::SIM_OBJECT_TYPE_FISH:  return SampleBehavior();
+        case pop::shader_consts::SIM_OBJECT_TYPE_FOOD:      return FoodBehavior();
+        case pop::shader_consts::SIM_OBJECT_TYPE_FISH:      return FishBehavior();
+        case pop::shader_consts::SIM_OBJECT_TYPE_PREDATOR:  return PredatorBehavior();
 
         default: return NoBehavior();
     }

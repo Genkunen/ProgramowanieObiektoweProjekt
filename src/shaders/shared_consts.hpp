@@ -50,5 +50,6 @@ static POP_CONST uint SIM_OBJECT_FLAG_VISIBLE = 1 << 1;
 
 static POP_CONST uint SIM_OBJECT_TYPE_FOOD = 0;
 static POP_CONST uint SIM_OBJECT_TYPE_FISH = 1;
+static POP_CONST uint SIM_OBJECT_TYPE_PREDATOR = 2;
 
 } // namespace pop::shader_consts

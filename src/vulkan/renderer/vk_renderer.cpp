@@ -357,8 +357,8 @@ inline glm::vec2 random_zero_to_one() {
 }
 
 constexpr uint32_t random_object_type() {
-    constexpr auto random_keys    = std::array<uint32_t, 2>{{shader_consts::SIM_OBJECT_TYPE_FOOD, shader_consts::SIM_OBJECT_TYPE_FISH}};
-    constexpr auto random_weights = std::array<float, 2>{{25.0f, 1.0f}};
+    constexpr auto random_keys    = std::array<uint32_t, 3>{{shader_consts::SIM_OBJECT_TYPE_FOOD, shader_consts::SIM_OBJECT_TYPE_FISH, shader_consts::SIM_OBJECT_TYPE_PREDATOR}};
+    constexpr auto random_weights = std::array<float, 3>{{25.0f, 1.0f, 0.025f}};
 
     static std::random_device rd;
     static std::mt19937 gen(rd());
