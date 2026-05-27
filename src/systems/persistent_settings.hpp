@@ -55,23 +55,6 @@ private:
 
 class PersistentSettings {
     PersistentSettings() = delete;
-
-    template <typename T>
-    class OptionWrapper {
-    public:
-        OptionWrapper(T&&);
-
-        auto value() -> T& {
-            return m_value;
-        }
-
-        void save() {
-        }
-
-    private:
-        T m_value;
-    };
-
 public:
     static std::filesystem::path file_path;
     
@@ -119,6 +102,36 @@ public:
         amend("clear_color_g", value[1]);
         amend("clear_color_b", value[2]);
         amend("clear_color_a", value[3]);
+    }
+
+    [[nodiscard]]
+    inline static auto background_scale() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("background_scale"));
+        if (!opt) {
+            amend("background_scale", 1.0f);
+            return 1.0f;
+        }
+        return opt->real_value();
+    }
+
+    inline static void set_background_scale(float v) {
+        m_dirty = true;
+        amend("background_scale", v);
+    }
+
+    [[nodiscard]]
+    inline static auto background_iterations() -> uint32_t {
+        auto opt = dynamic_cast<OptionNumber*>(get("background_iterations"));
+        if (!opt) {
+            amend("background_iterations", 1);
+            return 1;
+        }
+        return static_cast<uint32_t>(opt->real_value());
+    }
+
+    inline static void set_background_iterations(uint32_t v) {
+        m_dirty = true;
+        amend("background_iterations", v);
     }
     
 private:

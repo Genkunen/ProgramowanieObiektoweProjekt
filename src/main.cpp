@@ -48,11 +48,15 @@ auto sdl_entry_main() -> void {
         struct {
             float r{}, g{}, b{}, a{};
         } clr_colors{};
+        float background_scale{};
+        int background_iterations{};
     } imgui_variables{};
 
     auto populate_imgui_variables = [&imgui_variables] {
         auto clrs = pop::systems::PersistentSettings::clear_color();
         imgui_variables.clr_colors = { clrs[0], clrs[1], clrs[2], clrs[3] };
+        imgui_variables.background_iterations = pop::systems::PersistentSettings::background_iterations();
+        imgui_variables.background_scale = pop::systems::PersistentSettings::background_scale();
 
     };
     populate_imgui_variables();
@@ -144,12 +148,17 @@ auto sdl_entry_main() -> void {
         }
 
         {
-            if (ImGui::Button("Reset To Default Settings")) {
-                pop::systems::PersistentSettings::reload_all();
-                populate_imgui_variables();
+            auto& scale = imgui_variables.background_scale;
+            if (ImGui::SliderFloat("Background Scale", &scale, 0.1f, 1.5)) {
+                pop::systems::PersistentSettings::set_background_scale(scale);
             }
         }
-
+        {
+            auto& val = imgui_variables.background_iterations;
+            if (ImGui::InputInt("Iterations Count", &val)) {
+                pop::systems::PersistentSettings::set_background_iterations(val);
+            }
+        }
         ImGui::End();
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
