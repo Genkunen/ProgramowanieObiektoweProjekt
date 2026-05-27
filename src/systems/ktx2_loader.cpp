@@ -1,3 +1,7 @@
+#if defined(_WIN32) || defined(_WIN64)
+# define NOMINMAX
+#endif
+
 #include "ktx2_loader.hpp"
 
 #include "vulkan/vk_buffer.hpp"
@@ -22,7 +26,9 @@ auto Ktx2Loader::create() -> Ktx2Loader {
 
 auto Ktx2Loader::load_to_vulkan_image(const std::filesystem::path& path) -> vulkan::VulkanImage {
     ktxTexture2* ktx_texture;
-    ktx_error_code_e result = ktxTexture2_CreateFromNamedFile(path.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktx_texture);
+    
+    std::string filepath = path.string();
+    ktx_error_code_e result = ktxTexture2_CreateFromNamedFile(filepath.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktx_texture);
 
     if (result != KTX_SUCCESS) {
         std::println("ERROR: Failed to load texture {}: {}", path.string(), ktxErrorString(result));

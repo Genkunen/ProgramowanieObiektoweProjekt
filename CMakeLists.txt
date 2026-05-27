@@ -31,6 +31,7 @@ FetchContent_Declare(
         xxhash
         GIT_REPOSITORY https://github.com/Cyan4973/xxHash.git
         GIT_TAG v0.8.3
+        SOURCE_SUBDIR cmake_unofficial
         SYSTEM
 )
 FetchContent_MakeAvailable(xxhash)
@@ -41,9 +42,9 @@ FetchContent_Declare(
         GIT_TAG        v4.4.2
         SYSTEM
 )
-set(KTX_FEATURE_STATIC_LIBRARY ON CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TESTS OFF CACHE BOOL "" FORCE)
-set(KTX_FEATURE_TOOLS OFF CACHE BOOL "" FORCE)
+set(BUILD_SHARED_LIBS off CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TESTS off CACHE BOOL "" FORCE)
+set(KTX_FEATURE_TOOLS off CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(ktx)
 
 FetchContent_Declare(
