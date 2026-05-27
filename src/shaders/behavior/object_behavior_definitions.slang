@@ -23,11 +23,11 @@ struct SampleBehavior : IObjectBehavior {
         float2 pos_delta = other.position - object.position;
         float dist_squared = dot(pos_delta, pos_delta);
         float dist = sqrt(dist_squared);
-        float eat_distance = (object.size / 10.0f) - 0.65f;
+        float eat_distance = (object.size / 100.0f) + 1.0f;
 
         switch (other.object_type) {
         case pop::shader_consts::SIM_OBJECT_TYPE_FOOD:
-            object.velocity += clamp(70.0 * delta_time * pos_delta / (dist + 1e-2f), float2(-100.0f), float2(100.0f));
+            object.velocity += clamp(20.0 * delta_time * pos_delta / (dist + 1e-2f), float2(-100.0f), float2(100.0f));
 
             if (dist < eat_distance) {
                 if (simulation_state.try_set_object_dead(other_id)) {
@@ -37,14 +37,18 @@ struct SampleBehavior : IObjectBehavior {
             break;
         case pop::shader_consts::SIM_OBJECT_TYPE_FISH:
             float size_diff = object.size - other.size;
-            if (size_diff < 10.0f) return;
+            if (size_diff >= 10.0f) {
+                // Chase the other fish
+                object.velocity += clamp(35.0 * delta_time * pos_delta / (dist + 1e-2f), float2(-100.0f), float2(100.0f));
 
-            object.velocity += clamp(105.0 * delta_time * pos_delta / (dist + 1e-2f), float2(-100.0f), float2(100.0f));
-
-            if (dist < eat_distance) {
-                if (simulation_state.try_set_object_dead(other_id)) {
-                    object.size += 10.0f;
+                if (dist < eat_distance) {
+                    if (simulation_state.try_set_object_dead(other_id)) {
+                        object.size += 10.0f;
+                    }
                 }
+            } else if (size_diff <= -10.0f) {
+                // Run away from the other fish
+                object.velocity -= clamp(50.0 * delta_time * pos_delta / (dist + 1e-2f), float2(-1000.0f), float2(1000.0f));
             }
             break;
         }
