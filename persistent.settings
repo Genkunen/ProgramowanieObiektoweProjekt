@@ -2,3 +2,5 @@
 %clear_color_g=0.010816
 %clear_color_b=0.040000
 %clear_color_a=1.000000
+%background_scale=0.336000
+%background_iterations=20.000000

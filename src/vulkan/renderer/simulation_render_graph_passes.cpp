@@ -745,12 +745,16 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
     struct PushConstants {
         vk::DeviceAddress simulation_data;
         float base_color[3];
+        float scale;
+        uint32_t max_iterations;
     };
 
     auto clr = systems::PersistentSettings::clear_color();
     PushConstants consts = { 
         frame_local_simulation_data_buffer.memory_device_ptr(),
-        { clr[0], clr[1], clr[2], }
+        { clr[0], clr[1], clr[2], },
+        systems::PersistentSettings::background_scale(),
+        systems::PersistentSettings::background_iterations(),
     };
 
     cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);

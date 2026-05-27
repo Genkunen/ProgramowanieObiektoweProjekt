@@ -1,8 +1,6 @@
 import "../shared_code_shim";
 
 #define TAU 6.28318530718f
-#define MAX_ITER 20
-
 struct SimulationData {
     float4x4 projview;
     float delta_time;
@@ -12,6 +10,8 @@ struct SimulationData {
 struct PushConstants {
     pop::shaders::SimulationData* simulation_data;
     float3 background_color;
+    float scale;
+    uint max_iterations;
 };
 [vk::push_constant] PushConstants push_constants;
 
@@ -21,12 +21,12 @@ struct VSOutput {
 };
 
 static float3 positions[6] = {
-    { -5000.0f,    -5000.0f,    0 },
-    { 15000.0f, -5000.0f,    0 },
+    { -5000.0f, -5000.0f, 0 },
+    { 15000.0f, -5000.0f, 0 },
     { 15000.0f, 10000.0f, 0 },
     { 15000.0f, 10000.0f, 0 },
-    { -5000.0f,    10000.0f, 0 },
-    { -5000.0f,    -5000.0f,    0 },
+    { -5000.0f, 10000.0f, 0 },
+    { -5000.0f, -5000.0f, 0 },
 };
 
 [shader("vertex")]
@@ -34,7 +34,7 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID) {
     VSOutput output;
     output.position = float4(positions[vertex_id], 1.0f);
     output.position = mul(push_constants.simulation_data.projview, output.position);
-    output.uv = positions[vertex_id].xy / 500.0f * 0.5f + 0.5f;
+    output.uv = positions[vertex_id].xy * push_constants.scale / 500.0f * 0.5f + 0.5f;
     return output;
 }
 
@@ -59,13 +59,13 @@ float4 main(VSOutput input) : SV_Target {
     float c = 1.0f;
     float inten = 0.005f;
 
-    for (int n = 0; n < MAX_ITER; n++) {
+    for (int n = 0; n < push_constants.max_iterations; n++) {
         float t = time * (1.0f - (3.5f / float(n + 1)));
         i = p + float2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
         c += 1.0f / length(float2(p.x / (sin(i.x + t) / inten), p.y / (cos(i.y + t) / inten)));
     }
     
-    c /= float(MAX_ITER);
+    c /= float(push_constants.max_iterations);
     
     c = 1.17f - pow(abs(c), 1.4f);
     
