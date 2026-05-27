@@ -43,13 +43,13 @@ auto MeshPool::create(uint32_t max_vertices, uint32_t max_indices) -> MeshPool {
 
 auto MeshPool::load_mesh(std::filesystem::path filename) -> Mesh {
     std::string callback_string;
-    const std::string ext = filename.extension();
+    const std::string ext = filename.extension().string();
     std::vector<Vertex> vertices;
     std::vector<uint32_t> indices;
 
     if (ext == ".glb" || ext == ".gltf") {
         callback_string += std::format("Loading 3D model from file: {}", filename.string());
-        std::tie(vertices, indices) = load_mesh_data_gltf(filename);
+        std::tie(vertices, indices) = load_mesh_data_gltf(filename.string());
     }
     else {
         // std::println(stderr, "Not supported extension");

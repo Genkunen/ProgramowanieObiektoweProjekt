@@ -2,6 +2,7 @@
 #include "vulkan/renderer/mesh.hpp"
 
 #include <vector>
+#include <numbers>
 
 
 inline auto make_sphere_mesh_data(uint32_t lat_segments, uint32_t lon_segments, float radius) -> std::tuple<std::vector<pop::vulkan::renderer::Vertex>, std::vector<uint32_t>> {
