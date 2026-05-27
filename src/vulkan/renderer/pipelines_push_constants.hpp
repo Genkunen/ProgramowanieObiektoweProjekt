@@ -10,6 +10,14 @@ struct UploadMeshesCSPushConstants {
     uint32_t mesh_count;
 } __attribute((packed));
 
+struct RandomEventsCSPushConstants {
+    vk::DeviceAddress simulation_objects;
+    vk::DeviceAddress simulation_object_flags;
+    uint32_t object_count;
+    uint32_t event_randseed;
+    glm::vec2 simulation_bounds;
+} __attribute((packed));
+
 struct ClearInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     uint32_t mesh_count;

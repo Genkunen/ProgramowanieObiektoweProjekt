@@ -37,6 +37,8 @@ static POP_CONST uint CS_BUILD_INDIRECT_INSTANCE_COUNT_GROUP_SIZE_X = 256;
 static POP_CONST uint CS_BUILD_INDIRECT_FIRST_INSTANCE_GROUP_SIZE_X = GPU_WAVE_SIZE;
 static POP_CONST uint CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X = 256;
 
+static POP_CONST uint CS_RANDOM_EVENTS_GROUP_SIZE_X = 256;
+
 static POP_CONST uint MAX_DRAW_COMMANDS = GPU_WAVE_SIZE;
 
 // ---- Simulation Objects Flags -------------------------------------------------------------------------------------------------------------------------------

@@ -48,6 +48,23 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
+// ---- RandomEventsPass ---------------------------------------------------------------------------------------------------------------------------------------
+
+class RandomEventsPass : public render_graph::PassBase<SimulationRenderState> {
+public:
+    RandomEventsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+
+    static auto create() -> RandomEventsPass;
+
+    auto debug_name() const noexcept -> std::string override;
+
+    auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
+
+private:
+    VulkanPipelineLayout m_pipeline_layout;
+    VulkanComputePipeline m_compute_pipeline;
+};
+
 // ---- SimulationIndirectDrawCommandsResetPass ----------------------------------------------------------------------------------------------------------------
 
 class IndirectDrawCommandsClearPass : public render_graph::PassBase<SimulationRenderState> {

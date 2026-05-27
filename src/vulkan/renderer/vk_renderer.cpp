@@ -94,6 +94,9 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     auto indirect_draw_commands_clear_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsClearPass>(IndirectDrawCommandsClearPass::create()));
     auto simulation_acceleration_grid_bound_clear_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridBoundClearPass>(SimulationAccelerationGridBoundClearPass::create()));
 
+    // Random Events
+    auto random_events_pass = render_graph_v2.add_pass(std::make_unique<RandomEventsPass>(RandomEventsPass::create()));
+
     // Simulation Step
     auto simulation_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationStepPass>(SimulationStepPass::create()));
 
@@ -119,6 +122,9 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
     auto blit_main_image_to_swapchain_pass = render_graph_v2.add_pass(std::make_unique<BlitMainImageToSwapchainPass>(BlitMainImageToSwapchainPass::create()));
 
     render_graph_v2.add_dependency_edge(mesh_upload_pass, fish_tank_render_pass);
+
+    render_graph_v2.add_dependency_edge(random_events_pass, simulation_step_pass);
+    render_graph_v2.add_dependency_edge(random_events_pass, simulation_influence_step_pass);
 
     render_graph_v2.add_dependency_edge(indirect_draw_commands_clear_pass, indirect_draw_commands_instance_count_build_pass);
     render_graph_v2.add_dependency_edge(simulation_acceleration_grid_bound_clear_pass, simulation_acceleration_grid_bound_scan_pass);

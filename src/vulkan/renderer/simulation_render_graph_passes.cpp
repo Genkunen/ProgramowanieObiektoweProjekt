@@ -56,6 +56,50 @@ auto UploadMeshInfoPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
     cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_UPLOAD_MESHES_GROUP_SIZE_X), 1, 1);
 }
 
+// ---- RandomEventsPass ---------------------------------------------------------------------------------------------------------------------------------------
+
+RandomEventsPass::RandomEventsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
+    : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+
+auto RandomEventsPass::create() -> RandomEventsPass {
+    auto dependencies = render_graph::PassDependencies::builder()
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjectsFlags, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead | vk::AccessFlagBits2::eShaderWrite)
+        .build();
+
+    auto cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(RandomEventsCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .build();
+
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st7_random_events.spv");
+
+    auto cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(cs_layout)
+        .set_shader(cs_code)
+        .build();
+
+    return RandomEventsPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+}
+
+auto RandomEventsPass::debug_name() const noexcept -> std::string { return "Random Events Pass"; }
+
+auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+    auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
+    auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
+
+    RandomEventsCSPushConstants consts = {
+        .simulation_objects = simulation_objects_buffer.memory_device_ptr(),
+        .simulation_object_flags = simulation_objects_flags_buffer.memory_device_ptr(),
+        .object_count = state.object_count,
+        .event_randseed = static_cast<uint32_t>(rand()),
+        .simulation_bounds = state.simulation_bounds
+    };
+
+    cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
+    cmd.pushConstants<RandomEventsCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.dispatch(div_ceil(state.object_count, shader_consts::CS_RANDOM_EVENTS_GROUP_SIZE_X), 1, 1);
+}
+
 // ---- SimulationIndirectDrawCommandsResetPass ----------------------------------------------------------------------------------------------------------------
 
 IndirectDrawCommandsClearPass::IndirectDrawCommandsClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
