@@ -24,7 +24,7 @@ float3 generate(uint3 x) {
 float3 fish_displace_model_vertices(float3 pos, uint seed) {
     float tbase = seed / 4294967296.0f;
     float tweight = exp(-pos.x * 2.0);
-    float t = sin(1.5 * pos.x + tbase + 4.0 * push_constants.simulation_data->simulation_time_since_start) * tweight * 0.1f;
+    float t = sin(1.5 * pos.x + tbase + 4.0 * push_constants.simulation_data->simulation_time_since_start) * tweight * 0.02f;
 
     return float3(pos.x, pos.y + t, pos.z);
 }
