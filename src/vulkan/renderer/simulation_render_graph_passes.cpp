@@ -717,8 +717,9 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
         .setImageView(main_render_target.vk_full_image_view())
         .setImageLayout(vk::ImageLayout::eColorAttachmentOptimal)
-        .setLoadOp(vk::AttachmentLoadOp::eDontCare)
-        .setStoreOp(vk::AttachmentStoreOp::eStore);
+        .setLoadOp(vk::AttachmentLoadOp::eClear)
+        .setStoreOp(vk::AttachmentStoreOp::eStore)
+        .setClearValue({});
 
     auto rendering_area = vk::Extent2D(main_render_target.extent().width, main_render_target.extent().height);
 
@@ -747,14 +748,26 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
         float base_color[3];
         float scale;
         uint32_t max_iterations;
+        float caustic_intensity;
+        float ray_intensity;
+        float surface_y;
+        float depth_range;
+        float deep_color[3];
+        float vignette_size;
     };
 
     auto clr = systems::PersistentSettings::clear_color();
     PushConstants consts = { 
-        frame_local_simulation_data_buffer.memory_device_ptr(),
-        { clr[0], clr[1], clr[2], },
-        systems::PersistentSettings::background_scale(),
-        systems::PersistentSettings::background_iterations(),
+        .simulation_data = frame_local_simulation_data_buffer.memory_device_ptr(),
+        .base_color = { clr[0], clr[1], clr[2], },
+        .scale = systems::PersistentSettings::background_scale(),
+        .max_iterations = systems::PersistentSettings::background_iterations(),
+        .caustic_intensity = systems::PersistentSettings::caustic_intensity(),
+        .ray_intensity = systems::PersistentSettings::ray_intensity(),
+        .surface_y = systems::PersistentSettings::surface_y(),
+        .depth_range = systems::PersistentSettings::depth_range(),
+        .deep_color = { 0, 0.02, 0.1 },
+        .vignette_size = systems::PersistentSettings::vignette_size(),
     };
 
     cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);

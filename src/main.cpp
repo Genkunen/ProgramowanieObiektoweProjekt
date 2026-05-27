@@ -47,10 +47,15 @@ auto sdl_entry_main() -> void {
     
     struct {
         struct {
-            float r{}, g{}, b{}, a{};
-        } clr_colors{};
-        float background_scale{};
-        int background_iterations{};
+            float r, g, b, a;
+        } clr_colors;
+        float background_scale;
+        int background_iterations;
+        float caustic_intensity;
+        float ray_intensity;
+        float surface_y;
+        float depth_range;
+        float vignette_size;
     } imgui_variables{};
 
     auto populate_imgui_variables = [&imgui_variables] {
@@ -58,7 +63,11 @@ auto sdl_entry_main() -> void {
         imgui_variables.clr_colors = { clrs[0], clrs[1], clrs[2], clrs[3] };
         imgui_variables.background_iterations = pop::systems::PersistentSettings::background_iterations();
         imgui_variables.background_scale = pop::systems::PersistentSettings::background_scale();
-
+        imgui_variables.caustic_intensity = pop::systems::PersistentSettings::caustic_intensity();
+        imgui_variables.ray_intensity = pop::systems::PersistentSettings::ray_intensity();
+        imgui_variables.surface_y = pop::systems::PersistentSettings::surface_y();
+        imgui_variables.depth_range = pop::systems::PersistentSettings::depth_range();
+        imgui_variables.vignette_size = pop::systems::PersistentSettings::vignette_size();
     };
     populate_imgui_variables();
 
@@ -75,7 +84,7 @@ auto sdl_entry_main() -> void {
                 should_recreate_swapchain = true;
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
-                camera_position.z = std::clamp(camera_position.z * std::pow(1.1f, -event.wheel.y), -5000.0f, -5.0f);
+                camera_position.z = std::clamp(camera_position.z * std::pow(1.1f, -event.wheel.y), -2000.0f, -5.0f);
                 break;
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
@@ -155,8 +164,38 @@ auto sdl_entry_main() -> void {
             }
         }
         {
+            auto& caustic_int = imgui_variables.caustic_intensity;
+            if (ImGui::SliderFloat("Caustic Intensity", &caustic_int, 0.1f, 400.0f)) {
+                pop::systems::PersistentSettings::set_caustic_intensity(caustic_int);
+            }
+        }
+        {
+            auto& ray_int = imgui_variables.ray_intensity;
+            if (ImGui::SliderFloat("Ray Intensity", &ray_int, 0.1f, 100.f)) {
+                pop::systems::PersistentSettings::set_ray_intensity(ray_int);
+            }
+        }
+        {
+            auto& srfc = imgui_variables.surface_y;
+            if (ImGui::SliderFloat("Surface Y", &srfc, -5000.f, 20000.f)) {
+                pop::systems::PersistentSettings::set_surface_y(srfc);
+            }
+        }
+        {
+            auto& depth_range = imgui_variables.depth_range;
+            if (ImGui::SliderFloat("Depth Range", &depth_range, 0.f, 15000.f)) {
+                pop::systems::PersistentSettings::set_depth_range(depth_range);
+            }
+        }
+        {
+            auto& vignette_size = imgui_variables.vignette_size;
+            if (ImGui::SliderFloat("Vignette Size", &vignette_size, 0.1f, 30000.f)) {
+                pop::systems::PersistentSettings::set_vignette_size(vignette_size);
+            }
+        }
+        {
             auto& val = imgui_variables.background_iterations;
-            if (ImGui::InputInt("Iterations Count", &val)) {
+            if (ImGui::InputInt("Background Iterations Count", &val)) {
                 pop::systems::PersistentSettings::set_background_iterations(val);
             }
         }

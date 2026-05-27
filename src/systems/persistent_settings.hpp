@@ -113,7 +113,6 @@ public:
         }
         return opt->real_value();
     }
-
     inline static void set_background_scale(float v) {
         m_dirty = true;
         amend("background_scale", v);
@@ -128,12 +127,83 @@ public:
         }
         return static_cast<uint32_t>(opt->real_value());
     }
-
     inline static void set_background_iterations(uint32_t v) {
         m_dirty = true;
         amend("background_iterations", v);
     }
+
+    [[nodiscard]]
+    inline static auto caustic_intensity() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("caustic_intensity"));
+        if (!opt) {
+            amend("caustic_intensity", 1);
+            return 1;
+        }
+        return opt->real_value();
+    }
+    inline static void set_caustic_intensity(float v) {
+        m_dirty = true;
+        amend("caustic_intensity", v);
+    }
+
+    [[nodiscard]]
+    inline static auto ray_intensity() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("ray_intensity"));
+        if (!opt) {
+            amend("ray_intensity", 1);
+            return 1;
+        }
+        return opt->real_value();
+    }
+    inline static void set_ray_intensity(float v) {
+        m_dirty = true;
+        amend("ray_intensity", v);
+    }
     
+    [[nodiscard]]
+    inline static auto surface_y() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("surface_y"));
+        if (!opt) {
+            amend("surface_y", 1);
+            return 1;
+        }
+        return opt->real_value();
+    }
+    inline static void set_surface_y(float v) {
+        m_dirty = true;
+        amend("surface_y", v);
+    }
+
+
+    [[nodiscard]]
+    inline static auto depth_range() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("depth_range"));
+        if (!opt) {
+            amend("depth_range", 1);
+            return 1;
+        }
+        return opt->real_value();
+    }
+    inline static void set_depth_range(float v) {
+        m_dirty = true;
+        amend("depth_range", v);
+    }
+    
+
+    [[nodiscard]]
+    inline static auto vignette_size() -> float {
+        auto opt = dynamic_cast<OptionNumber*>(get("vignette_size"));
+        if (!opt) {
+            amend("vignette_size", 1);
+            return 1;
+        }
+        return opt->real_value();
+    }
+    inline static void set_vignette_size(float v) {
+        m_dirty = true;
+        amend("vignette_size", v);
+    }
+
 private:
     inline static bool m_dirty{};
     static void parse_buffer();
