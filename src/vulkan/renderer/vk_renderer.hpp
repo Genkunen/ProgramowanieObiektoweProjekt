@@ -39,6 +39,11 @@ struct FrameInFlight {
 
 };
 
+struct SimulationDataSnapshot {
+    std::vector<shaders::SimulationObject> simulation_objects;
+    std::vector<uint32_t> simulation_objects_flags;
+};
+
 class VulkanRenderer {
 public:
     VulkanRenderer(
@@ -53,6 +58,8 @@ public:
     auto swapchain() const -> const VulkanSwapchain&;
 
     auto reset_simulation_object_count(uint32_t new_count) -> void;
+
+    auto export_simulation_data() -> SimulationDataSnapshot;
 
 private:
     VulkanSwapchain m_swapchain;

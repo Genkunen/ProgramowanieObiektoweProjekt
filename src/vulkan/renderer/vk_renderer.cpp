@@ -318,6 +318,21 @@ auto VulkanRenderer::reset_simulation_object_count(uint32_t new_count) -> void {
     m_gpu_driven_sim_needs_refit = true;
 }
 
+auto VulkanRenderer::export_simulation_data() -> SimulationDataSnapshot {
+    // TODO: memcpying from GPU memory via a UC-WC mapping is not exactly optimal.
+
+    std::vector<shaders::SimulationObject> simulation_objects(m_gpu_driven_sim_object_count);
+    std::vector<uint32_t> simulation_objects_flags(m_gpu_driven_sim_object_count);
+
+    VulkanContext::get().vk_device().waitIdle();
+
+    memcpy(simulation_objects.data(), m_simulation_buffers_manager.simulation_objects().memory_host_ptr(), m_gpu_driven_sim_object_count * sizeof(shaders::SimulationObject));
+    memcpy(simulation_objects_flags.data(), m_simulation_buffers_manager.simulation_objects_flags().memory_host_ptr(), m_gpu_driven_sim_object_count * sizeof(uint32_t));
+
+    SimulationDataSnapshot snapshot = { .simulation_objects = std::move(simulation_objects), .simulation_objects_flags = std::move(simulation_objects_flags) };
+    return snapshot;
+}
+
 // TODO: remove or move somewhere else later
 inline glm::vec2 random_ndc() {
     static std::random_device rd;

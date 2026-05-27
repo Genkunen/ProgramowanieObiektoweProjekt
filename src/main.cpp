@@ -2,6 +2,7 @@
 #include "sphere_geometry_gen.hpp"
 #include "systems/ktx2_loader.hpp"
 #include "systems/persistent_settings.hpp"
+#include "systems/simulation_data_csv_writer.hpp"
 #include "vulkan/renderer/mesh_pool.hpp"
 #include "vulkan/renderer/vk_renderer.hpp"
 #include "vulkan/vk_context.hpp"
@@ -158,6 +159,11 @@ auto sdl_entry_main() -> void {
             if (ImGui::InputInt("Iterations Count", &val)) {
                 pop::systems::PersistentSettings::set_background_iterations(val);
             }
+        }
+
+        if (ImGui::Button("Export Simulation Data to CSV File")) {
+            auto data = renderer.export_simulation_data();
+            pop::systems::SimulationDataCsvWriter::write_to_file(data, "./simulation_data.csv");
         }
         ImGui::End();
 
