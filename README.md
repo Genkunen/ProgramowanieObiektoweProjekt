@@ -36,7 +36,7 @@ cmake .. -GNinja
 or
 cmake .. -j$(nproc)
 ```
-Project is optimized and tested under clang++ 22.1.*, so it's also recommended to use clang to compile it. To hint CMake to use clang, its enough to pass those flags to `cmake ..` command:
+Project is optimized under clang++ 22.1.*, so it's recommended to use clang to compile it, though it was also compiled succesfully with MSVC and GCC. To hint CMake to use clang, its enough to pass those flags to `cmake ..` command:
 ```
 -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
 ```
