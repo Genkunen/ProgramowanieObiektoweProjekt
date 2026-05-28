@@ -1,5 +1,6 @@
 #include "sdl/sdl_lib.hpp"
 #include "sphere_geometry_gen.hpp"
+#include "systems/debug.hpp"
 #include "systems/ktx2_loader.hpp"
 #include "systems/persistent_settings.hpp"
 #include "systems/simulation_data_csv_writer.hpp"
@@ -295,11 +296,13 @@ auto sdl_entry_main() -> void {
             std::string error_message = "A Vulkan system error has been thrown during rendering:\n    " + std::string{ e.what() } + "\n\n";
 
             if (e.code() == vk::Result::eErrorDeviceLost) {
-                if (pop::vulkan::VulkanDeviceFaultDump::is_dumping_supported()) {
+                if (!pop::systems::is_debug_enabled()) {
+                    error_message += "Debugging isn't enabled, no extra debug information available.\nExtra debug information could be obtained by running the program with POP_DEBUG=1.";
+                } else if (pop::vulkan::VulkanDeviceFaultDump::is_dumping_supported()) {
                     auto fault_dump = pop::vulkan::VulkanDeviceFaultDump::dump_device_fault_info();
                     error_message += fault_dump.format_as_fault_message();
                 } else {
-                    error_message += "Debugging isn't enabled or VK_EXT_device_fault is not supported, no extra debug information available.";
+                    error_message += "VK_EXT_device_fault is not supported, no extra debug information available.";
                 }
             }
 
@@ -315,6 +318,10 @@ auto sdl_entry_main() -> void {
 }
 
 auto main() -> int {
+    if (pop::systems::is_debug_enabled()) {
+        std::println("Debugging enabled");
+    }
+
     pop::sdl::initializeSdl();
     try {
         sdl_entry_main();

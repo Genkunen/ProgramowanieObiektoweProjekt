@@ -52,11 +52,8 @@ auto VulkanSwapchain::create(vk::Extent2D swapchain_extent, std::optional<Vulkan
     auto image_count = std::min(surface_capabilities.minImageCount + 1, max_image_count);
     auto image_sharing_mode = VulkanContext::get().vk_graphics_queue_family() == VulkanContext::get().vk_present_queue_family() ? vk::SharingMode::eExclusive : vk::SharingMode::eConcurrent;
 
-    // TODO: this is kind of hacky, perhaps improve later
-    auto unique_queue_families = std::vector<uint32_t>{ VulkanContext::get().vk_graphics_queue_family() };
-    if (image_sharing_mode == vk::SharingMode::eConcurrent) {
-        unique_queue_families.push_back(VulkanContext::get().vk_present_queue_family());
-    }
+    auto unique_queue_families_set = std::unordered_set<uint32_t>{ VulkanContext::get().vk_graphics_queue_family(), VulkanContext::get().vk_present_queue_family() };
+    auto unique_queue_families = std::vector<uint32_t>(unique_queue_families_set.begin(), unique_queue_families_set.end());
 
     auto swapchain_create_info = vk::SwapchainCreateInfoKHR()
         .setSurface(VulkanContext::get().vk_surface())

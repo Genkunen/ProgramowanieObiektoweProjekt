@@ -36,8 +36,7 @@ auto Ktx2Loader::load_to_vulkan_image(const std::filesystem::path& path) -> vulk
     }
 
     if (ktxTexture2_NeedsTranscoding(ktx_texture)) {
-        // TODO: check device support for BC7/ASTC and use those / R8G8B8A8 instead depending on availability
-        ktx_transcode_fmt_e target_format = KTX_TTF_BC7_RGBA;
+        ktx_transcode_fmt_e target_format = vulkan::VulkanContext::get().ktx_preferred_transcode_format();
 
         ktx_error_code_e transcode_result = ktxTexture2_TranscodeBasis(ktx_texture, target_format, 0);
         if (transcode_result != KTX_SUCCESS) {

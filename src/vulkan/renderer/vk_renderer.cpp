@@ -42,7 +42,6 @@ VulkanRenderer::~VulkanRenderer() {
     VulkanContext::get().vk_device().waitIdle();
 }
 
-// TODO: temporary view
 inline glm::mat4 build_projview(glm::vec3 pos, float aspect_ratio) {
     // near and far swapped for reverse Z
     glm::mat4 proj = glm::perspectiveLH_ZO(glm::radians(100.0f), aspect_ratio, 10000.0f,  0.01f);
@@ -356,8 +355,6 @@ auto VulkanRenderer::set_water_current_strength(float new_strength) -> void {
 }
 
 auto VulkanRenderer::export_simulation_data() -> SimulationDataSnapshot {
-    // TODO: memcpying from GPU memory via a UC-WC mapping is not exactly optimal.
-
     std::vector<shaders::SimulationObject> simulation_objects(m_gpu_driven_sim_object_count);
     std::vector<uint32_t> simulation_objects_flags(m_gpu_driven_sim_object_count);
 
@@ -388,7 +385,6 @@ auto VulkanRenderer::resume_simulation() -> void {
     m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).enable();
 }
 
-// TODO: remove or move somewhere else later
 inline glm::vec2 random_ndc() {
     static std::random_device rd;
     static std::mt19937 gen(rd());

@@ -1,14 +1,13 @@
 #include "vk_context.hpp"
 
+#include "systems/debug.hpp"
+
 #include <SDL3/SDL_vulkan.h>
 #include <ostream>
-#include <unordered_set>
 #include <print>
+#include <unordered_set>
 
 namespace pop::vulkan {
-
-// TODO: move somewhere else
-constexpr bool DEBUG_ENABLE = true;
 
 auto VulkanContext::get() noexcept -> VulkanContext& {
     return *g_vulkan_context;
@@ -16,11 +15,12 @@ auto VulkanContext::get() noexcept -> VulkanContext& {
 
 VulkanContext::VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
         vk::raii::PhysicalDevice&& physical_device, vk::raii::Device&& device, vma::raii::Allocator&& vma_allocator, std::unordered_map<uint32_t, vk::raii::Queue>&& queue_storage,
-        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled, bool ext_device_fault_enabled)
+        uint32_t graphics_queue_family, uint32_t present_queue_family, vk::PhysicalDeviceVulkan13Properties physical_device_vulkan13_properties, bool debug_utils_enabled,
+        bool ext_device_fault_enabled, ktx_transcode_fmt_e preferred_transcode_format)
     : m_dynamic_loader(std::move(dynamic_loader)), m_raii_context(std::move(raii_context)), m_instance(std::move(instance)), m_surface(std::move(surface)),
         m_physical_device(std::move(physical_device)), m_device(std::move(device)), m_vma_allocator(std::move(vma_allocator)), m_queue_storage(std::move(queue_storage)),
         m_graphics_queue_family(graphics_queue_family), m_present_queue_family(present_queue_family), m_physical_device_vulkan13_properties(physical_device_vulkan13_properties),
-        m_debug_utils_enabled(debug_utils_enabled), m_ext_device_fault_enabled(ext_device_fault_enabled) {}
+        m_debug_utils_enabled(debug_utils_enabled), m_ext_device_fault_enabled(ext_device_fault_enabled), m_ktx_preferred_transcode_format(preferred_transcode_format) {}
 
 VulkanContext::~VulkanContext() {
     m_device.waitIdle();
@@ -36,9 +36,10 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
 
     auto raii_context = vk::raii::Context();
 
-    auto debug_utils_enable = DEBUG_ENABLE && instance_supports_debug_utils();
+    bool debug_enable = systems::is_debug_enabled();
+    auto debug_utils_enable = debug_enable && instance_supports_debug_utils();
 
-    if (DEBUG_ENABLE && !debug_utils_enable) {
+    if (debug_enable && !debug_utils_enable) {
         std::println("VulkanContext: Warning: Requested to enable VK_EXT_debug_utils instance extension, but it is not supported on this system.");
     }
 
@@ -56,8 +57,8 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
 
     auto unique_queue_families = std::unordered_set<uint32_t>{graphics_queue_index, present_queue_index};
 
-    bool ext_device_fault_enable = DEBUG_ENABLE && physical_device_supports_ext_device_fault(physical_device);
-    if (DEBUG_ENABLE && !ext_device_fault_enable) {
+    bool ext_device_fault_enable = debug_enable && physical_device_supports_ext_device_fault(physical_device);
+    if (debug_enable && !ext_device_fault_enable) {
         std::println("VulkanContext: Warning: Requested to enable VK_EXT_device_fault device extension, but it is not supported.");
     }
 
@@ -69,9 +70,11 @@ auto VulkanContext::create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanCont
     auto queues = acquire_device_queues(device, unique_queue_families);
     auto vma_allocator = create_vma_allocator(instance, physical_device, device);
 
+    auto ktx_preferred_transcode_format = select_preferred_ktx_transcode_format(physical_device);
+
     auto ptr = std::make_unique<VulkanContext>(std::move(dynamic_loader), std::move(raii_context), std::move(instance), std::move(surface),
             std::move(physical_device), std::move(device), std::move(vma_allocator), std::move(queues), graphics_queue_index, present_queue_index,
-            physical_device_vulkan13_properties, debug_utils_enable, ext_device_fault_enable);
+            physical_device_vulkan13_properties, debug_utils_enable, ext_device_fault_enable, ktx_preferred_transcode_format);
     g_vulkan_context = ptr.get();
     return ptr;
 }
@@ -113,7 +116,6 @@ auto VulkanContext::create_instance(vk::raii::Context& raii_context, bool debug_
 
 auto VulkanContext::select_physical_device(const vk::raii::Instance& instance) -> vk::raii::PhysicalDevice {
     auto physical_devices = instance.enumeratePhysicalDevices();
-    // TODO: replace with a smarter select function
 
     if (physical_devices.empty()) {
         throw std::runtime_error("No physical devices found!");
@@ -225,6 +227,19 @@ auto VulkanContext::create_vma_allocator(const vk::raii::Instance& instance, con
         .setFlags(vma::AllocatorCreateFlagBits::eBufferDeviceAddress);
 
     return vma::raii::createAllocator(instance, device, allocatorCreateInfo);
+}
+
+auto VulkanContext::select_preferred_ktx_transcode_format(const vk::raii::PhysicalDevice& physical_device) -> ktx_transcode_fmt_e {
+    auto bc7_props = physical_device.getFormatProperties(vk::Format::eBc7SrgbBlock);
+    auto astc_props = physical_device.getFormatProperties(vk::Format::eAstc4x4SrgbBlock);
+
+    auto optimal_tiling_features_satisfy = [&](const vk::FormatFeatureFlags flags) -> bool {
+        return (flags & vk::FormatFeatureFlagBits::eSampledImage) && (flags & vk::FormatFeatureFlagBits::eTransferDst);
+    };
+
+    if (optimal_tiling_features_satisfy(bc7_props.optimalTilingFeatures)) return KTX_TTF_BC7_RGBA;
+    if (optimal_tiling_features_satisfy(astc_props.optimalTilingFeatures)) return KTX_TTF_ASTC_4x4_RGBA;
+    return KTX_TTF_RGBA32;
 }
 
 } // namespace pop::vulkan
