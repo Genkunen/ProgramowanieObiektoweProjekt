@@ -58,7 +58,7 @@ The project focuses on the following aspects:
 - Abstracting low-level Vulkan details such as synchronization away from render graph passes.
 
 ## Overview in Radeon GPU Profiler
-The following capture was made using Radeon GPU Profiler V2.6.1.12 on a NAVI31 chip.
+The following capture was made using Mesa RADV 26.1.0, on a NAVI31 chip, displayed using Radeon GPU Profiler V2.6.1.12.
 <img src="./Images/RGPTrace.png">
 *note: debug labels might not be accurate due to RADV+RGP shenanigans*
 
