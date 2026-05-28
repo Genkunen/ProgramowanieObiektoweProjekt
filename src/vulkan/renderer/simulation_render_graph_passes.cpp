@@ -728,7 +728,7 @@ auto BackgroundRenderPass::create() -> BackgroundRenderPass {
         .build();
 
     auto pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(BackgroundCSPushConstants), vk::ShaderStageFlagBits::eVertex)
+        .add_push_constant_range(0, sizeof(BackgroundVSFSPushConstants), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
         .build();
 
     auto shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/background.spv");
@@ -788,21 +788,8 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
 
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.vk_pipeline());
 
-    struct PushConstants {
-        vk::DeviceAddress simulation_data;
-        float base_color[3];
-        float scale;
-        uint32_t max_iterations;
-        float caustic_intensity;
-        float ray_intensity;
-        float surface_y;
-        float depth_range;
-        float deep_color[3];
-        float vignette_size;
-    };
-
     auto clr = systems::PersistentSettings::clear_color();
-    PushConstants consts = { 
+    BackgroundVSFSPushConstants consts = {
         .simulation_data = frame_local_simulation_data_buffer.memory_device_ptr(),
         .base_color = { clr[0], clr[1], clr[2], },
         .scale = systems::PersistentSettings::background_scale(),
@@ -815,7 +802,7 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
         .vignette_size = systems::PersistentSettings::vignette_size(),
     };
 
-    cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);
+    cmd.pushConstants<BackgroundVSFSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, consts);
     cmd.draw(6, 1, 0, 0);
 
     cmd.endRendering();
@@ -865,7 +852,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
             .setDescriptorType(vk::DescriptorType::eSampledImage)
             .setStageFlags(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
         vk::DescriptorSetLayoutBinding{}
-            .setBinding(0)
+            .setBinding(1)
             .setDescriptorCount(1)
             .setDescriptorType(vk::DescriptorType::eSampler)
             .setStageFlags(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)

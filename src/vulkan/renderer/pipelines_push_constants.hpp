@@ -120,8 +120,17 @@ struct BuildInstanceBufferCSPushConstants {
     uint32_t object_count;
 } __attribute((packed));
 
-struct BackgroundCSPushConstants {
+struct BackgroundVSFSPushConstants {
     vk::DeviceAddress simulation_data;
+    float base_color[3];
+    float scale;
+    uint32_t max_iterations;
+    float caustic_intensity;
+    float ray_intensity;
+    float surface_y;
+    float depth_range;
+    float deep_color[3];
+    float vignette_size;
 } __attribute((packed));
 
 }

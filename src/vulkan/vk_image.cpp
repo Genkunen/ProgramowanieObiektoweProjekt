@@ -6,7 +6,9 @@
 
 namespace pop::vulkan {
 
-VulkanImage::VulkanImage(vk::raii::Image&& image, vk::raii::ImageView&& full_image_view, vma::raii::Allocation&& allocation, vk::Format format, vk::Extent3D extent)
-    : m_image(std::move(image)), m_full_image_view(std::move(full_image_view)), m_allocation(std::move(allocation)), m_format(format), m_extent(extent) {}
+VulkanImage::VulkanImage(vk::raii::Image&& image, vk::raii::ImageView&& full_image_view, vma::raii::Allocation&& allocation, vk::Format format,
+    vk::Extent3D extent, uint32_t mip_levels)
+    : m_image(std::move(image)), m_full_image_view(std::move(full_image_view)), m_allocation(std::move(allocation)), m_format(format), m_extent(extent),
+        m_mip_levels(mip_levels) {}
 
 } // namespace pop::vulkan

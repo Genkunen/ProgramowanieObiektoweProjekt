@@ -26,7 +26,7 @@ inline static std::unordered_map<vk::Format, ImageFormatMetadata> IMAGE_FORMAT_M
 class VulkanImageBuilder;
 class VulkanImage {
 public:
-    VulkanImage(vk::raii::Image&& image, vk::raii::ImageView&& full_image_view, vma::raii::Allocation&& allocation, vk::Format format, vk::Extent3D extent);
+    VulkanImage(vk::raii::Image&& image, vk::raii::ImageView&& full_image_view, vma::raii::Allocation&& allocation, vk::Format format, vk::Extent3D extent, uint32_t mip_levels);
 
     [[nodiscard]] constexpr static auto builder() -> VulkanImageBuilder;
 
@@ -35,7 +35,8 @@ public:
     [[nodiscard]] auto vma_allocation() const noexcept -> const vma::raii::Allocation& { return m_allocation; }
     [[nodiscard]] auto format() const noexcept -> vk::Format { return m_format; }
     [[nodiscard]] auto extent() const noexcept -> vk::Extent3D { return m_extent; }
-    [[nodiscard]] auto full_subresource_range() const noexcept -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, 1, 0, 1 }; }
+    [[nodiscard]] auto mip_levels() const noexcept -> uint32_t { return m_mip_levels; }
+    [[nodiscard]] auto full_subresource_range() const noexcept -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, m_mip_levels, 0, 1 }; }
 private:
     vk::raii::Image m_image;
     vk::raii::ImageView m_full_image_view;
@@ -43,6 +44,7 @@ private:
 
     vk::Format m_format;
     vk::Extent3D m_extent;
+    uint32_t m_mip_levels;
 };
 
 class VulkanImageBuilder {
@@ -87,7 +89,8 @@ public:
 
         auto full_image_view = VulkanContext::get().vk_device().createImageView(image_view_create_info);
 
-        return VulkanImage(std::move(image), std::move(full_image_view), std::move(allocation), m_image_create_info.format, m_image_create_info.extent);
+        return VulkanImage(std::move(image), std::move(full_image_view), std::move(allocation), m_image_create_info.format, m_image_create_info.extent,
+            m_image_create_info.mipLevels);
     }
 
 private:

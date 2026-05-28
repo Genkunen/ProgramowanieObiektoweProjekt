@@ -34,15 +34,18 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanIn
 
     float3 position = fish_displace_model_vertices(vertex.position, push_constants.object_data[instance_id].randseed);
 
+    float2 texcoord = vertex.texcoord;
+    texcoord.x = (1.0f - texcoord.x);
+
     VSOutput output;
     output.position = mul(object_data.transform, float4(position, 1.0));
-    output.texcoord;
+    output.texcoord = texcoord;
     output.randseed = push_constants.object_data[instance_id].randseed;
     return output;
 }
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-    float4 albedo = global_textures[0].Sample(global_sampler, input.texcoord);
-    return float4(albedo.xyz, 1);
+    float4 color = global_textures[0].Sample(global_sampler, input.texcoord);
+    return color;
 }

@@ -190,7 +190,8 @@ auto VulkanContext::create_device(const vk::raii::PhysicalDevice& physical_devic
 
     auto vk12_features = vk::PhysicalDeviceVulkan12Features()
         .setBufferDeviceAddress(true)
-        .setScalarBlockLayout(true);
+        .setScalarBlockLayout(true)
+        .setRuntimeDescriptorArray(true);
 
     auto vk13_features = vk::PhysicalDeviceVulkan13Features()
         .setSynchronization2(true)
