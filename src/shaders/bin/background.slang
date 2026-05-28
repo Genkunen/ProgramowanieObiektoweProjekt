@@ -54,11 +54,11 @@ float2 glsl_mod(float2 x, float2 y) {
 
 float compute_caustics(float2 uv, float time) {
     static const int STEPS = push_constants.max_iterations;
-    float2 p     = glsl_mod(uv * TAU * 2.5f, float2(TAU, TAU)) - 250.0f;
-    float2 i     = p;
-    float  c     = 1.0f;
-    float  inten = 0.01f;
-    float  t0    = time * 1.8f;
+    float2 p = glsl_mod(uv * TAU * 2.5f, float2(TAU, TAU)) - 250.0f;
+    float2 i = p;
+    float c = 1.0f;
+    float inten = 0.01f;
+    float t0 = time * 0.5f;
 
     for (int n = 0; n < STEPS; n++) {
         float t = t0 * (1.0f - (3.0f / float(n + 1)));

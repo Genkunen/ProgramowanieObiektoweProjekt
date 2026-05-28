@@ -58,6 +58,7 @@ auto MeshPool::load_mesh(std::filesystem::path filename) -> Mesh {
 
     callback_string += std::format(" | vertices: {}, indices: {}", vertices.size(), indices.size());
     std::println("{}", callback_string);
+
     auto mesh = allocate(vertices.size(), indices.size());
     upload_mesh_data(mesh, vertices, indices);
 

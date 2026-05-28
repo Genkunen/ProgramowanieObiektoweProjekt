@@ -165,13 +165,13 @@ auto sdl_entry_main() -> void {
         }
         {
             auto& caustic_int = imgui_variables.caustic_intensity;
-            if (ImGui::SliderFloat("Caustic Intensity", &caustic_int, 0.1f, 400.0f)) {
+            if (ImGui::SliderFloat("Caustic Intensity", &caustic_int, 0.1f, 1000.0f)) {
                 pop::systems::PersistentSettings::set_caustic_intensity(caustic_int);
             }
         }
         {
             auto& ray_int = imgui_variables.ray_intensity;
-            if (ImGui::SliderFloat("Ray Intensity", &ray_int, 0.1f, 100.f)) {
+            if (ImGui::SliderFloat("Ray Intensity", &ray_int, 0.01f, 1.f)) {
                 pop::systems::PersistentSettings::set_ray_intensity(ray_int);
             }
         }

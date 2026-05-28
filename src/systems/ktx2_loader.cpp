@@ -99,25 +99,40 @@ auto Ktx2Loader::load_to_vulkan_image(const std::filesystem::path& path) -> vulk
         )
         .flush(cmd);
 
-    auto subresource_layers = vk::ImageSubresourceLayers()
-        .setAspectMask(vk::ImageAspectFlagBits::eColor)
-        .setMipLevel(0)
-        .setBaseArrayLayer(0)
-        .setLayerCount(1);
+    std::vector<vk::BufferImageCopy2> copy_regions;
 
-    auto copy_region = vk::BufferImageCopy2()
-        .setImageSubresource(subresource_layers)
-        .setImageExtent(vk::Extent3D(texture_width, texture_height, 1))
-        .setImageOffset({0, 0, 0})
-        .setBufferOffset(0)
-        .setBufferImageHeight(0)
-        .setBufferRowLength(0);
+    for (uint32_t level = 0; level < mip_levels; level++) {
+        auto subres_layers = vk::ImageSubresourceLayers()
+            .setAspectMask(vk::ImageAspectFlagBits::eColor)
+            .setMipLevel(level)
+            .setBaseArrayLayer(0)
+            .setLayerCount(1);
+
+        ktx_size_t buffer_offset;
+        ktxTexture2_GetImageOffset(ktx_texture, level, 0, 0, &buffer_offset);
+
+        auto copy_extent = vk::Extent3D {
+            std::max(1u, texture_width >> level),
+            std::max(1u, texture_height >> level),
+            std::max(1u, texture_depth >> level)
+        };
+
+        auto copy_region = vk::BufferImageCopy2()
+            .setImageSubresource(subres_layers)
+            .setImageExtent(copy_extent)
+            .setImageOffset({ 0, 0, 0 })
+            .setBufferOffset(buffer_offset)
+            .setBufferImageHeight(0)
+            .setBufferRowLength(0);
+
+        copy_regions.emplace_back(copy_region);
+    }
 
     auto copy_info = vk::CopyBufferToImageInfo2()
         .setSrcBuffer(staging_buffer.vk_buffer())
         .setDstImage(image.vk_image())
         .setDstImageLayout(vk::ImageLayout::eTransferDstOptimal)
-        .setRegions(copy_region);
+        .setRegions(copy_regions);
 
     cmd.copyBufferToImage2(copy_info);
 

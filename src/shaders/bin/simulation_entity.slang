@@ -11,15 +11,13 @@ struct PushConstants {
 struct VSOutput {
     float4 position : SV_Position;
     float3 color : COLOR;
+    float2 texcoord : TEXCOORD0;
     nointerpolation uint randseed;
 };
 
-float3 generate(uint3 x) {
-    uint3 prec = x * 747796405u + 2891336453u;
+[[vk::binding(0, 0)]] Texture2D global_textures[];
+[[vk::binding(1, 0)]] SamplerState global_sampler;
 
-    float3 precf = prec / 4294967296.0f;
-    return precf;
-}
 
 float3 fish_displace_model_vertices(float3 pos, uint seed) {
     float tbase = seed / 4294967296.0f;
@@ -35,17 +33,16 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanIn
     let object_data = push_constants.object_data[instance_id];
 
     float3 position = fish_displace_model_vertices(vertex.position, push_constants.object_data[instance_id].randseed);
-    uint3 seed = uint3(draw_id, draw_id << 4, draw_id << 9);
-    float3 col = generate(seed);
 
     VSOutput output;
     output.position = mul(object_data.transform, float4(position, 1.0));
-    output.color = col;
+    output.texcoord;
     output.randseed = push_constants.object_data[instance_id].randseed;
     return output;
 }
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-    return float4(input.color, 1.0);
+    float4 albedo = global_textures[0].Sample(global_sampler, input.texcoord);
+    return float4(albedo.xyz, 1);
 }

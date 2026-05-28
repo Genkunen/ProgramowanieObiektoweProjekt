@@ -4,6 +4,7 @@
 #include "shaders/shared_consts.hpp"
 #include "systems/systems.hpp"
 #include "systems/persistent_settings.hpp"
+#include "systems/ktx2_loader.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -823,8 +824,10 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
 // ---- FishTankRenderPass -------------------------------------------------------------------------------------------------------------------------------------
 
 FishTankRenderPass::FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
-    VulkanGraphicsPipeline&& graphics_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)) {}
+    VulkanGraphicsPipeline&& graphics_pipeline, vk::raii::Sampler&& sampler, systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set,
+    VulkanImage&& texture)
+        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)),
+        m_sampler(std::move(sampler)), m_texture_loader(std::move(loader)), m_descriptor_pool(std::move(pool)), m_descriptor_set(std::move(set)), m_texture(std::move(texture)) {}
 
 auto FishTankRenderPass::create() -> FishTankRenderPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -837,11 +840,56 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
             vk::AccessFlagBits2::eDepthStencilAttachmentRead | vk::AccessFlagBits2::eDepthStencilAttachmentWrite)
         .build();
 
+    auto& device = VulkanContext::get().vk_device();
+
+    auto sampler = device.createSampler(
+        vk::SamplerCreateInfo{}
+            .setMinFilter(vk::Filter::eLinear)
+            .setMagFilter(vk::Filter::eLinear)
+            .setMipmapMode(vk::SamplerMipmapMode::eNearest)
+            .setMinLod(0.0f)
+            .setMaxLod(vk::LodClampNone)
+    );
+    auto loader = systems::Ktx2Loader::create();
+
+    std::array pool_sizes {
+        vk::DescriptorPoolSize{}.setDescriptorCount(1).setType(vk::DescriptorType::eSampledImage),
+        vk::DescriptorPoolSize{}.setDescriptorCount(1).setType(vk::DescriptorType::eSampler),
+    };
+    auto descriptor_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{}.setMaxSets(1).setPoolSizes(pool_sizes));
+
+    std::array bindings {
+        vk::DescriptorSetLayoutBinding{}
+            .setBinding(0)
+            .setDescriptorCount(1)
+            .setDescriptorType(vk::DescriptorType::eSampledImage)
+            .setStageFlags(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
+        vk::DescriptorSetLayoutBinding{}
+            .setBinding(0)
+            .setDescriptorCount(1)
+            .setDescriptorType(vk::DescriptorType::eSampler)
+            .setStageFlags(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
+            .setImmutableSamplers(*sampler),
+    };
+    auto descriptor_set_layout = VulkanContext::get().vk_device().createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{}.setBindings(bindings));
+    auto descripotr_set = std::move(device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo{}.setDescriptorPool(descriptor_pool).setSetLayouts(*descriptor_set_layout))[0]);
+
     auto pipeline_layout = VulkanPipelineLayout::builder()
         .add_push_constant_range(0, 24, vk::ShaderStageFlagBits::eVertex)
+        .add_descriptor_set_layout(descriptor_set_layout)
         .build();
 
     auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_entity.spv");
+
+    auto texture = loader.load_to_vulkan_image("../fih.ktx2");
+    auto image_info = vk::DescriptorImageInfo{}.setImageView(texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    auto write_descriptor_set = vk::WriteDescriptorSet{}
+        .setDescriptorCount(1)
+        .setDescriptorType(vk::DescriptorType::eSampledImage)
+        .setImageInfo(image_info)
+        .setDstSet(descripotr_set);
+    device.updateDescriptorSets(write_descriptor_set, nullptr);
 
     auto pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(pipeline_layout)
@@ -855,14 +903,21 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
         .enable_depth_test(true)
         .add_rendering_attachment(
             vk::PipelineColorBlendAttachmentState()
-                .setBlendEnable(false)
+                .setBlendEnable(true)
+                .setSrcColorBlendFactor(vk::BlendFactor::eSrcAlpha)
+                .setDstColorBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+                .setColorBlendOp(vk::BlendOp::eAdd)
+                .setSrcAlphaBlendFactor(vk::BlendFactor::eOne)
+                .setDstAlphaBlendFactor(vk::BlendFactor::eOneMinusSrcAlpha)
+                .setAlphaBlendOp(vk::BlendOp::eAdd)
                 .setColorWriteMask(vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA),
             vk::Format::eA2R10G10B10UnormPack32
         )
         .set_depth_attachment_format(vk::Format::eD32Sfloat)
         .build();
 
-    return FishTankRenderPass(std::move(dependencies), std::move(pipeline_layout), std::move(pipeline));
+    return FishTankRenderPass(std::move(dependencies), std::move(pipeline_layout), std::move(pipeline), std::move(sampler), std::move(loader), 
+                              std::move(descriptor_pool), std::move(descripotr_set), std::move(texture));
 }
 
 auto FishTankRenderPass::debug_name() const noexcept -> std::string { return "Fish Tank Render Pass"; }
@@ -912,6 +967,8 @@ auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.vk_pipeline());
 
     cmd.bindIndexBuffer(state.mesh_pool.get().index_buffer().vk_buffer(), 0, vk::IndexType::eUint32);
+
+    cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.vk_pipeline_layout(), 0, *m_descriptor_set, nullptr);
 
     struct PushConstants {
         vk::DeviceAddress vertex_buffer;

@@ -4,6 +4,7 @@
 #include "vulkan/vk_compute_pipeline.hpp"
 #include "vulkan/vk_pipeline_layout.hpp"
 #include "vulkan/vk_swapchain.hpp"
+#include "systems/ktx2_loader.hpp"
 #include <imgui.h>
 
 namespace pop::vulkan::renderer {
@@ -260,7 +261,8 @@ private:
 
 class FishTankRenderPass : public render_graph::PassBase<SimulationRenderState> {
 public:
-    FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline);
+    FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline,
+                       vk::raii::Sampler&& sampler, pop::systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set, VulkanImage&& texture);
 
     static auto create() -> FishTankRenderPass;
 
@@ -271,6 +273,11 @@ public:
 private:
     VulkanPipelineLayout m_pipeline_layout;
     VulkanGraphicsPipeline m_graphics_pipeline;
+    vk::raii::Sampler m_sampler;
+    pop::systems::Ktx2Loader m_texture_loader;
+    vk::raii::DescriptorPool m_descriptor_pool;
+    vk::raii::DescriptorSet m_descriptor_set;
+    VulkanImage m_texture;
 };
 
 // ---- ImGuiRenderPass ---------------------------------------------------------------------------------------------------------------------------------------
