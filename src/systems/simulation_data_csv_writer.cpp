@@ -27,6 +27,9 @@ auto SimulationDataCsvWriter::write_to_file(const vulkan::renderer::SimulationDa
             case shader_consts::SIM_OBJECT_TYPE_FISH:
                 object_type = "Fish";
                 break;
+            case shader_consts::SIM_OBJECT_TYPE_PREDATOR:
+                object_type = "Predator";
+                break;
             }
 
             file << std::format("{},{},,{},{},{},{},{}\n", i, object_type, object.position.x, object.position.y, object.velocity.x, object.velocity.y, object.size);
