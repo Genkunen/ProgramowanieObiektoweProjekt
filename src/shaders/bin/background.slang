@@ -99,11 +99,18 @@ float compute_god_rays(float2 world_pos, float time) {
 }
 
 float compute_edge_vignette(float2 world_pos) {
-    float2 dist_min  = world_pos - POLY_MIN;
-    float2 dist_max  = POLY_MAX  - world_pos;
-    float2 edge_dist = min(dist_min, dist_max);
-    float  nearest   = min(edge_dist.x, edge_dist.y);
+    float left_dist   = world_pos.x - POLY_MIN.x;
+    float right_dist  = POLY_MAX.x - world_pos.x;
+    float bottom_dist = world_pos.y - POLY_MIN.y;
+    
+    float nearest = min(min(left_dist, right_dist), bottom_dist);
+    
     return smoothstep(0.0f, push_constants.vignette_size, nearest);
+}
+
+float interleaved_gradient_noise(float2 frag_coord) {
+    float3 magic = float3(0.06711056f, 0.00583715f, 52.9829189f);
+    return frac(magic.z * frac(dot(frag_coord, magic.xy)));
 }
 
 [shader("fragment")]
@@ -137,6 +144,10 @@ float4 main(VSOutput input) : SV_Target {
     base_color = lerp(base_color, push_constants.deep_color, depth_curve);
 
     base_color *= compute_edge_vignette(world_pos);
+
+    float noise = interleaved_gradient_noise(input.position.xy);
+    float dither = (noise - 0.5f) / 255.0f;
+    base_color += dither;
 
     return float4(clamp(base_color, 0.0f, 1.0f), 1.0f);
 }
