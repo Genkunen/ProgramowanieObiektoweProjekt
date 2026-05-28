@@ -1,7 +1,9 @@
 # Programowanie Obiektowe Projekt
 ## Objective
 
-Project is an agentic interactive simulation featuring large amounts of fish and other objects in an aquarium.
+The goal of the project is for students to create a simple agent-based simulation using object-oriented design techniques. By simulation, we mean a program that models a selected segment of reality, specifically objects and the interactions between them. We will "set this model in motion" using randomly generated events that force objects to perform various actions (interact with other objects, change their internal state, etc.).
+As an example, let's consider a simulation of the life of a colony of different types of organisms (herbivores, omnivores, carnivores). Each group of organisms has different properties and behavioral patterns. These organisms can move (randomly) around a board of given dimensions. Each board square can contain some kind of resource (food). The simulation begins by creating a random board with resources. Then, we place randomly generated organisms on it. At each step of the simulation, the organism moves a specific number of squares. During its journey, it can find resources, encounter other organisms, and interact with them.
+The project created by students should allow for the setting of various initial parameters for the running simulation. Furthermore, data for each epoch (e.g., population size) should be collected during the simulation. After the simulation is completed, this data should be saved in some way, e.g., as a CSV file.
 
 There exist:
 - plants that do nothing but follow constantly present water current,
