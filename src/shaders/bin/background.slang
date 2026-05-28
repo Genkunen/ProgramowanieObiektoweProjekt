@@ -52,6 +52,12 @@ float2 glsl_mod(float2 x, float2 y) {
     return x - y * floor(x / y);
 }
 
+float hash12(float2 p) {
+    float3 p3  = frac(float3(p.xyx) * 0.1031f);
+    p3 += dot(p3, p3.yzx + 33.33f);
+    return frac((p3.x + p3.y) * p3.z);
+}
+
 float compute_caustics(float2 uv, float time) {
     static const int STEPS = push_constants.max_iterations;
     float2 p = glsl_mod(uv * TAU * 2.5f, float2(TAU, TAU)) - 250.0f;
@@ -69,6 +75,14 @@ float compute_caustics(float2 uv, float time) {
     }
     c /= float(STEPS);
     return pow(saturate(c * 0.45f), 4.0f);
+}
+
+float3 compute_chromatic_caustics(float2 uv, float time) {
+    float offset = 0.002f;
+    float r = compute_caustics(uv + float2(offset, 0.0f), time);
+    float g = compute_caustics(uv, time);
+    float b = compute_caustics(uv - float2(offset, 0.0f), time);
+    return float3(r, g, b);
 }
 
 float compute_god_rays(float2 world_pos, float time) {
@@ -98,6 +112,29 @@ float compute_god_rays(float2 world_pos, float time) {
     return rays * flicker * depth_att * surface_fade;
 }
 
+float compute_particulates(float2 world_pos, float time, float layer_depth) {
+    float2 p = world_pos * 0.05f * layer_depth; 
+    p.y += time * (-1.5f - layer_depth * 0.5f); 
+    p.x += sin(time * 0.5f + p.y * 0.1f) * (2.0f + layer_depth * 0.5f);
+    
+    float2 id = floor(p);
+    float2 local_uv = frac(p) - 0.5f;
+    
+    float n = hash12(id + layer_depth * 10.f);
+    
+    float2 offset = float2(cos(n * TAU), sin(n * TAU)) * 0.3f;
+    float dist = length(local_uv - offset);
+    
+    float base_size = 0.02f + (layer_depth * 0.015f);
+    float size = base_size * (1 + n);
+    float particle = smoothstep(size, size * 0.2f, dist);
+    
+    float flicker = sin(time * 3.0f + n * 10.0f) * 0.5f + 0.5f;
+    float layer_fade = saturate(layer_depth * 0.6f);
+    
+    return particle * flicker * (n * 0.5f + 0.5f);
+}
+
 float compute_edge_vignette(float2 world_pos) {
     float left_dist   = world_pos.x - POLY_MIN.x;
     float right_dist  = POLY_MAX.x - world_pos.x;
@@ -115,8 +152,11 @@ float interleaved_gradient_noise(float2 frag_coord) {
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-    float time = push_constants.simulation_data->simulation_time_since_start * 0.3f + 23.0f;
+    float time = push_constants.simulation_data->simulation_time_since_start * 0.2f + 23.0f;
     float2 uv = input.uv;
+
+    float uv_distortion = 0.02f;
+    float2 flow_uv = uv + float2(sin(uv.y * 15.0f + time * 0.4f) * uv_distortion, cos(uv.x * 15.0f - time * 0.3f) * uv_distortion);
 
     float2 world_pos = (uv - 0.5f) * 1000.0f / max(push_constants.scale, 0.0001f);
     float depth_below = push_constants.surface_y - world_pos.y;
@@ -124,25 +164,33 @@ float4 main(VSOutput input) : SV_Target {
 
     float3 bg_color = push_constants.background_color;
 
-    float ambient_noise = sin(uv.x * 3.0f + time * 0.2f) * cos(uv.y * 3.0f - time * 0.15f);
+    float ambient_noise = sin(flow_uv.x * 3.0f + time * 0.2f) * cos(flow_uv.y * 3.0f - time * 0.15f);
     float3 base_color = bg_color * (0.9f + 0.1f * ambient_noise);
 
-    float caust_val = 0.0f;
+    float3 caust_val = float3(0.0f, 0.0f, 0.0f);
     if (depth_below > 0.0f) {
-        caust_val = compute_caustics(uv, time);
+        caust_val = compute_chromatic_caustics(flow_uv, time);
     }
     
     float caust_fade = exp(-depth_t * 3.5f);
-    float3 caust_tint = bg_color * 1.8f + float3(0.1f, 0.15f, 0.05f);
+    float3 caust_tint = bg_color * 20.8f + float3(0.1f, 0.15f, 0.05f);
     base_color += caust_val * caust_fade * push_constants.caustic_intensity * caust_tint;
 
     float ray_val = compute_god_rays(world_pos, time);
     float3 ray_tint = lerp(bg_color, float3(0.85f, 0.95f, 1.0f), 0.4f);
     base_color += ray_val * push_constants.ray_intensity * ray_tint;
 
+    if (depth_below > 0.0f) {
+        float part_val = 0;
+        part_val += compute_particulates(world_pos, time, 0.5f);
+        part_val += compute_particulates(world_pos, time, 2.f);
+        part_val += compute_particulates(world_pos, time, 4.f);
+        float part_fade = smoothstep(0.0f, 150.0f, depth_below) * exp(-depth_t * 2.0f);
+        base_color += part_val * part_fade * float3(0.6f, 0.8f, 0.9f) * 0.03;
+    }
+
     float depth_curve = depth_t * depth_t;
     base_color = lerp(base_color, push_constants.deep_color, depth_curve);
-
     base_color *= compute_edge_vignette(world_pos);
 
     float noise = interleaved_gradient_noise(input.position.xy);
