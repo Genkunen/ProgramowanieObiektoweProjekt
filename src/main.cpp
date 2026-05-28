@@ -1,3 +1,7 @@
+#if defined(_WIN32) || defined(_WIN64)
+# define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "sdl/sdl_lib.hpp"
 #include "sphere_geometry_gen.hpp"
 #include "systems/debug.hpp"
@@ -275,7 +279,7 @@ auto sdl_entry_main() -> void {
             auto data = renderer.export_simulation_data();
             auto path = make_unique_export_path(std::filesystem::current_path(), "simulation_data.csv");
             pop::systems::SimulationDataCsvWriter::write_to_file(data, path);
-            last_export_path = path;
+            last_export_path = path.string();
         }
 
         if (last_export_path) {

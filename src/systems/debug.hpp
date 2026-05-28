@@ -1,4 +1,9 @@
 #pragma once
+
+#if defined(_WIN32) || defined(_WIN64)
+# define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include <cstdlib>
 #include <cstring>
 
