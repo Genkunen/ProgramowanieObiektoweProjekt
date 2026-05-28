@@ -47,5 +47,8 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanIn
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
     float4 color = global_textures[input.texindex].Sample(global_sampler, input.texcoord);
-    return color;
+    if (color.w < 0.3) {
+        color.w = 0;
+    }
+    return color * float4(0.7, 0.7, 0.9, 1);
 }
