@@ -60,7 +60,7 @@ The project focuses on the following aspects:
 ## Overview in Radeon GPU Profiler
 The following capture was made using Radeon GPU Profiler V2.6.1.12 on a NAVI31 chip.
 <img src="./Images/RGPTrace.png">
-* debug labels might not be accurate due to RADV+RGP shenanigans 
+*note: debug labels might not be accurate due to RADV+RGP shenanigans*
 
 ## Current State
 Objects:
