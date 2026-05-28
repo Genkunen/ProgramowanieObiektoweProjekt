@@ -5,6 +5,8 @@
 !UML/
 !UML/**
 UML/**/.uml_tmp/
+!Assets/
+!Assets/**
 !collaboration/
 !collaboration/**
 
@@ -13,8 +15,4 @@ UML/**/.uml_tmp/
 !README.md
 !persistent.settings
 !suzanne.glb
-!Assets/fih.glb
-!Assets/fih.ktx2
-!Assets/plant____kind_of.ktx2
-!Assets/predator.ktx2
 !.gitattributes
