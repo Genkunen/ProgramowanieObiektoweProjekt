@@ -21,7 +21,8 @@ The project created by students should allow for the setting of various initial 
 - tinygltf (3d model parsing)
 
 ## How to run?
-
+> [!NOTE]
+> Project was confirmed to compile and work under Windows and Linux (MacOS should also work with possible slight fixes to the code).
 ```
 git clone https://github.com/Genkunen/ProgramowanieObiektoweProjekt
 cd ProgramowanieObiektoweProjekt
