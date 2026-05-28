@@ -1,4 +1,7 @@
 # Programowanie Obiektowe Projekt
+
+<img src="./Images/SampleView.png">
+
 ## Objective
 
 The goal of the project is for students to create a simple agent-based simulation using object-oriented design techniques. By simulation, we mean a program that models a selected segment of reality, specifically objects and the interactions between them. We will "set this model in motion" using randomly generated events that force objects to perform various actions (interact with other objects, change their internal state, etc.).
@@ -53,6 +56,11 @@ The project focuses on the following aspects:
 - Applying OOP principles: Using classes to encapsulate objects' components and to organize the code, abstracting low-level Vulkan details
     away from rendering and user logic, using polymorphism to implement a shared interface for render graph passes.
 - Abstracting low-level Vulkan details such as synchronization away from render graph passes.
+
+## Overview in Radeon GPU Profiler
+The following capture was made using Radeon GPU Profiler V2.6.1.12 on a NAVI31 chip.
+<img src="./Images/RGPTrace.png">
+* debug labels might not be accurate due to RADV+RGP shenanigans 
 
 ## Current State
 Objects:
