@@ -61,10 +61,9 @@ void main(uint3 dtid : SV_DispatchThreadID) {
                 float2(roll_norm_float(object_ev_hash, 1002u), roll_norm_float(object_ev_hash, 1003u))
                 * 4.0f - 2.0f;
 
-            float new_object_type_discrete_dist = roll_norm_float(object_ev_hash, 1004u);
             uint new_object_type = pop::shader_consts::SIM_OBJECT_TYPE_FOOD;
 
-            if (new_object_type_discrete_dist < 0.05f) {
+            if (roll_chance(object_ev_hash, 1005u, 0.05f)) {
                 new_object_type = pop::shader_consts::SIM_OBJECT_TYPE_FISH;
             }
 
