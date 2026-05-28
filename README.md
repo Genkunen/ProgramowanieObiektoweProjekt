@@ -4,11 +4,17 @@
 
 ## Objective
 
-Project is an agentic interactive simulation featuring fish in an aquarium. Simulation consist of non-linear movements and collision events happening between fish.
+Project is an agentic interactive simulation featuring large amounts of fish and other objects in an aquarium.
+
+There exist:
+- plants that do nothing but follow constantly present water current,
+- fish that eat the plants and may eat other fish,
+- predators that only eat fish.
 
 ## Dependencies
 ### Required
 - Compiler with support for C++ 23
+- Slang compiler version v2026.6.1 or later
 - VulkanSDK (graphics API)
 - glm (math)
 - SDL3 (window handling)
@@ -21,7 +27,6 @@ Project is an agentic interactive simulation featuring fish in an aquarium. Simu
 
 ## How to run?
 
-Due to constant developement, project currently only works if its run from the build directory, so the suggested workflow would look like:
 ```
 git clone https://github.com/Genkunen/ProgramowanieObiektoweProjekt
 cd ProgramowanieObiektoweProjekt
@@ -29,21 +34,40 @@ mkdir build && cd build
 cmake ..
 cmake --build . && ./ProgramowanieObiektoweProjekt
 ```
-It's  highly recommended to use multithreaded builtds using either ninja or -j$(nproc) flag:
+It's highly recommended to use multithreaded builds using either ninja or -j$(nproc) flag:
 ```
 cmake .. -GNinja
 or
 cmake .. -j$(nproc)
 ```
-Project is optimized and tested under clang++ 22.1.*, so its also recommended to use clang to compile it. To hint CMake to use clang, its enough to pass those flags to `cmake ..` command:
+Project is optimized and tested under clang++ 22.1.*, so it's also recommended to use clang to compile it. To hint CMake to use clang, its enough to pass those flags to `cmake ..` command:
 ```
 -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
 ```
 
 ## Focus
-Focal point of this project comes down to architecture and usage of GPU compute power. Simple simulation logic is used to show relations between up to tens of millions of fish swimming around and interacting with each other. <br>
+The project focuses on the following aspects:
+- Performance: Simulating a huge number of objects in realtime, having interactions between each, within a constantly changing environment.
+- High-performance GPU programming: Using specialized GPU operations such as local data share operations and wave intrinsics
+    for highly efficient computations. Using the profiler to find bottlenecks and optimize the code. In our scenario, we made extensive
+    use of the [Radeon GPU Profiler](https://gpuopen.com/rgp/).
+- Building a fully GPU-driven simulation: Using the GPU to render the scene and to compute the interactions between objects without any
+    round-trips to the CPU for simulation steps.
+- Using modern graphics APIs: Using Vulkan for rendering and compute.
+- Applying OOP principles: Using classes to encapsulate objects' components and to organize the code, abstracting low-level Vulkan details
+    away from rendering and user logic, using polymorphism to implement a shared interface for render graph passes.
+- Abstracting low-level Vulkan details such as synchronization away from render graph passes.
 
 ## Current State
-Simulation shows variable amout of objects being drawn and interacting with each other. The amount can be changed in GUI panel, by specyfing new amout and clicking a button alongside the input. In addition to that there is a left over background color test.
+Simulation shows a variable number of objects being drawn and interacting with each other. The number of objects can be changed in the GUI panel, by specifying a new number and clicking the Apply button alongside the input.
+The strength of the water current inside the aquarium is randomized depending on the position (e.g. it is a noise algorithm as a vector field). The strength of the current can be changed in the same GUI panel and then clicking the Apply button alongside it.
+The simulation can be paused and resumed by the respective buttons in the GUI panel.
 <br>
+You can move the camera around the aquarium by dragging the mouse and using the scroll wheel to zoom in and out.
+The visuals of the aquarium can be changed by changing the shader parameters in the GUI panel.
+<br>
+The simulation implementation splits the aquarium space into a spatial hash grid, and within each cell of the grid, objects simulate interactions with the objects present in the same grid cell and eight neighboring cells around it.
+Because of GPU LDS memory limitations, up to 64 objects are considered in a single cell.
+<br>
+
 Current testing showed promising results in up to 3,000,000 objects on intel and amd **integrated** laptop GPUs and over 10,000,000 objects on a dedicated amd GPU, maintaining steady 30+ FPS (below 30ms per frame). Currently no „fish” are swimming, but since logic is so simple it can be implemented at the end, when all systems prove capable of handling the goal.
