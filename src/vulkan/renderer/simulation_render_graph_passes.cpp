@@ -845,7 +845,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
         vk::DescriptorPoolSize{}.setDescriptorCount(3).setType(vk::DescriptorType::eSampledImage),
         vk::DescriptorPoolSize{}.setDescriptorCount(1).setType(vk::DescriptorType::eSampler),
     };
-    auto descriptor_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{}.setMaxSets(1).setPoolSizes(pool_sizes));
+    auto descriptor_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{}.setMaxSets(1).setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet).setPoolSizes(pool_sizes));
 
     std::array bindings {
         vk::DescriptorSetLayoutBinding{}
