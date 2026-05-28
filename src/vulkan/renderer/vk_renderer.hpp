@@ -47,6 +47,9 @@ class VulkanRenderer {
 public:
     VulkanRenderer(
         VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
+        render_graph::PassIndexV2 simulation_step_pass_index, render_graph::PassIndexV2 simulation_influence_step_pass_index,
+        render_graph::PassIndexV2 acceleration_grid_prepare_pass_index, render_graph::PassIndexV2 acceleration_grid_radix_sort_pass_index,
+        render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index,
         SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight);
     ~VulkanRenderer();
 
@@ -61,11 +64,24 @@ public:
 
     auto export_simulation_data() -> SimulationDataSnapshot;
 
+    auto pause_simulation() -> void;
+    auto resume_simulation() -> void;
+
+    constexpr auto is_simulation_running() const -> bool { return m_simulation_is_running; }
+
 private:
     VulkanSwapchain m_swapchain;
 
     render_graph::RenderGraphV2<SimulationRenderState> m_render_graph;
     render_graph::PassIndexV2 m_mesh_upload_pass_index;
+
+    render_graph::PassIndexV2 m_simulation_step_pass_index;
+    render_graph::PassIndexV2 m_simulation_influence_step_pass_index;
+
+    render_graph::PassIndexV2 m_acceleration_grid_prepare_pass_index;
+    render_graph::PassIndexV2 m_acceleration_grid_radix_sort_pass_index;
+    render_graph::PassIndexV2 m_acceleration_grid_bound_scan_pass_index;
+
 
     SimulationBuffersManager m_simulation_buffers_manager;
     RenderTargetsManager m_render_targets_manager;
@@ -80,6 +96,8 @@ private:
     float m_water_current_strength = DEFAULT_GPU_DRIVEN_SIM_WATER_CURRENT_STRENGTH;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> m_start_timepoint = std::chrono::high_resolution_clock::now();
+
+    bool m_simulation_is_running = true;
 
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
 };

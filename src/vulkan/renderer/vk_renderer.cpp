@@ -25,9 +25,15 @@ static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / A
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
 
 VulkanRenderer::VulkanRenderer(
-        VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
+    VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
+    render_graph::PassIndexV2 simulation_step_pass_index, render_graph::PassIndexV2 simulation_influence_step_pass_index,
+    render_graph::PassIndexV2 acceleration_grid_prepare_pass_index, render_graph::PassIndexV2 acceleration_grid_radix_sort_pass_index,
+    render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index,
         SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_render_graph(std::move(render_graph)), m_mesh_upload_pass_index(mesh_upload_pass_index),
+        m_simulation_step_pass_index(simulation_step_pass_index), m_simulation_influence_step_pass_index(simulation_influence_step_pass_index),
+        m_acceleration_grid_prepare_pass_index(acceleration_grid_prepare_pass_index), m_acceleration_grid_radix_sort_pass_index(acceleration_grid_radix_sort_pass_index),
+        m_acceleration_grid_bound_scan_pass_index(acceleration_grid_bound_scan_pass_index),
         m_simulation_buffers_manager(std::move(simulation_buffers_manager)), m_render_targets_manager(std::move(render_targets_manager)),
         m_frames_in_flight(std::move(frames_in_flight)) {}
 
@@ -157,7 +163,9 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     auto render_targets_manager = RenderTargetsManager::create(swapchain.image_extent());
 
-    return VulkanRenderer{ std::move(swapchain), std::move(render_graph_v2), mesh_upload_pass, std::move(simulation_buffers_manager),
+    return VulkanRenderer{ std::move(swapchain), std::move(render_graph_v2), mesh_upload_pass, simulation_step_pass, simulation_influence_step_pass,
+        simulation_acceleration_grid_sort_prepare_pass, simulation_acceleration_grid_radix_sort_pass, simulation_acceleration_grid_bound_scan_pass,
+        std::move(simulation_buffers_manager),
         std::move(render_targets_manager), std::move(frames_in_flight) };
 }
 
@@ -342,6 +350,24 @@ auto VulkanRenderer::export_simulation_data() -> SimulationDataSnapshot {
 
     SimulationDataSnapshot snapshot = { .simulation_objects = std::move(simulation_objects), .simulation_objects_flags = std::move(simulation_objects_flags) };
     return snapshot;
+}
+auto VulkanRenderer::pause_simulation() -> void {
+    m_simulation_is_running = false;
+
+    m_render_graph.get_pass_by_id(m_simulation_step_pass_index).disable();
+    m_render_graph.get_pass_by_id(m_simulation_influence_step_pass_index).disable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_prepare_pass_index).disable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_radix_sort_pass_index).disable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).disable();
+}
+auto VulkanRenderer::resume_simulation() -> void {
+    m_simulation_is_running = true;
+
+    m_render_graph.get_pass_by_id(m_simulation_step_pass_index).enable();
+    m_render_graph.get_pass_by_id(m_simulation_influence_step_pass_index).enable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_prepare_pass_index).enable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_radix_sort_pass_index).enable();
+    m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).enable();
 }
 
 // TODO: remove or move somewhere else later

@@ -16,6 +16,15 @@
 
 #include <print>
 
+void push_disable_imgui_button() {
+    ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
+}
+
+void pop_disable_imgui_button() {
+    ImGui::PopItemFlag();
+    ImGui::PopStyleVar();
+}
 
 auto sdl_entry_main() -> void {
     auto window = pop::sdl::SdlWindow("ProgramowanieObiektoweProjekt", 1920, 1080);
@@ -135,6 +144,9 @@ auto sdl_entry_main() -> void {
 
         ImGui::NewLine();
 
+        ImGui::Separator();
+        ImGui::Text("Simulation Settings");
+
         ImGui::SetNextItemWidth(120.0f);
         if (ImGui::InputInt("Object Count", &simulation_object_count)) {
             if (simulation_object_count < 0) simulation_object_count = 0;
@@ -155,6 +167,26 @@ auto sdl_entry_main() -> void {
         if (ImGui::Button("Apply##2")) {
             renderer.set_water_current_strength(simulation_water_current_strength);
         }
+
+        bool was_running = renderer.is_simulation_running();
+        if (was_running) push_disable_imgui_button();
+        if (ImGui::Button("Resume")) {
+            renderer.resume_simulation();
+        }
+        if (was_running) pop_disable_imgui_button();
+
+        ImGui::SameLine();
+        if (!was_running) push_disable_imgui_button();
+        if (ImGui::Button("Pause")) {
+            renderer.pause_simulation();
+        }
+        if (!was_running) pop_disable_imgui_button();
+
+        ImGui::SameLine();
+        ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, was_running ? "Running" : "Paused");
+
+        ImGui::Separator();
+        ImGui::Text("Visual Settings");
 
         {
             ImGuiColorEditFlags colorEdiFlags =
@@ -211,6 +243,9 @@ auto sdl_entry_main() -> void {
                 pop::systems::PersistentSettings::set_background_iterations(val);
             }
         }
+
+        ImGui::Separator();
+        ImGui::Text("Export");
 
         if (ImGui::Button("Export Simulation Data to CSV File")) {
             auto data = renderer.export_simulation_data();
