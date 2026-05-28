@@ -1,7 +1,4 @@
 # Programowanie Obiektowe Projekt
-> [!WARNING]
-> Work in progress
-
 ## Objective
 
 Project is an agentic interactive simulation featuring large amounts of fish and other objects in an aquarium.
