@@ -870,9 +870,9 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
 
     auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_entity.spv");
 
-    auto fish_texture = loader.load_to_vulkan_image("../fih.ktx2");
-    auto food_texture = loader.load_to_vulkan_image("../plant____kind_of.ktx2");
-    auto predator_texture = loader.load_to_vulkan_image("../predator.ktx2");
+    auto fish_texture = loader.load_to_vulkan_image(pop::systems::relative_path() / "Assets/fih.ktx2");
+    auto food_texture = loader.load_to_vulkan_image(pop::systems::relative_path() / "Assets/plant____kind_of.ktx2");
+    auto predator_texture = loader.load_to_vulkan_image(pop::systems::relative_path() / "Assets/predator.ktx2");
 
     auto fish_image_info = vk::DescriptorImageInfo{}.setImageView(fish_texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
     auto food_image_info = vk::DescriptorImageInfo{}.setImageView(food_texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);

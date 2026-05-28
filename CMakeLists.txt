@@ -184,6 +184,14 @@ target_compile_options(
         -Werror=return-type
 )
 
+# ---- Assets Copy -----------------------------------------------------------------------------------------------------
+
+add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/Assets
+        ${CMAKE_CURRENT_BINARY_DIR}/Assets
+)
+
 # ---- macOS Support ---------------------------------------------------------------------------------------------------
 
 if(APPLE)

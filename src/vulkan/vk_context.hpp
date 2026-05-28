@@ -1,9 +1,10 @@
 #pragma once
-#include "../../cmake-build-relwithdebinfo-coverage/_deps/ktx-src/include/ktx.h"
 #include "sdl/sdl_window.hpp"
 #include "vk_prelude.hpp"
 
+#include <ktx.h>
 #include <SDL3/SDL_video.h>
+
 #include <unordered_map>
 #include <unordered_set>
 

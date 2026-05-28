@@ -52,7 +52,7 @@ auto sdl_entry_main() -> void {
     std::vector<pop::vulkan::renderer::Mesh> meshes;
 
     for (int i = 0; i < 3; i++) {
-        auto mesh = mesh_pool.load_mesh("../fih.glb");
+        auto mesh = mesh_pool.load_mesh(pop::systems::relative_path() / "Assets/fih.glb");
 
         meshes.push_back(mesh);
     }
