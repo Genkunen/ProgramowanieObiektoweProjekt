@@ -1,8 +1,6 @@
 #pragma once
 #include "render_graph_pass.hpp"
 
-#include <print>
-
 namespace pop::vulkan::renderer::render_graph {
 
 inline auto mask_access_flags_with_write_bit(vk::AccessFlags2 access_flags) -> vk::AccessFlags2 {
@@ -108,13 +106,13 @@ private:
 
         // Copy all indegree values so they can be worked on locally in this function.
         std::vector<int> indegrees(m_passes.size(), 0);
-        for (int i = 0; i < m_passes.size(); i++) {
+        for (size_t i = 0; i < m_passes.size(); i++) {
             indegrees[i] = m_passes[i].indegree;
         }
 
         // First, find roots to start from.
         std::vector<PassIndexV2> active_passes;
-        for (int i = 0; i < indegrees.size(); i++) {
+        for (size_t i = 0; i < indegrees.size(); i++) {
             if (indegrees[i] == 0) {
                 active_passes.push_back({ static_cast<uint32_t>(i) });
             }
@@ -122,7 +120,7 @@ private:
 
         while (true) {
             if (active_passes.empty()) {
-                for (int i = 0; i < indegrees.size(); i++) {
+                for (size_t i = 0; i < indegrees.size(); i++) {
                     if (indegrees[i] != 0) {
                         throw std::runtime_error("invalid render graph, or cycle in render graph detected");
                     }
