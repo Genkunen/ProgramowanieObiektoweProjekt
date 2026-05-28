@@ -184,7 +184,8 @@ auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
         simulation_next_objects_buffer.memory_device_ptr(),
         simulation_objects_flags_buffer.memory_device_ptr(),
         state.simulation_bounds,
-        state.object_count
+        state.object_count,
+        state.water_current_strength
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());

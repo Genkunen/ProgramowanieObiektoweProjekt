@@ -16,6 +16,7 @@ namespace pop::vulkan::renderer {
 
 constexpr size_t MAX_FRAMES_IN_FLIGHT = 2;
 constexpr uint64_t DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT = 100000;
+constexpr float DEFAULT_GPU_DRIVEN_SIM_WATER_CURRENT_STRENGTH = 40.0f;
 
 enum class RenderResult {
     Ok,
@@ -34,8 +35,6 @@ struct FrameInFlight {
     VulkanBuffer simulation_data_buffer;
     // Staging buffer for data on mesh parameters to set up draw commands with.
     VulkanBuffer mesh_allocations_table_staging_buffer;
-
-    // TODO: CPU-based simulation needs its own buffers
 
 };
 
@@ -58,6 +57,7 @@ public:
     auto swapchain() const -> const VulkanSwapchain&;
 
     auto reset_simulation_object_count(uint32_t new_count) -> void;
+    auto set_water_current_strength(float new_strength) -> void;
 
     auto export_simulation_data() -> SimulationDataSnapshot;
 
@@ -77,6 +77,7 @@ private:
     uint32_t m_gpu_driven_sim_object_count = DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT;
     bool m_gpu_driven_sim_needs_preinit = true;
     bool m_gpu_driven_sim_needs_refit = false; // initially prefitted to DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT
+    float m_water_current_strength = DEFAULT_GPU_DRIVEN_SIM_WATER_CURRENT_STRENGTH;
 
     std::chrono::time_point<std::chrono::high_resolution_clock> m_start_timepoint = std::chrono::high_resolution_clock::now();
 

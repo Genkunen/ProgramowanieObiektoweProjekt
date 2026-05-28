@@ -30,6 +30,7 @@ struct SimulationStepCSPushConstants {
     vk::DeviceAddress object_flags;
     glm::vec2 simulation_bounds;
     uint32_t object_count;
+    float water_current_strength;
 } __attribute((packed));
 
 struct SimulationAccelerationGridSortPrepareCSPushConstants {

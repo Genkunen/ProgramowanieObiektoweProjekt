@@ -258,7 +258,8 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
         .object_count = m_gpu_driven_sim_object_count,
         .grid_cell_size = ACCELERATION_GRID_TILE_EXTENT,
         .grid_width = ACCELERATION_GRID_WIDTH,
-        .grid_height = ACCELERATION_GRID_HEIGHT
+        .grid_height = ACCELERATION_GRID_HEIGHT,
+        .water_current_strength = m_water_current_strength
     };
 
     m_render_graph.execute(command_buffer, simulation_render_state, pass_resources);
@@ -322,6 +323,10 @@ auto VulkanRenderer::reset_simulation_object_count(uint32_t new_count) -> void {
     m_gpu_driven_sim_object_count = new_count;
     m_gpu_driven_sim_needs_preinit = true;
     m_gpu_driven_sim_needs_refit = true;
+}
+
+auto VulkanRenderer::set_water_current_strength(float new_strength) -> void {
+    m_water_current_strength = new_strength;
 }
 
 auto VulkanRenderer::export_simulation_data() -> SimulationDataSnapshot {

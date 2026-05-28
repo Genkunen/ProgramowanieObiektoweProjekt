@@ -30,6 +30,7 @@ struct SimulationRenderState {
     float grid_cell_size;
     uint32_t grid_width;
     uint32_t grid_height;
+    float water_current_strength;
 };
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------

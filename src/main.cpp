@@ -38,10 +38,10 @@ auto sdl_entry_main() -> void {
 
     bool running = true;
     static int simulation_object_count = pop::vulkan::renderer::DEFAULT_GPU_DRIVEN_SIM_OBJECT_COUNT;
+    static float simulation_water_current_strength = pop::vulkan::renderer::DEFAULT_GPU_DRIVEN_SIM_WATER_CURRENT_STRENGTH;
     glm::vec3 camera_position = {4000.0f, 2000.0f, -20.0f};
 
     bool is_mouse_dragging = false;
-    glm::vec2 mouse_drag_start_pos = {0.0f, 0.0f};
 
     pop::systems::PersistentSettings::load_all();
     
@@ -84,19 +84,26 @@ auto sdl_entry_main() -> void {
                 should_recreate_swapchain = true;
                 break;
             case SDL_EVENT_MOUSE_WHEEL:
+                if (ImGui::GetIO().WantCaptureMouse) break;
+
                 camera_position.z = std::clamp(camera_position.z * std::pow(1.1f, -event.wheel.y), -2000.0f, -5.0f);
                 break;
 
             case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                if (ImGui::GetIO().WantCaptureMouse) break;
+
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     is_mouse_dragging = true;
-                    mouse_drag_start_pos = {event.button.x, event.button.y};
                 }
                 break;
             case SDL_EVENT_MOUSE_BUTTON_UP:
+                if (ImGui::GetIO().WantCaptureMouse) break;
+
                 if (event.button.button == SDL_BUTTON_LEFT) is_mouse_dragging = false;
                 break;
             case SDL_EVENT_MOUSE_MOTION:
+                if (ImGui::GetIO().WantCaptureMouse) break;
+
                 if (is_mouse_dragging) {
                     float pan_speed = 2.0f * camera_position.z * std::tan(glm::radians(100.0f) / 2.0f) / static_cast<float>(window.vulkan_window_drawable_extent().height);
                     camera_position.x += (event.motion.xrel * pan_speed);
@@ -136,12 +143,17 @@ auto sdl_entry_main() -> void {
 
         ImGui::SameLine();
 
-        if (ImGui::Button("Apply")) {
+        if (ImGui::Button("Apply##1")) {
             renderer.reset_simulation_object_count(simulation_object_count);
         }
 
-        if (simulation_object_count >= 50000) {
-            ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "Warning: Using high-poly meshes with a high object count can degrade performance");
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::InputFloat("Water Current Strength", &simulation_water_current_strength);
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Apply##2")) {
+            renderer.set_water_current_strength(simulation_water_current_strength);
         }
 
         {

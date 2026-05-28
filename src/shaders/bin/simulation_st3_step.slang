@@ -9,6 +9,7 @@ struct PushConstants {
     uint* object_flags;
     float2 simulation_bounds;
     uint object_count;
+    float water_current_strength;
 };
 
 [vk::push_constant] PushConstants push_constants;
@@ -112,7 +113,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
         object.velocity.y -= pow(dist, 4) * 0.01f;
     }
 
-    object.velocity += water_flow_vector_field(object.position, push_constants.simulation_data->simulation_time_since_start, .1f) * 40.0f * dt;
+    object.velocity += water_flow_vector_field(object.position, push_constants.simulation_data->simulation_time_since_start, .1f) * push_constants.water_current_strength * dt;
     object.velocity *= pow(0.25f, dt);
     simulation::dispatch_self_simulation_behavior(object, dt);
 
