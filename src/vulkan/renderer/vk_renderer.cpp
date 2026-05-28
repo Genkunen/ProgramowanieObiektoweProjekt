@@ -196,7 +196,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
 
     auto elapsed_since_last_random_events = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - m_last_random_events_timepoint).count();
 
-    if (elapsed_since_last_random_events > RANDOM_EVENTS_INTERVAL_SECONDS) {
+    if (m_simulation_is_running && elapsed_since_last_random_events > RANDOM_EVENTS_INTERVAL_SECONDS) {
         if (elapsed_since_last_random_events > RANDOM_EVENTS_INTERVAL_SECONDS * 2) {
             std::println("WARNING: Simulation can't keep up, skipped a random event pass!");
         }
@@ -375,7 +375,7 @@ auto VulkanRenderer::pause_simulation() -> void {
     m_render_graph.get_pass_by_id(m_acceleration_grid_radix_sort_pass_index).disable();
     m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).disable();
 
-    m_render_graph.get_pass_by_id(m_random_events_pass_index).disable();
+    m_time_from_random_events_when_paused = std::chrono::high_resolution_clock::now() - m_last_random_events_timepoint;
 }
 auto VulkanRenderer::resume_simulation() -> void {
     m_simulation_is_running = true;
@@ -385,6 +385,8 @@ auto VulkanRenderer::resume_simulation() -> void {
     m_render_graph.get_pass_by_id(m_acceleration_grid_prepare_pass_index).enable();
     m_render_graph.get_pass_by_id(m_acceleration_grid_radix_sort_pass_index).enable();
     m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).enable();
+
+    m_last_random_events_timepoint = std::chrono::high_resolution_clock::now() - m_time_from_random_events_when_paused;
 }
 
 inline glm::vec2 random_ndc() {

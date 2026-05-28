@@ -103,6 +103,7 @@ private:
     std::chrono::time_point<std::chrono::high_resolution_clock> m_last_random_events_timepoint = std::chrono::high_resolution_clock::now();
 
     bool m_simulation_is_running = true;
+    std::chrono::high_resolution_clock::duration m_time_from_random_events_when_paused = std::chrono::high_resolution_clock::duration::zero();
 
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
 };
