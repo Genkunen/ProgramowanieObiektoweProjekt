@@ -5,10 +5,6 @@ The goal of the project is for students to create a simple agent-based simulatio
 As an example, let's consider a simulation of the life of a colony of different types of organisms (herbivores, omnivores, carnivores). Each group of organisms has different properties and behavioral patterns. These organisms can move (randomly) around a board of given dimensions. Each board square can contain some kind of resource (food). The simulation begins by creating a random board with resources. Then, we place randomly generated organisms on it. At each step of the simulation, the organism moves a specific number of squares. During its journey, it can find resources, encounter other organisms, and interact with them.
 The project created by students should allow for the setting of various initial parameters for the running simulation. Furthermore, data for each epoch (e.g., population size) should be collected during the simulation. After the simulation is completed, this data should be saved in some way, e.g., as a CSV file.
 
-There exist:
-- plants that do nothing but follow constantly present water current,
-- fish that eat the plants and may eat other fish,
-- predators that only eat fish.
 
 ## Dependencies
 ### Required
@@ -58,7 +54,12 @@ The project focuses on the following aspects:
 - Abstracting low-level Vulkan details such as synchronization away from render graph passes.
 
 ## Current State
-Simulation shows a variable number of objects being drawn and interacting with each other. The number of objects can be changed in the GUI panel, by specifying a new number and clicking the Apply button alongside the input.
+Objects:
+- plants that do nothing but follow constantly present water current,
+- fish that eat the plants and may eat other fish,
+- predators that only eat fish.
+
+The number of objects can be changed in the GUI panel, by specifying a new number and clicking the Apply button alongside the input.
 The strength of the water current inside the aquarium is randomized depending on the position (e.g. it is a noise algorithm as a vector field). The strength of the current can be changed in the same GUI panel and then clicking the Apply button alongside it.
 The simulation can be paused and resumed by the respective buttons in the GUI panel.
 <br>
@@ -69,4 +70,4 @@ The simulation implementation splits the aquarium space into a spatial hash grid
 Because of GPU LDS memory limitations, up to 64 objects are considered in a single cell.
 <br>
 
-Current testing showed promising results in up to 3,000,000 objects on intel and amd **integrated** laptop GPUs and over 10,000,000 objects on a dedicated amd GPU, maintaining steady 30+ FPS (below 30ms per frame). Currently no „fish” are swimming, but since logic is so simple it can be implemented at the end, when all systems prove capable of handling the goal.
+Current testing showed promising results in up to 1,000,000 objects on intel and amd **integrated** laptop GPUs and over 10,000,000 objects on a dedicated amd GPU, maintaining steady 30+ FPS (below 30ms per frame). Currently no „fish” are swimming, but since logic is so simple it can be implemented at the end, when all systems prove capable of handling the goal.
