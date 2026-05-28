@@ -174,8 +174,8 @@ private:
             }
 
             auto global_memory_barrier = vk::MemoryBarrier2{}
-                .setSrcStageMask(memory_usage.stages)
-                .setSrcAccessMask(memory_usage.accesses)
+                .setSrcStageMask(m_last_global_memory_usage.stages)
+                .setSrcAccessMask(mask_access_flags_with_write_bit(m_last_global_memory_usage.accesses))
                 .setDstStageMask(memory_usage.stages)
                 .setDstAccessMask(memory_usage.accesses);
 
