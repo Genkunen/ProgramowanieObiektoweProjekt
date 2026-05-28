@@ -43,7 +43,7 @@ public:
 
         for (auto& node : exec_nodes) {
             auto dependency_info = vk::DependencyInfo{}
-                .setMemoryBarriers(node.global_memory_barrier)
+                .setMemoryBarriers(node.global_memory_barriers)
                 .setImageMemoryBarriers(node.image_memory_barriers);
 
             cmd.pipelineBarrier2(dependency_info);
@@ -89,7 +89,7 @@ private:
 
     struct ExecNode {
         std::vector<PassIndexV2> passes;
-        vk::MemoryBarrier2 global_memory_barrier = {};
+        std::vector<vk::MemoryBarrier2> global_memory_barriers = {};
         std::vector<vk::ImageMemoryBarrier2> image_memory_barriers = {};
     };
 
@@ -173,10 +173,13 @@ private:
                 }
             }
 
-            node.global_memory_barrier.setSrcStageMask(m_last_global_memory_usage.stages);
-            node.global_memory_barrier.setSrcAccessMask(mask_access_flags_with_write_bit(m_last_global_memory_usage.accesses));
-            node.global_memory_barrier.setDstStageMask(memory_usage.stages);
-            node.global_memory_barrier.setDstAccessMask(memory_usage.accesses);
+            auto global_memory_barrier = vk::MemoryBarrier2{}
+                .setSrcStageMask(memory_usage.stages)
+                .setSrcAccessMask(memory_usage.accesses)
+                .setDstStageMask(memory_usage.stages)
+                .setDstAccessMask(memory_usage.accesses);
+
+            node.global_memory_barriers.emplace_back(global_memory_barrier);
 
             for (auto& [image_id, old_layout, new_layout] : image_layouts) {
                 // An image layout change counts as a write in the Vulkan synchronization model, which implicitly causes a RAW/WAW hazard. This means that only
