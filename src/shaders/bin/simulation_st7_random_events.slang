@@ -50,7 +50,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint object_ev_hash = hash(hash(tid) ^ push_constants.event_randseed);
 
     if (push_constants.object_flags[tid] & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) {
-        bool resurrect = roll_chance(object_ev_hash, 0u, 0.00002f); // TODO: add timing logic in host code then reduce this
+        bool resurrect = roll_chance(object_ev_hash, 0u, 0.005f);
 
         if (resurrect) {
             float2 new_position =

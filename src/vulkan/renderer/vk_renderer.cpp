@@ -23,17 +23,18 @@ static constexpr float ACCELERATION_GRID_TILE_EXTENT = 16.0f;
 static constexpr uint32_t ACCELERATION_GRID_WIDTH = 1 + SIMULATION_BOUNDS.x / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_HEIGHT = 1 + SIMULATION_BOUNDS.y / ACCELERATION_GRID_TILE_EXTENT;
 static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACCELERATION_GRID_HEIGHT;
+static constexpr float RANDOM_EVENTS_INTERVAL_SECONDS = 5.0f;
 
 VulkanRenderer::VulkanRenderer(
     VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
     render_graph::PassIndexV2 simulation_step_pass_index, render_graph::PassIndexV2 simulation_influence_step_pass_index,
     render_graph::PassIndexV2 acceleration_grid_prepare_pass_index, render_graph::PassIndexV2 acceleration_grid_radix_sort_pass_index,
-    render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index,
+    render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index, render_graph::PassIndexV2 random_events_pass_index,
         SimulationBuffersManager&& simulation_buffers_manager, RenderTargetsManager&& render_targets_manager, std::vector<FrameInFlight>&& frames_in_flight)
     : m_swapchain(std::move(swapchain)), m_render_graph(std::move(render_graph)), m_mesh_upload_pass_index(mesh_upload_pass_index),
         m_simulation_step_pass_index(simulation_step_pass_index), m_simulation_influence_step_pass_index(simulation_influence_step_pass_index),
         m_acceleration_grid_prepare_pass_index(acceleration_grid_prepare_pass_index), m_acceleration_grid_radix_sort_pass_index(acceleration_grid_radix_sort_pass_index),
-        m_acceleration_grid_bound_scan_pass_index(acceleration_grid_bound_scan_pass_index),
+        m_acceleration_grid_bound_scan_pass_index(acceleration_grid_bound_scan_pass_index), m_random_events_pass_index(random_events_pass_index),
         m_simulation_buffers_manager(std::move(simulation_buffers_manager)), m_render_targets_manager(std::move(render_targets_manager)),
         m_frames_in_flight(std::move(frames_in_flight)) {}
 
@@ -165,6 +166,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     return VulkanRenderer{ std::move(swapchain), std::move(render_graph_v2), mesh_upload_pass, simulation_step_pass, simulation_influence_step_pass,
         simulation_acceleration_grid_sort_prepare_pass, simulation_acceleration_grid_radix_sort_pass, simulation_acceleration_grid_bound_scan_pass,
+        random_events_pass,
         std::move(simulation_buffers_manager),
         std::move(render_targets_manager), std::move(frames_in_flight) };
 }
@@ -190,6 +192,22 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     device.resetFences(*frame.frame_finished_fence);
 
     frame.command_pool.reset();
+
+    // ---- Decide upon the random events pass -----------------------------------------------------------------------------------------------------------------
+
+    auto elapsed_since_last_random_events = std::chrono::duration<float>(std::chrono::high_resolution_clock::now() - m_last_random_events_timepoint).count();
+
+    if (elapsed_since_last_random_events > RANDOM_EVENTS_INTERVAL_SECONDS) {
+        if (elapsed_since_last_random_events > RANDOM_EVENTS_INTERVAL_SECONDS * 2) {
+            std::println("WARNING: Simulation can't keep up, skipped a random event pass!");
+        }
+
+        m_last_random_events_timepoint = std::chrono::high_resolution_clock::now();
+
+        m_render_graph.get_pass_by_id(m_random_events_pass_index).enable();
+    } else {
+        m_render_graph.get_pass_by_id(m_random_events_pass_index).disable();
+    }
 
     // ---- Fill simulation data buffer ------------------------------------------------------------------------------------------------------------------------
 
