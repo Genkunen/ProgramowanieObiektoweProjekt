@@ -374,6 +374,8 @@ auto VulkanRenderer::pause_simulation() -> void {
     m_render_graph.get_pass_by_id(m_acceleration_grid_prepare_pass_index).disable();
     m_render_graph.get_pass_by_id(m_acceleration_grid_radix_sort_pass_index).disable();
     m_render_graph.get_pass_by_id(m_acceleration_grid_bound_scan_pass_index).disable();
+
+    m_render_graph.get_pass_by_id(m_random_events_pass_index).disable();
 }
 auto VulkanRenderer::resume_simulation() -> void {
     m_simulation_is_running = true;
