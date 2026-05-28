@@ -71,4 +71,4 @@ The simulation implementation splits the aquarium space into a spatial hash grid
 Because of GPU LDS memory limitations, up to 64 objects are considered in a single cell.
 <br>
 
-Current testing showed promising results in up to 1,000,000 objects on intel and amd **integrated** laptop GPUs and over 10,000,000 objects on a dedicated amd GPU, maintaining steady 30+ FPS (below 30ms per frame). Currently no „fish” are swimming, but since logic is so simple it can be implemented at the end, when all systems prove capable of handling the goal.
+Current testing showed promising results in up to 1,000,000 objects on intel and AMD **integrated** laptop GPUs and over 10,000,000 objects on a dedicated AMD GPU, maintaining steady 30+ FPS (below 30ms per frame). Currently no „fish” are swimming, but since logic is so simple it can be implemented at the end, when all systems prove capable of handling the goal.
