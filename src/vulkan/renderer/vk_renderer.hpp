@@ -68,6 +68,8 @@ public:
     auto resume_simulation() -> void;
 
     constexpr auto is_simulation_running() const -> bool { return m_simulation_is_running; }
+    constexpr auto gpu_driven_sim_object_count() const -> uint32_t { return m_gpu_driven_sim_object_count; }
+    constexpr auto water_current_strength() const -> float { return m_water_current_strength; }
 
 private:
     VulkanSwapchain m_swapchain;

@@ -16,6 +16,19 @@
 
 #include <print>
 
+std::filesystem::path make_unique_export_path(const std::filesystem::path& path, const std::filesystem::path& filename_base) {
+    std::filesystem::path unique_path = path;
+    unique_path /= filename_base;
+    int i = 0;
+    while (std::filesystem::exists(unique_path)) {
+        unique_path = path;
+        unique_path /= filename_base;
+        unique_path.replace_extension(std::to_string(i) + filename_base.extension().string());
+        i++;
+    }
+    return unique_path;
+}
+
 void push_disable_imgui_button() {
     ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
     ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
@@ -155,12 +168,20 @@ auto sdl_entry_main() -> void {
 
         ImGui::SameLine();
 
+        ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "(current: %d)", renderer.gpu_driven_sim_object_count());
+
+        ImGui::SameLine();
+
         if (ImGui::Button("Apply##1")) {
             renderer.reset_simulation_object_count(simulation_object_count);
         }
 
         ImGui::SetNextItemWidth(120.0f);
         ImGui::InputFloat("Water Current Strength", &simulation_water_current_strength);
+
+        ImGui::SameLine();
+
+        ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "(current: %.2f)", renderer.water_current_strength());
 
         ImGui::SameLine();
 
@@ -196,6 +217,7 @@ auto sdl_entry_main() -> void {
                 ImGuiColorEditFlags_NoTooltip |
                 ImGuiColorEditFlags_NoAlpha;
             auto& clrs = imgui_variables.clr_colors;
+            ImGui::PushItemWidth(300.0f);
             if (ImGui::ColorPicker4("Background Color", (float*)&imgui_variables.clr_colors, colorEdiFlags)) {
                 pop::systems::PersistentSettings::set_clear_color({ clrs.r, clrs.g, clrs.b, 1.f });
             }
@@ -247,10 +269,18 @@ auto sdl_entry_main() -> void {
         ImGui::Separator();
         ImGui::Text("Export");
 
+        static std::optional<std::string> last_export_path = std::nullopt;
         if (ImGui::Button("Export Simulation Data to CSV File")) {
             auto data = renderer.export_simulation_data();
-            pop::systems::SimulationDataCsvWriter::write_to_file(data, "./simulation_data.csv");
+            auto path = make_unique_export_path(std::filesystem::current_path(), "simulation_data.csv");
+            pop::systems::SimulationDataCsvWriter::write_to_file(data, path);
+            last_export_path = path;
         }
+
+        if (last_export_path) {
+            ImGui::TextColored(ImVec4{1.0f, 1.0f, 0.0f, 1.0f}, "Exported to %s", last_export_path->c_str());
+        }
+
         ImGui::End();
 
         float delta_time = 1.0f / ImGui::GetIO().Framerate;
