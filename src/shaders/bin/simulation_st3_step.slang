@@ -61,6 +61,8 @@ float2 water_flow_vector_field(float2 pos, float time, float scale) {
 
 static const float SIMULATION_BOUNDS_PUSHBACK_ZONE_FACTOR = 0.01f;
 
+static const float OBJECT_VELOCITY_LIMIT = 100.0f;
+
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
@@ -74,6 +76,10 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     float dt = push_constants.simulation_data->delta_time;
 
     var object = push_constants.objects[tid];
+
+    if (length(object.velocity) > OBJECT_VELOCITY_LIMIT) {
+        object.velocity = normalize(object.velocity) * OBJECT_VELOCITY_LIMIT;
+    }
 
     object.position += object.velocity * dt;
 
