@@ -262,7 +262,8 @@ private:
 class FishTankRenderPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline,
-                       vk::raii::Sampler&& sampler, pop::systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set, VulkanImage&& texture);
+                       vk::raii::Sampler&& sampler, pop::systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set,
+                       VulkanImage&& fish_texture, VulkanImage&& food_texture, VulkanImage&& predator_texture);
 
     static auto create() -> FishTankRenderPass;
 
@@ -277,7 +278,9 @@ private:
     pop::systems::Ktx2Loader m_texture_loader;
     vk::raii::DescriptorPool m_descriptor_pool;
     vk::raii::DescriptorSet m_descriptor_set;
-    VulkanImage m_texture;
+    VulkanImage m_fish_texture;
+    VulkanImage m_food_texture;
+    VulkanImage m_predator_texture;
 };
 
 // ---- ImGuiRenderPass ---------------------------------------------------------------------------------------------------------------------------------------

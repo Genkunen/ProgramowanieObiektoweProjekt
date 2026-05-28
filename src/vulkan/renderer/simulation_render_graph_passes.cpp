@@ -812,9 +812,10 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
 
 FishTankRenderPass::FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanGraphicsPipeline&& graphics_pipeline, vk::raii::Sampler&& sampler, systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set,
-    VulkanImage&& texture)
+    VulkanImage&& fish_texture, VulkanImage&& food_texture, VulkanImage&& predator_texture)
         : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)),
-        m_sampler(std::move(sampler)), m_texture_loader(std::move(loader)), m_descriptor_pool(std::move(pool)), m_descriptor_set(std::move(set)), m_texture(std::move(texture)) {}
+        m_sampler(std::move(sampler)), m_texture_loader(std::move(loader)), m_descriptor_pool(std::move(pool)), m_descriptor_set(std::move(set)),
+        m_fish_texture(std::move(fish_texture)), m_food_texture(std::move(food_texture)), m_predator_texture(std::move(predator_texture)) {}
 
 auto FishTankRenderPass::create() -> FishTankRenderPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -840,7 +841,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
     auto loader = systems::Ktx2Loader::create();
 
     std::array pool_sizes {
-        vk::DescriptorPoolSize{}.setDescriptorCount(1).setType(vk::DescriptorType::eSampledImage),
+        vk::DescriptorPoolSize{}.setDescriptorCount(3).setType(vk::DescriptorType::eSampledImage),
         vk::DescriptorPoolSize{}.setDescriptorCount(1).setType(vk::DescriptorType::eSampler),
     };
     auto descriptor_pool = device.createDescriptorPool(vk::DescriptorPoolCreateInfo{}.setMaxSets(1).setPoolSizes(pool_sizes));
@@ -848,7 +849,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
     std::array bindings {
         vk::DescriptorSetLayoutBinding{}
             .setBinding(0)
-            .setDescriptorCount(1)
+            .setDescriptorCount(3)
             .setDescriptorType(vk::DescriptorType::eSampledImage)
             .setStageFlags(vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment),
         vk::DescriptorSetLayoutBinding{}
@@ -859,7 +860,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
             .setImmutableSamplers(*sampler),
     };
     auto descriptor_set_layout = VulkanContext::get().vk_device().createDescriptorSetLayout(vk::DescriptorSetLayoutCreateInfo{}.setBindings(bindings));
-    auto descripotr_set = std::move(device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo{}.setDescriptorPool(descriptor_pool).setSetLayouts(*descriptor_set_layout))[0]);
+    auto descriptor_set = std::move(device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo{}.setDescriptorPool(descriptor_pool).setSetLayouts(*descriptor_set_layout))[0]);
 
     auto pipeline_layout = VulkanPipelineLayout::builder()
         .add_push_constant_range(0, 24, vk::ShaderStageFlagBits::eVertex)
@@ -868,15 +869,27 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
 
     auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_entity.spv");
 
-    auto texture = loader.load_to_vulkan_image("../fih.ktx2");
-    auto image_info = vk::DescriptorImageInfo{}.setImageView(texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    auto fish_texture = loader.load_to_vulkan_image("../fih.ktx2");
+    auto food_texture = loader.load_to_vulkan_image("../plant____kind_of.ktx2");
+    auto predator_texture = loader.load_to_vulkan_image("../predator.ktx2");
 
-    auto write_descriptor_set = vk::WriteDescriptorSet{}
-        .setDescriptorCount(1)
-        .setDescriptorType(vk::DescriptorType::eSampledImage)
-        .setImageInfo(image_info)
-        .setDstSet(descripotr_set);
-    device.updateDescriptorSets(write_descriptor_set, nullptr);
+    auto fish_image_info = vk::DescriptorImageInfo{}.setImageView(fish_texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    auto food_image_info = vk::DescriptorImageInfo{}.setImageView(food_texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+    auto predator_image_info = vk::DescriptorImageInfo{}.setImageView(predator_texture.vk_full_image_view()).setImageLayout(vk::ImageLayout::eShaderReadOnlyOptimal);
+
+    auto image_infos = std::array<vk::DescriptorImageInfo, 3>{{food_image_info, fish_image_info, predator_image_info}};
+
+    for (int i = 0; i < image_infos.size(); i++) {
+        auto& image_info = image_infos[i];
+        auto write_descriptor_set = vk::WriteDescriptorSet{}
+            .setDescriptorCount(1)
+            .setDescriptorType(vk::DescriptorType::eSampledImage)
+            .setImageInfo(image_info)
+            .setDstSet(descriptor_set)
+            .setDstArrayElement(i);
+
+        device.updateDescriptorSets(write_descriptor_set, nullptr);
+    }
 
     auto pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(pipeline_layout)
@@ -904,7 +917,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
         .build();
 
     return FishTankRenderPass(std::move(dependencies), std::move(pipeline_layout), std::move(pipeline), std::move(sampler), std::move(loader), 
-                              std::move(descriptor_pool), std::move(descripotr_set), std::move(texture));
+                              std::move(descriptor_pool), std::move(descriptor_set), std::move(fish_texture), std::move(food_texture), std::move(predator_texture));
 }
 
 auto FishTankRenderPass::debug_name() const noexcept -> std::string { return "Fish Tank Render Pass"; }

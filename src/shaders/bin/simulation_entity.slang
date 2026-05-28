@@ -12,7 +12,7 @@ struct VSOutput {
     float4 position : SV_Position;
     float3 color : COLOR;
     float2 texcoord : TEXCOORD0;
-    nointerpolation uint randseed;
+    nointerpolation uint texindex : TEXINDEX;
 };
 
 [[vk::binding(0, 0)]] Texture2D global_textures[];
@@ -40,12 +40,12 @@ VSOutput main(uint vertex_id : SV_VulkanVertexID, uint instance_id : SV_VulkanIn
     VSOutput output;
     output.position = mul(object_data.transform, float4(position, 1.0));
     output.texcoord = texcoord;
-    output.randseed = push_constants.object_data[instance_id].randseed;
+    output.texindex = draw_id;
     return output;
 }
 
 [shader("fragment")]
 float4 main(VSOutput input) : SV_Target {
-    float4 color = global_textures[0].Sample(global_sampler, input.texcoord);
+    float4 color = global_textures[input.texindex].Sample(global_sampler, input.texcoord);
     return color;
 }
