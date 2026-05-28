@@ -58,7 +58,7 @@ The project focuses on the following aspects:
 - Abstracting low-level Vulkan details such as synchronization away from render graph passes.
 
 ## Overview in Radeon GPU Profiler
-The following capture was made using Mesa RADV 26.1.0, on a NAVI31 chip, displayed using Radeon GPU Profiler V2.6.1.12.
+The following capture was made using Mesa RADV 26.1.0, on a NAVI31 chip, displayed using Radeon GPU Profiler V2.6.1.12. At the time of capture, about 1000000 objects were being both simulated and drawn.
 <img src="./Images/RGPTrace.png">
 *note: debug labels might not be accurate due to RADV+RGP shenanigans*
 
