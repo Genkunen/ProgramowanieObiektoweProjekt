@@ -176,13 +176,21 @@ target_compile_definitions(
         GLM_FORCE_RADIANS
 )
 
-target_compile_options(
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+    target_compile_options(
+        ProgramowanieObiektoweProjekt PRIVATE
+        /W4
+        /we4716 # Odpowiednik MSVC dla -Werror=return-type
+    )
+else()
+    target_compile_options(
         ProgramowanieObiektoweProjekt PRIVATE
         -Wall
         -Wextra
         -Wpedantic
         -Werror=return-type
-)
+    )
+endif()
 
 # ---- Assets Copy -----------------------------------------------------------------------------------------------------
 

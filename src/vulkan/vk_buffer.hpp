@@ -59,7 +59,7 @@ public:
             memory_host_ptr = static_cast<uint8_t*>(allocation.getInfo().pMappedData);
         }
 
-        vk::DeviceAddress memory_device_ptr = vk::DeviceAddress(nullptr);
+        vk::DeviceAddress memory_device_ptr = vk::DeviceAddress(0);
         if (m_usage & vk::BufferUsageFlagBits::eShaderDeviceAddress) {
             auto bda_info = vk::BufferDeviceAddressInfo()
                 .setBuffer(buffer);

@@ -121,7 +121,7 @@ auto VulkanContext::select_physical_device(const vk::raii::Instance& instance) -
         throw std::runtime_error("No physical devices found!");
     }
 
-    auto device_name = std::string(physical_devices[0].getProperties().deviceName);
+    auto device_name = std::string(physical_devices[0].getProperties().deviceName.data());
     std::println("Selected device: {}", device_name);
 
     return physical_devices[0];

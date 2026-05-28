@@ -319,6 +319,8 @@ auto sdl_entry_main() -> void {
             pop::systems::PersistentSettings::save_all();
         }
     }
+
+    pop::vulkan::VulkanContext::get().vk_device().waitIdle();
 }
 
 auto main() -> int {

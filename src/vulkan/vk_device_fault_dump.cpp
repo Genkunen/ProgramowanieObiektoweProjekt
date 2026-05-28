@@ -26,7 +26,7 @@ auto VulkanDeviceFaultDump::dump_device_fault_info() -> VulkanDeviceFaultDump {
 
     VulkanContext::get().vk_device().getFaultInfoEXT(&device_fault_counts, &device_fault_info);
 
-    std::string fault_description = std::string(device_fault_info.description);
+    std::string fault_description = std::string(device_fault_info.description.data());
     return VulkanDeviceFaultDump(std::move(fault_description), std::move(device_fault_addresses), std::move(device_fault_vendor_infos));
 }
 

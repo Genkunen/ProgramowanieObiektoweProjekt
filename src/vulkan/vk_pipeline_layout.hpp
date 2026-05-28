@@ -40,11 +40,11 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr auto build_create_info() const noexcept -> vk::PipelineLayoutCreateInfo {
+    [[nodiscard]] auto build_create_info() const noexcept -> vk::PipelineLayoutCreateInfo {
         return vk::PipelineLayoutCreateInfo().setSetLayouts(m_descriptor_set_layouts).setPushConstantRanges(m_push_constant_ranges);
     }
 
-    [[nodiscard]] constexpr auto build() const -> VulkanPipelineLayout {
+    [[nodiscard]] auto build() const -> VulkanPipelineLayout {
         auto pipeline_layout = VulkanContext::get().vk_device().createPipelineLayout(build_create_info());
 
         return VulkanPipelineLayout(std::move(pipeline_layout));

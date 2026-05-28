@@ -47,7 +47,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] constexpr auto build() noexcept -> PassDependencies {
+    [[nodiscard]] auto build() noexcept -> PassDependencies {
         return PassDependencies(std::move(m_buffer_dependencies), std::move(m_image_dependencies));
     }
 

@@ -2,13 +2,20 @@
 #include "../vk_prelude.hpp"
 #include <glm/glm.hpp>
 
+#ifdef _MSC_VER
+# pragma pack(push, 1)
+# define PACKED
+#else
+# define PACKED __attribute((packed))
+#endif
+
 namespace pop::vulkan::renderer {
 
 struct UploadMeshesCSPushConstants {
     vk::DeviceAddress draw_commands;
     vk::DeviceAddress mesh_allocations;
     uint32_t mesh_count;
-} __attribute((packed));
+} PACKED;
 
 struct RandomEventsCSPushConstants {
     vk::DeviceAddress simulation_objects;
@@ -16,12 +23,12 @@ struct RandomEventsCSPushConstants {
     uint32_t object_count;
     uint32_t event_randseed;
     glm::vec2 simulation_bounds;
-} __attribute((packed));
+} PACKED;
 
 struct ClearInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
     uint32_t mesh_count;
-} __attribute((packed));
+} PACKED;
 
 struct SimulationStepCSPushConstants {
     vk::DeviceAddress simulation_data;
@@ -31,7 +38,7 @@ struct SimulationStepCSPushConstants {
     glm::vec2 simulation_bounds;
     uint32_t object_count;
     float water_current_strength;
-} __attribute((packed));
+} PACKED;
 
 struct SimulationAccelerationGridSortPrepareCSPushConstants {
     vk::DeviceAddress objects;
@@ -41,7 +48,7 @@ struct SimulationAccelerationGridSortPrepareCSPushConstants {
     float grid_cell_size;
     uint32_t grid_width;
     uint32_t object_count;
-} __attribute((packed));
+} PACKED;
 
 struct SimulationAccelerationGridRadixSortHistogramCSPushConstants {
     vk::DeviceAddress sort_keys;
@@ -52,14 +59,14 @@ struct SimulationAccelerationGridRadixSortHistogramCSPushConstants {
     uint32_t group_count;
     uint32_t keys_count;
     uint32_t radix_bit_shift;
-} __attribute((packed));
+} PACKED;
 
 struct SimulationAccelerationGridRadixSortPrefixSumCSPushConstants {
     vk::DeviceAddress global_histogram;
     vk::DeviceAddress group_local_histograms;
 
     uint32_t group_count;
-} __attribute((packed));
+} PACKED;
 
 // TODO: reduce size (<= 13 DWORDs)
 struct SimulationAccelerationGridRadixSortScatterCSPushConstants {
@@ -74,14 +81,14 @@ struct SimulationAccelerationGridRadixSortScatterCSPushConstants {
     uint32_t group_count;
     uint32_t keys_count;
     uint32_t radix_bit_shift;
-} __attribute((packed));
+} PACKED;
 
 struct SimulationAccelerationGridBoundScanCSPushConstants {
     vk::DeviceAddress sort_keys;
     vk::DeviceAddress tile_start_indices;
     vk::DeviceAddress tile_end_indices;
     uint32_t keys_count;
-} __attribute((packed));
+} PACKED;
 
 // TODO: reduce size (<= 13 DWORDs)
 struct SimulationInfluenceStepCSPushConstants {
@@ -96,7 +103,7 @@ struct SimulationInfluenceStepCSPushConstants {
     uint32_t grid_width;
     uint32_t grid_height;
     uint32_t object_count;
-} __attribute((packed));
+} PACKED;
 
 struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress draw_commands;
@@ -104,12 +111,12 @@ struct BuildIndirectInstanceCountCSPushConstants {
     vk::DeviceAddress simulation_objects;
     vk::DeviceAddress simulation_object_flags;
     uint32_t object_count;
-} __attribute((packed));
+} PACKED;
 
 struct BuildIndirectFirstInstanceCSPushConstants {
     vk::DeviceAddress draw_commands;
     uint32_t draw_commands_count;
-} __attribute((packed));
+} PACKED;
 
 struct BuildInstanceBufferCSPushConstants {
     vk::DeviceAddress draw_commands;
@@ -119,7 +126,7 @@ struct BuildInstanceBufferCSPushConstants {
     vk::DeviceAddress simulation_object_flags;
     vk::DeviceAddress instance_data;
     uint32_t object_count;
-} __attribute((packed));
+} PACKED;
 
 struct BackgroundVSFSPushConstants {
     vk::DeviceAddress simulation_data;
@@ -132,6 +139,10 @@ struct BackgroundVSFSPushConstants {
     float depth_range;
     float deep_color[3];
     float vignette_size;
-} __attribute((packed));
+} PACKED;
 
 }
+
+#ifdef _MSC_VER
+# pragma pack(pop)
+#endif
