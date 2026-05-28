@@ -50,7 +50,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint object_ev_hash = hash(hash(tid) ^ push_constants.event_randseed);
 
     if (push_constants.object_flags[tid] & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) {
-        bool resurrect = roll_chance(object_ev_hash, 0u, 0.005f);
+        bool resurrect = roll_chance(object_ev_hash, 0u, 0.03f);
 
         if (resurrect) {
             float2 new_position =
@@ -63,7 +63,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
             uint new_object_type = pop::shader_consts::SIM_OBJECT_TYPE_FOOD;
 
-            if (roll_chance(object_ev_hash, 1005u, 0.05f)) {
+            if (roll_chance(object_ev_hash, 1005u, 0.005f)) {
                 new_object_type = pop::shader_consts::SIM_OBJECT_TYPE_FISH;
             }
 
