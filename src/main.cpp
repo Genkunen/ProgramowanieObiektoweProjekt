@@ -167,7 +167,7 @@ auto sdl_entry_main() -> void {
 
         ImGui::SetNextItemWidth(120.0f);
         if (ImGui::InputInt("Object Count", &simulation_object_count)) {
-            if (simulation_object_count < 0) simulation_object_count = 0;
+            if (simulation_object_count < 1) simulation_object_count = 1;
             if (simulation_object_count > 10000000) simulation_object_count = 10000000;
         }
 
