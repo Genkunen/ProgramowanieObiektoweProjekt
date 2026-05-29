@@ -164,7 +164,7 @@ struct FishVSPushConstants {
     DevicePtr<pop::shaders::Vertex> vertices;
     DevicePtr<pop::shaders::PreparedSimulationObject> object_data;
     DevicePtr<pop::shaders::SimulationData> simulation_data;
-};
+} PACKED;
 
 }
 
