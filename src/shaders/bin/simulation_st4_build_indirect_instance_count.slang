@@ -2,15 +2,7 @@ import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
-struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
-    uint* drawlocal_instance_indices;
-    pop::shaders::SimulationObject* objects;
-    uint* object_flags;
-    uint object_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::BuildIndirectInstanceCountCSPushConstants push_constants;
 
 groupshared uint gs_instance_counts[pop::shader_consts::MAX_DRAW_COMMANDS];
 groupshared uint gs_instance_prefixes[pop::shader_consts::MAX_DRAW_COMMANDS];
@@ -34,7 +26,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
     uint mesh_object_instance_id = 0;
     bool thread_has_object = false;
     if (is_working_thread) {
-        uint object_flags = push_constants.object_flags[tid];
+        uint object_flags = push_constants.simulation_object_flags[tid];
 
         bool is_alive = (object_flags & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) == 0;
 
@@ -42,7 +34,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
         thread_has_object = is_visible;
 
         if (is_visible) {
-            mesh_id = push_constants.objects[tid].object_type;
+            mesh_id = push_constants.simulation_objects[tid].object_type;
             InterlockedAdd(gs_instance_counts[mesh_id], 1, mesh_object_instance_id);
         }
 
@@ -50,7 +42,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID) {
             (object_flags | pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE) :
             (object_flags & (~pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE));
 
-        push_constants.object_flags[tid] = new_object_flags;
+        push_constants.simulation_object_flags[tid] = new_object_flags;
     }
     GroupMemoryBarrierWithGroupSync();
 

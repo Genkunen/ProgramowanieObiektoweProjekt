@@ -1,10 +1,10 @@
 #include "simulation_render_graph_passes.hpp"
 
-#include "pipelines_push_constants.hpp"
+#include "shaders/push_constant_structs.hpp"
 #include "shaders/shared_consts.hpp"
-#include "systems/systems.hpp"
-#include "systems/persistent_settings.hpp"
 #include "systems/ktx2_loader.hpp"
+#include "systems/persistent_settings.hpp"
+#include "systems/systems.hpp"
 
 #include <backends/imgui_impl_vulkan.h>
 
@@ -23,7 +23,7 @@ auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(UploadMeshesCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::UploadMeshesCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st1_1_upload_meshes.spv");
@@ -46,14 +46,14 @@ auto UploadMeshInfoPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
 
     memcpy(frame_local_mesh_info_staging_buffer.memory_host_ptr(), state.mesh_pool.get().mesh_allocations().data(), mesh_count * sizeof(shaders::MeshAllocationData));
 
-    UploadMeshesCSPushConstants consts = {
-        indirect_draw_commands_buffer.memory_device_ptr(),
-        frame_local_mesh_info_staging_buffer.memory_device_ptr(),
-        mesh_count
+    shaders::UploadMeshesCSPushConstants consts = {
+        .draw_commands    = indirect_draw_commands_buffer.memory_device_ptr(),
+        .mesh_allocations = frame_local_mesh_info_staging_buffer.memory_device_ptr(),
+        .mesh_count       = mesh_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<UploadMeshesCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::UploadMeshesCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_UPLOAD_MESHES_GROUP_SIZE_X), 1, 1);
 }
 
@@ -69,7 +69,7 @@ auto RandomEventsPass::create() -> RandomEventsPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(RandomEventsCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::RandomEventsCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st7_random_events.spv");
@@ -88,16 +88,16 @@ auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRend
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
 
-    RandomEventsCSPushConstants consts = {
-        .simulation_objects = simulation_objects_buffer.memory_device_ptr(),
+    shaders::RandomEventsCSPushConstants consts = {
+        .simulation_objects      = simulation_objects_buffer.memory_device_ptr(),
         .simulation_object_flags = simulation_objects_flags_buffer.memory_device_ptr(),
-        .object_count = state.object_count,
-        .event_randseed = static_cast<uint32_t>(rand()),
-        .simulation_bounds = state.simulation_bounds
+        .object_count            = state.object_count,
+        .event_randseed          = static_cast<uint32_t>(rand()),
+        .simulation_bounds       = state.simulation_bounds
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<RandomEventsCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::RandomEventsCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(div_ceil(state.object_count, shader_consts::CS_RANDOM_EVENTS_GROUP_SIZE_X), 1, 1);
 }
 
@@ -113,7 +113,7 @@ auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(ClearInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::ClearInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st2_clear_instance_count.spv");
@@ -132,13 +132,13 @@ auto IndirectDrawCommandsClearPass::invoke(vk::raii::CommandBuffer& cmd, const S
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     uint32_t mesh_count = static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size());
 
-    ClearInstanceCountCSPushConstants consts = {
-        indirect_draw_commands_buffer.memory_device_ptr(),
-        mesh_count
+    shaders::ClearInstanceCountCSPushConstants consts = {
+        .draw_commands = indirect_draw_commands_buffer.memory_device_ptr(),
+        .mesh_count    = mesh_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<ClearInstanceCountCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::ClearInstanceCountCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(div_ceil(mesh_count, shader_consts::CS_CLEAR_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 }
 
@@ -157,7 +157,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_step.spv");
@@ -178,18 +178,18 @@ auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
     auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
 
-    SimulationStepCSPushConstants consts = {
-        frame_local_simulation_data_buffer.memory_device_ptr(),
-        simulation_objects_buffer.memory_device_ptr(),
-        simulation_next_objects_buffer.memory_device_ptr(),
-        simulation_objects_flags_buffer.memory_device_ptr(),
-        state.simulation_bounds,
-        state.object_count,
-        state.water_current_strength
+    shaders::SimulationStepCSPushConstants consts = {
+        .simulation_data        = frame_local_simulation_data_buffer.memory_device_ptr(),
+        .objects                = simulation_objects_buffer.memory_device_ptr(),
+        .dst_updated_objects    = simulation_next_objects_buffer.memory_device_ptr(),
+        .object_flags           = simulation_objects_flags_buffer.memory_device_ptr(),
+        .simulation_bounds      = state.simulation_bounds,
+        .object_count           = state.object_count,
+        .water_current_strength = state.water_current_strength
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<SimulationStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::SimulationStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
         div_ceil(state.object_count, shader_consts::CS_SIMULATION_STEP_GROUP_SIZE_X),
         1,
@@ -212,7 +212,7 @@ auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerati
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridSortPrepareCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridSortPrepareCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_1_acceleration_grid_sort_prepare.spv");
@@ -234,18 +234,18 @@ auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& 
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
 
-    SimulationAccelerationGridSortPrepareCSPushConstants consts = {
-        simulation_next_objects_buffer.memory_device_ptr(),
-        simulation_objects_flags_buffer.memory_device_ptr(),
-        acceleration_grid_sort_keys_buffer.memory_device_ptr(),
-        acceleration_grid_sort_values_buffer.memory_device_ptr(),
-        state.grid_cell_size,
-        state.grid_width,
-        state.object_count
+    shaders::SimulationAccelerationGridSortPrepareCSPushConstants consts = {
+        .objects        = simulation_next_objects_buffer.memory_device_ptr(),
+        .object_flags   = simulation_objects_flags_buffer.memory_device_ptr(),
+        .sort_keys      = acceleration_grid_sort_keys_buffer.memory_device_ptr(),
+        .sort_values    = acceleration_grid_sort_values_buffer.memory_device_ptr(),
+        .grid_cell_size = state.grid_cell_size,
+        .grid_width     = state.grid_width,
+        .object_count   = state.object_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<SimulationAccelerationGridSortPrepareCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::SimulationAccelerationGridSortPrepareCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
         div_ceil(state.object_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_SORT_PREPARE_GROUP_SIZE_X),
         1,
@@ -276,15 +276,15 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
         .build();
 
     auto histogram_cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortHistogramCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto prefix_sum_cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortPrefixSumCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto scatter_cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridRadixSortScatterCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto histogram_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_2_radix_sort_histogram_build.spv");
@@ -340,31 +340,31 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
         auto& real_keys_scratch_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_keys_buffer : acceleration_grid_sort_keys_scratch_buffer;
         auto& real_values_scratch_buffer = regular_buffer_is_scratch_buffer ? acceleration_grid_sort_values_buffer : acceleration_grid_sort_values_scratch_buffer;
 
-        SimulationAccelerationGridRadixSortHistogramCSPushConstants histogram_consts = {
-            real_keys_buffer.memory_device_ptr(),
-            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
-            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
-            group_count,
-            keys_count,
-            radix_bit_shift
+        shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants histogram_consts = {
+            .sort_keys              = real_keys_buffer.memory_device_ptr(),
+            .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            .group_local_histograms = acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            .group_count            = group_count,
+            .keys_count             = keys_count,
+            .radix_bit_shift        = radix_bit_shift
         };
 
-        SimulationAccelerationGridRadixSortPrefixSumCSPushConstants prefix_sum_consts = {
-            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
-            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
-            group_count
+        shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants prefix_sum_consts = {
+            .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            .group_local_histograms = acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            .group_count            = group_count
         };
 
-        SimulationAccelerationGridRadixSortScatterCSPushConstants scatter_consts = {
-            real_keys_buffer.memory_device_ptr(),
-            real_values_buffer.memory_device_ptr(),
-            real_keys_scratch_buffer.memory_device_ptr(),
-            real_values_scratch_buffer.memory_device_ptr(),
-            acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
-            acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
-            group_count,
-            keys_count,
-            radix_bit_shift
+        shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants scatter_consts = {
+            .sort_keys              = real_keys_buffer.memory_device_ptr(),
+            .sort_values            = real_values_buffer.memory_device_ptr(),
+            .dst_sort_keys          = real_keys_scratch_buffer.memory_device_ptr(),
+            .dst_sort_values        = real_values_scratch_buffer.memory_device_ptr(),
+            .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
+            .group_local_histograms = acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
+            .group_count            = group_count,
+            .keys_count             = keys_count,
+            .radix_bit_shift        = radix_bit_shift
         };
 
         cmd.fillBuffer(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), 0, acceleration_grid_sort_global_histogram_buffer.size(), 0);
@@ -377,7 +377,7 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
             .flush(cmd);
 
         cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_histogram_pass_compute_pipeline.vk_pipeline());
-        cmd.pushConstants<SimulationAccelerationGridRadixSortHistogramCSPushConstants>(m_histogram_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, histogram_consts);
+        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants>(m_histogram_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, histogram_consts);
         cmd.dispatch(
             group_count,
             1,
@@ -392,7 +392,7 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
             .flush(cmd);
 
         cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_prefix_sum_pass_compute_pipeline.vk_pipeline());
-        cmd.pushConstants<SimulationAccelerationGridRadixSortPrefixSumCSPushConstants>(m_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, prefix_sum_consts);
+        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants>(m_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, prefix_sum_consts);
         cmd.dispatch(shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1);
 
         VulkanPipelineBarriers::builder()
@@ -403,7 +403,7 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
             .flush(cmd);
 
         cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_scatter_pass_compute_pipeline.vk_pipeline());
-        cmd.pushConstants<SimulationAccelerationGridRadixSortScatterCSPushConstants>(m_scatter_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, scatter_consts);
+        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants>(m_scatter_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, scatter_consts);
         cmd.dispatch(
             group_count,
              1,
@@ -459,7 +459,7 @@ auto SimulationAccelerationGridBoundScanPass::create() -> SimulationAcceleration
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationAccelerationGridBoundScanCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridBoundScanCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_5_acceleration_grid_scan_bounds.spv");
@@ -480,15 +480,15 @@ auto SimulationAccelerationGridBoundScanPass::invoke(vk::raii::CommandBuffer& cm
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
 
-    SimulationAccelerationGridBoundScanCSPushConstants consts = {
-        acceleration_grid_sort_keys_buffer.memory_device_ptr(),
-        acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
-        acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),
-        state.object_count
+    shaders::SimulationAccelerationGridBoundScanCSPushConstants consts = {
+        .sort_keys          = acceleration_grid_sort_keys_buffer.memory_device_ptr(),
+        .tile_start_indices = acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
+        .tile_end_indices   = acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),
+        .keys_count         = state.object_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<SimulationAccelerationGridBoundScanCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::SimulationAccelerationGridBoundScanCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
         div_ceil(state.object_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_SCAN_BOUNDS_GROUP_SIZE_X),
          1,
@@ -514,7 +514,7 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(SimulationInfluenceStepPass), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::SimulationInfluenceStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_6_influence_step_v2.spv");
@@ -539,24 +539,24 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
     auto& acceleration_grid_cells_end_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsEndIndices);
 
-    SimulationInfluenceStepCSPushConstants consts = {
-        frame_local_simulation_data_buffer.memory_device_ptr(),
-        simulation_objects_scratch_buffer.memory_device_ptr(),
-        simulation_objects_buffer.memory_device_ptr(),
-        simulation_objects_flags_buffer.memory_device_ptr(),
-        acceleration_grid_sort_values_buffer.memory_device_ptr(),
-        acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
-        acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),
-        state.grid_cell_size,
-        state.grid_width,
-        state.grid_height,
-        state.object_count
+    shaders::SimulationInfluenceStepCSPushConstants consts = {
+        .simulation_data                      = frame_local_simulation_data_buffer.memory_device_ptr(),
+        .objects                              = simulation_objects_scratch_buffer.memory_device_ptr(),
+        .dst_objects                          = simulation_objects_buffer.memory_device_ptr(),
+        .object_flags                         = simulation_objects_flags_buffer.memory_device_ptr(),
+        .acceleration_grid_values             = acceleration_grid_sort_values_buffer.memory_device_ptr(),
+        .acceleration_grid_tile_start_indices = acceleration_grid_cells_start_indices_buffer.memory_device_ptr(),
+        .acceleration_grid_tile_end_indices   = acceleration_grid_cells_end_indices_buffer.memory_device_ptr(),
+        .grid_cell_size                       = state.grid_cell_size,
+        .grid_width                           = state.grid_width,
+        .grid_height                          = state.grid_height,
+        .object_count                         = state.object_count
     };
 
     uint32_t dispatch_size = std::bit_ceil(state.grid_width * state.grid_height);
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<SimulationInfluenceStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
+    cmd.pushConstants<shaders::SimulationInfluenceStepCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, consts);
     cmd.dispatch(
         dispatch_size,
         1,
@@ -579,7 +579,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(BuildIndirectInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::BuildIndirectInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st4_build_indirect_instance_count.spv");
@@ -601,16 +601,16 @@ auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer&
     auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
 
-    BuildIndirectInstanceCountCSPushConstants instance_count_cs_consts = {
-        simulation_draw_indirect_commands_buffer.memory_device_ptr(),
-        draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
-        simulation_objects_buffer.memory_device_ptr(),
-        simulation_objects_flags_buffer.memory_device_ptr(),
-        state.object_count
+    shaders::BuildIndirectInstanceCountCSPushConstants instance_count_cs_consts = {
+        .draw_commands              = simulation_draw_indirect_commands_buffer.memory_device_ptr(),
+        .drawlocal_instance_indices = draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
+        .simulation_objects         = simulation_objects_buffer.memory_device_ptr(),
+        .simulation_object_flags    = simulation_objects_flags_buffer.memory_device_ptr(),
+        .object_count               = state.object_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<BuildIndirectInstanceCountCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_count_cs_consts);
+    cmd.pushConstants<shaders::BuildIndirectInstanceCountCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_count_cs_consts);
     cmd.dispatch(div_ceil(state.object_count, shader_consts::CS_BUILD_INDIRECT_INSTANCE_COUNT_GROUP_SIZE_X), 1, 1);
 }
 
@@ -626,7 +626,7 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommand
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(BuildIndirectFirstInstanceCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::BuildIndirectFirstInstanceCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st5_build_indirect_first_instance.spv");
@@ -648,13 +648,13 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::invoke(vk::raii::CommandBuffer&
 
     assert(mesh_count < shader_consts::CS_BUILD_INDIRECT_FIRST_INSTANCE_GROUP_SIZE_X && "mesh count must be less than CS_BUILD_INDIRECT_FIRST_INSTANCE_GROUP_SIZE_X");
 
-    BuildIndirectFirstInstanceCSPushConstants first_instance_cs_consts = {
-        simulation_draw_indirect_commands_buffer.memory_device_ptr(),
-        mesh_count
+    shaders::BuildIndirectFirstInstanceCSPushConstants first_instance_cs_consts = {
+        .draw_commands       = simulation_draw_indirect_commands_buffer.memory_device_ptr(),
+        .draw_commands_count = mesh_count
     };
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
-    cmd.pushConstants<BuildIndirectFirstInstanceCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, first_instance_cs_consts);
+    cmd.pushConstants<shaders::BuildIndirectFirstInstanceCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, first_instance_cs_consts);
     // 1 group for 1 wave that handles all draw instance prefix sums
     cmd.dispatch(1, 1, 1);
 }
@@ -676,7 +676,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
         .build();
 
     auto cs_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(BuildInstanceBufferCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .add_push_constant_range(0, sizeof(shaders::BuildInstanceBufferCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st6_build_instance_buffer.spv");
@@ -703,16 +703,17 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
 
     cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_compute_pipeline.vk_pipeline());
 
-    BuildInstanceBufferCSPushConstants instance_buffer_cs_consts = {
-        simulation_draw_indirect_commands_buffer.memory_device_ptr(),
-        draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
-        frame_local_simulation_data_buffer.memory_device_ptr(),
-        simulation_objects_buffer.memory_device_ptr(),
-        simulation_objects_flags_buffer.memory_device_ptr(),
-        objects_instance_buffer.memory_device_ptr(),
-        state.object_count
+    shaders::BuildInstanceBufferCSPushConstants instance_buffer_cs_consts = {
+        .draw_commands              = simulation_draw_indirect_commands_buffer.memory_device_ptr(),
+        .drawlocal_instance_indices = draw_commands_object_instance_offsets_buffer.memory_device_ptr(),
+        .simulation_data            = frame_local_simulation_data_buffer.memory_device_ptr(),
+        .simulation_objects         = simulation_objects_buffer.memory_device_ptr(),
+        .simulation_object_flags    = simulation_objects_flags_buffer.memory_device_ptr(),
+        .instance_data              = objects_instance_buffer.memory_device_ptr(),
+        .object_count               = state.object_count
     };
-    cmd.pushConstants<BuildInstanceBufferCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_buffer_cs_consts);
+
+    cmd.pushConstants<shaders::BuildInstanceBufferCSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, instance_buffer_cs_consts);
     cmd.dispatch(div_ceil(state.object_count, shader_consts::CS_BUILD_INSTANCE_BUFFER_GROUP_SIZE_X), 1, 1);
 }
 
@@ -729,7 +730,7 @@ auto BackgroundRenderPass::create() -> BackgroundRenderPass {
         .build();
 
     auto pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, sizeof(BackgroundVSFSPushConstants), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
+        .add_push_constant_range(0, sizeof(shaders::BackgroundVSFSPushConstants), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
         .build();
 
     auto shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/background.spv");
@@ -790,20 +791,20 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
     cmd.bindPipeline(vk::PipelineBindPoint::eGraphics, m_graphics_pipeline.vk_pipeline());
 
     auto clr = systems::PersistentSettings::clear_color();
-    BackgroundVSFSPushConstants consts = {
-        .simulation_data = frame_local_simulation_data_buffer.memory_device_ptr(),
-        .base_color = { clr[0], clr[1], clr[2], },
-        .scale = systems::PersistentSettings::background_scale(),
-        .max_iterations = systems::PersistentSettings::background_iterations(),
+    shaders::BackgroundVSFSPushConstants consts = {
+        .simulation_data   = frame_local_simulation_data_buffer.memory_device_ptr(),
+        .base_color        = { clr[0], clr[1], clr[2], },
+        .scale             = systems::PersistentSettings::background_scale(),
+        .max_iterations    = systems::PersistentSettings::background_iterations(),
         .caustic_intensity = systems::PersistentSettings::caustic_intensity(),
-        .ray_intensity = systems::PersistentSettings::ray_intensity(),
-        .surface_y = systems::PersistentSettings::surface_y(),
-        .depth_range = systems::PersistentSettings::depth_range(),
-        .deep_color = { 0, 0.02, 0.1 },
-        .vignette_size = systems::PersistentSettings::vignette_size(),
+        .ray_intensity     = systems::PersistentSettings::ray_intensity(),
+        .surface_y         = systems::PersistentSettings::surface_y(),
+        .depth_range       = systems::PersistentSettings::depth_range(),
+        .deep_color        = { 0, 0.02, 0.1 },
+        .vignette_size     = systems::PersistentSettings::vignette_size(),
     };
 
-    cmd.pushConstants<BackgroundVSFSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, consts);
+    cmd.pushConstants<shaders::BackgroundVSFSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment, 0, consts);
     cmd.draw(6, 1, 0, 0);
 
     cmd.endRendering();
@@ -864,7 +865,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
     auto descriptor_set = std::move(device.allocateDescriptorSets(vk::DescriptorSetAllocateInfo{}.setDescriptorPool(descriptor_pool).setSetLayouts(*descriptor_set_layout))[0]);
 
     auto pipeline_layout = VulkanPipelineLayout::builder()
-        .add_push_constant_range(0, 24, vk::ShaderStageFlagBits::eVertex)
+        .add_push_constant_range(0, sizeof(shaders::FishVSPushConstants), vk::ShaderStageFlagBits::eVertex)
         .add_descriptor_set_layout(descriptor_set_layout)
         .build();
 
@@ -971,19 +972,13 @@ auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
 
     cmd.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_pipeline_layout.vk_pipeline_layout(), 0, *m_descriptor_set, nullptr);
 
-    struct PushConstants {
-        vk::DeviceAddress vertex_buffer;
-        vk::DeviceAddress prepared_simulation_objects;
-        vk::DeviceAddress simulation_data;
+    shaders::FishVSPushConstants consts = {
+        .vertices        = state.mesh_pool.get().vertex_buffer().memory_device_ptr(),
+        .object_data     = objects_instance_buffer.memory_device_ptr(),
+        .simulation_data = frame_local_simulation_data_buffer.memory_device_ptr()
     };
 
-    PushConstants consts = {
-        state.mesh_pool.get().vertex_buffer().memory_device_ptr(),
-        objects_instance_buffer.memory_device_ptr(),
-        frame_local_simulation_data_buffer.memory_device_ptr()
-    };
-
-    cmd.pushConstants<PushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);
+    cmd.pushConstants<shaders::FishVSPushConstants>(m_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eVertex, 0, consts);
     cmd.drawIndexedIndirect(simulation_draw_indirect_commands_buffer.vk_buffer(), 0, static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size()), sizeof(vk::DrawIndexedIndirectCommand));
 
     cmd.endRendering();

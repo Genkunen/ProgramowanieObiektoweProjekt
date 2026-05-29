@@ -3,23 +3,7 @@ import "../shared_code_shim";
 import "../sim_state/sim_state";
 import "../behavior/object_behavior_dispatch";
 
-struct PushConstants {
-    pop::shaders::SimulationData* simulation_data;
-    pop::shaders::SimulationObject* objects;
-    pop::shaders::SimulationObject* next_objects;
-    uint* object_flags;
-
-    uint* acceleration_grid_tile_object_ids;
-    uint* acceleration_grid_tile_start_indices;
-    uint* acceleration_grid_tile_end_indices;
-
-    float grid_cell_size;
-    uint grid_width;
-    uint grid_height;
-    uint32_t object_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationInfluenceStepCSPushConstants push_constants;
 
 uint morton_code_stride2_decode(uint code) {
     uint x = code & 0x55555555u;
@@ -92,7 +76,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     // Parameters about this this thread's object in the master tile
     bool is_in_bounds = neighborhood_tile_start_indices[1][1] + group_tid < neighborhood_tile_end_indices[1][1] + 1;
     pop::shaders::SimulationObject thread_object;
-    uint thread_object_id = is_in_bounds ? push_constants.acceleration_grid_tile_object_ids[neighborhood_tile_start_indices[1][1] + group_tid] : 0xffffffff;
+    uint thread_object_id = is_in_bounds ? push_constants.acceleration_grid_values[neighborhood_tile_start_indices[1][1] + group_tid] : 0xffffffff;
 
     // Load dispatch's tile objects
     uint master_tile_object_count = neighborhood_tile_end_indices[1][1] - neighborhood_tile_start_indices[1][1] + 1;
@@ -138,7 +122,7 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             uint neighbor_tile_object_count = neighborhood_tile_end_indices[dx + 1][dy + 1] - neighbor_tile_start_index + 1;
 
             if (is_group_tile_helper_thread && group_tid < neighbor_tile_object_count) {
-                uint object_id = push_constants.acceleration_grid_tile_object_ids[neighbor_tile_start_index + group_tid];
+                uint object_id = push_constants.acceleration_grid_values[neighbor_tile_start_index + group_tid];
                 tile_objects_scratch[group_tid] = push_constants.objects[object_id];
                 tile_objects_ids_scratch[group_tid] = object_id;
             }
@@ -159,15 +143,15 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     }
 
     if (thread_has_object) {
-        push_constants.next_objects[thread_object_id] = thread_object;
+        push_constants.dst_objects[thread_object_id] = thread_object;
     }
 
     // If there are more objects in this group's tile than threads in it then copy the remaining objects
     if (master_tile_object_count > MAX_OBJECTS_PER_TILE) {
         if (is_group_tile_helper_thread) {
             for (uint i = MAX_OBJECTS_PER_TILE + group_tid; i < master_tile_object_count; i += MAX_OBJECTS_PER_TILE) {
-                uint object_id = push_constants.acceleration_grid_tile_object_ids[neighborhood_tile_start_indices[1][1] + i];
-                push_constants.next_objects[object_id] = push_constants.objects[object_id];
+                uint object_id = push_constants.acceleration_grid_values[neighborhood_tile_start_indices[1][1] + i];
+                push_constants.dst_objects[object_id] = push_constants.objects[object_id];
             }
         }
     }

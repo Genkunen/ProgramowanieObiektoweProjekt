@@ -1,20 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    uint* sort_keys;
-    uint* sort_values;
-    uint* dst_sort_keys;
-    uint* dst_sort_values;
-
-    uint* global_histogram;       // table in the format [radix_bucket]
-    uint* group_local_histograms; // 2D table in the format [radix_bucket][group_id]
-
-    uint group_count;
-    uint sort_key_count;
-    uint radix_bit_shift;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants push_constants;
 
 
 uint div_ceil(uint a, uint b) {
@@ -114,7 +100,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
             + group_tid
             + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
 
-        if (index >= push_constants.sort_key_count) break;
+        if (index >= push_constants.keys_count) break;
 
         keys[i] = push_constants.sort_keys[index];
         values[i] = push_constants.sort_values[index];

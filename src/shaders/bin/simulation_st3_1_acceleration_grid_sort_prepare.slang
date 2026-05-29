@@ -1,17 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    pop::shaders::SimulationObject* objects;
-    uint* object_flags;
-
-    uint* sort_keys;
-    uint* sort_object_indices;
-    float grid_cell_size;
-    uint grid_width;
-    uint object_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationAccelerationGridSortPrepareCSPushConstants push_constants;
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_SORT_PREPARE_GROUP_SIZE_X, 1, 1)]
@@ -31,5 +20,5 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     }
 
     push_constants.sort_keys[tid] = cell_key;
-    push_constants.sort_object_indices[tid] = tid;
+    push_constants.sort_values[tid] = tid;
 }

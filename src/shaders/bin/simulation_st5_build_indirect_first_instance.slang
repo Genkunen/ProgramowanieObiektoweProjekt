@@ -2,12 +2,7 @@ import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
-struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
-    uint draw_commands_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::BuildIndirectFirstInstanceCSPushConstants push_constants;
 
 groupshared uint gs_prefix_sum;
 

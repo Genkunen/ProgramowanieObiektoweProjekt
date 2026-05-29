@@ -1,12 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    pop::shaders::Vertex* vertices;
-    pop::shaders::PreparedSimulationObject* object_data;
-    pop::shaders::SimulationData* simulation_data;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::FishVSPushConstants push_constants;
 
 struct VSOutput {
     float4 position : SV_Position;

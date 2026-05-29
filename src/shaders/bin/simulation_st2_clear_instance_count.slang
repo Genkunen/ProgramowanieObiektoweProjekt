@@ -2,19 +2,14 @@ import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
-struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
-    uint mesh_count;
-};
-
-[vk::push_constant] PushConstants pushConstants;
+[vk::push_constant] pop::shaders::ClearInstanceCountCSPushConstants push_constants;
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_CLEAR_INSTANCE_COUNT_GROUP_SIZE_X, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 
-    if (tid >= pushConstants.mesh_count) return;
+    if (tid >= push_constants.mesh_count) return;
 
-    pushConstants.draw_commands[tid].instanceCount = 0;
+    push_constants.draw_commands[tid].instanceCount = 0;
 }

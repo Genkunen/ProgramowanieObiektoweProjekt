@@ -1,13 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    uint* sort_keys;
-    uint* tile_start_indices;
-    uint* tile_end_indices;
-    uint keys_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationAccelerationGridBoundScanCSPushConstants push_constants;
 
 bool acceleration_grid_tile_starts_here(uint tid, uint this_tid_grid_tile_index) {
     // Always starts if index is 0

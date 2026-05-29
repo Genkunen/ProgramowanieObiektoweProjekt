@@ -1,14 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    pop::shaders::SimulationObject* objects;
-    uint* object_flags;
-    uint object_count;
-    uint event_randseed;
-    float2 simulation_bounds;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::RandomEventsCSPushConstants push_constants;
 
 uint hash(uint h) {
     h = (h ^ 61u) ^ (h >> 16u);
@@ -49,7 +41,7 @@ void main(uint3 dtid : SV_DispatchThreadID) {
 
     uint object_ev_hash = hash(hash(tid) ^ push_constants.event_randseed);
 
-    if (push_constants.object_flags[tid] & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) {
+    if (push_constants.simulation_object_flags[tid] & pop::shader_consts::SIM_OBJECT_FLAG_DEAD) {
         bool resurrect = roll_chance(object_ev_hash, 0u, 0.03f);
 
         if (resurrect) {
@@ -67,11 +59,11 @@ void main(uint3 dtid : SV_DispatchThreadID) {
                 new_object_type = pop::shader_consts::SIM_OBJECT_TYPE_FISH;
             }
 
-            push_constants.objects[tid].position = new_position;
-            push_constants.objects[tid].velocity = new_velocity;
-            push_constants.objects[tid].size = 10.0f;
-            push_constants.objects[tid].object_type = new_object_type;
-            push_constants.object_flags[tid] &= ~pop::shader_consts::SIM_OBJECT_FLAG_DEAD;
+            push_constants.simulation_objects[tid].position = new_position;
+            push_constants.simulation_objects[tid].velocity = new_velocity;
+            push_constants.simulation_objects[tid].size = 10.0f;
+            push_constants.simulation_objects[tid].object_type = new_object_type;
+            push_constants.simulation_object_flags[tid] &= ~pop::shader_consts::SIM_OBJECT_FLAG_DEAD;
         }
     }
 }

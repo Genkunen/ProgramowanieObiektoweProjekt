@@ -2,17 +2,7 @@ import "../shared_code_shim";
 
 import "../behavior/object_behavior_dispatch";
 
-struct PushConstants {
-    pop::shaders::SimulationData* simulation_data;
-    pop::shaders::SimulationObject* objects;
-    pop::shaders::SimulationObject* dst_updated_objects;
-    uint* object_flags;
-    float2 simulation_bounds;
-    uint object_count;
-    float water_current_strength;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationStepCSPushConstants push_constants;
 
 float2 hash_pos(float2 p) {
     float2 hp = float2(dot(p, float2(127.1, 311.7)),

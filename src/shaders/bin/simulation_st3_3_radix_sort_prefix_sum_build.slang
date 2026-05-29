@@ -1,13 +1,6 @@
 import "../shared_code_shim";
 
-struct PushConstants {
-    uint* global_histogram;
-    uint* group_local_histograms;
-
-    uint group_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants push_constants;
 
 // ------------------------------------------------------------------------------------------------------------------------------------------------------------
 

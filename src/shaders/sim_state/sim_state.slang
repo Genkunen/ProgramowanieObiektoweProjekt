@@ -1,7 +1,7 @@
 import "../shared_code_shim";
 
 struct SimulationState {
-    uint* object_flags;
+    DevicePtr<uint> object_flags;
 
     /// Attempts to make an object dead.
     ///

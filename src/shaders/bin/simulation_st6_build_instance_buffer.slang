@@ -2,17 +2,7 @@ import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
-struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
-    uint* draw_instance_indices;
-    pop::shaders::SimulationData* simulation_data;
-    pop::shaders::SimulationObject* objects;
-    uint* object_flags;
-    pop::shaders::PreparedSimulationObject* prepared_objects;
-    uint object_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::BuildInstanceBufferCSPushConstants push_constants;
 
 float generate_animation_sin_phase_offset(uint x) {
     uint prec = x * 747796405u + 2891336453u;
@@ -47,15 +37,15 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     uint tid = dtid.x;
 
     if (tid >= push_constants.object_count) return;
-    uint object_flags = push_constants.object_flags[tid];
+    uint object_flags = push_constants.simulation_object_flags[tid];
 
     bool object_visible = (object_flags & pop::shader_consts::SIM_OBJECT_FLAG_VISIBLE) != 0;
     if (!object_visible) return;
 
-    let object = push_constants.objects[tid];
+    let object = push_constants.simulation_objects[tid];
     let mesh_id = object.object_type;
     let mesh_instance_base = push_constants.draw_commands[mesh_id].firstInstance;
-    let mesh_draw_local_instance = push_constants.draw_instance_indices[tid];
+    let mesh_draw_local_instance = push_constants.drawlocal_instance_indices[tid];
     let mesh_instance_index = mesh_instance_base + mesh_draw_local_instance;
 
     float animation_sin_phase = generate_animation_sin_phase_offset(mesh_id) + 2.7 * push_constants.simulation_data->simulation_time_since_start;
@@ -68,6 +58,6 @@ void main(uint3 dtid : SV_DispatchThreadID) {
     }
     float4x4 model_matrix = mul(push_constants.simulation_data->projview, build_model_matrix(displaced_position, scale, direction_angle));
 
-    push_constants.prepared_objects[mesh_instance_index].transform = model_matrix;
-    push_constants.prepared_objects[mesh_instance_index].randseed = object.randseed;
+    push_constants.instance_data[mesh_instance_index].transform = model_matrix;
+    push_constants.instance_data[mesh_instance_index].randseed = object.randseed;
 }

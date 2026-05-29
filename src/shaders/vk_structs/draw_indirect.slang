@@ -1,4 +1,4 @@
-namespace vk_structs {
+namespace vk {
 	struct DrawIndexedIndirectCommand {
 		uint indexCount;
 		uint instanceCount;

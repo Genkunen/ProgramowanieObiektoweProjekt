@@ -8,19 +8,7 @@ struct SimulationData {
     float simulation_time_since_start;
 };
 
-struct PushConstants {
-    pop::shaders::SimulationData* simulation_data;
-    float3 background_color;
-    float scale;
-    uint max_iterations;
-    float caustic_intensity;
-    float ray_intensity;
-    float surface_y;
-    float depth_range;
-    float3 deep_color;
-    float vignette_size;
-};
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::BackgroundVSFSPushConstants push_constants;
 
 struct VSOutput {
     float4 position : SV_Position;
@@ -162,7 +150,7 @@ float4 main(VSOutput input) : SV_Target {
     float depth_below = push_constants.surface_y - world_pos.y;
     float depth_t = saturate(depth_below / max(push_constants.depth_range, 1.0f));
 
-    float3 bg_color = push_constants.background_color;
+    float3 bg_color = push_constants.base_color;
 
     float ambient_noise = sin(flow_uv.x * 3.0f + time * 0.2f) * cos(flow_uv.y * 3.0f - time * 0.15f);
     float3 base_color = bg_color * (0.9f + 0.1f * ambient_noise);

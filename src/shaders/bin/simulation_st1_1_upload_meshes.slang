@@ -2,13 +2,7 @@ import "../shared_code_shim";
 
 import "../vk_structs/draw_indirect";
 
-struct PushConstants {
-    vk_structs::DrawIndexedIndirectCommand* draw_commands;
-    pop::shaders::MeshAllocationData* mesh_allocations;
-    uint mesh_count;
-};
-
-[vk::push_constant] PushConstants push_constants;
+[vk::push_constant] pop::shaders::UploadMeshesCSPushConstants push_constants;
 
 [shader("compute")]
 [numthreads(pop::shader_consts::CS_UPLOAD_MESHES_GROUP_SIZE_X, 1, 1)]
