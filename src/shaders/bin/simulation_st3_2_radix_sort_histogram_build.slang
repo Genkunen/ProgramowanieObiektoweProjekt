@@ -5,7 +5,7 @@ import "../shared_code_shim";
 groupshared uint gs_histogram[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
 
 [shader("compute")]
-[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1)]
+[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint tid = dtid.x;
     uint group_tid = gtid.x;
@@ -13,6 +13,9 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
 
     // First the whole group cooperatively zeroes out the LDS histogram.
     gs_histogram[group_tid] = 0u;
+    gs_histogram[group_tid + 64] = 0u;
+    gs_histogram[group_tid + 128] = 0u;
+    gs_histogram[group_tid + 192] = 0u;
     GroupMemoryBarrierWithGroupSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -29,7 +32,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         // at a time, then the access pattern is to the chunk is ABCDABCDABCDABCD...
         uint index = base_index
             + group_tid
-            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
+            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
 
         if (index >= push_constants.keys_count) break;
 
@@ -50,8 +53,16 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
 
-    uint digit_count = gs_histogram[group_tid];
-    push_constants.group_local_histograms[push_constants.group_count * group_tid + group_id] = digit_count;
+    uint writeback_iterations = pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS / pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
 
-    InterlockedAdd(push_constants.global_histogram[group_tid], digit_count);
+    [unroll]
+    for (uint i = 0; i < writeback_iterations; i++) {
+        uint base = i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
+
+        uint digit_id = base + group_tid;
+        uint digit_count = gs_histogram[digit_id];
+        push_constants.group_local_histograms[push_constants.group_count * digit_id + group_id] = digit_count;
+
+        InterlockedAdd(push_constants.global_histogram[digit_id], digit_count);
+    }
 }

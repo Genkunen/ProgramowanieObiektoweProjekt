@@ -3,6 +3,7 @@
 #include "simulation_render_graph_passes.hpp"
 
 #include <cstdint>
+#include <print>
 
 namespace pop::vulkan::renderer {
 

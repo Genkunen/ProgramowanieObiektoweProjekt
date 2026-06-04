@@ -107,6 +107,7 @@ function(add_slang_shaders TARGET)
             -profile spirv_1_6
             -fvk-use-scalar-layout
             -O3
+            -g
     )
 
     foreach(SHADER ${SLANG_SOURCES})

@@ -40,25 +40,25 @@ uint wave_lt_lanecount_with_same_value(uint value) {
 }
 
 uint compute_element_rank256v2(uint value, uint group_tid, uint group_id, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
-    gs_rank_elem_values[group_tid] = value;
+    //gs_rank_elem_values[group_tid] = value;
 
     uint intrawave_matches = wave_lt_lanecount_with_same_value(value);
     GroupMemoryBarrierWithGroupSync();
 
-    uint iters = wave_index * hardware_wave_lane_count;
-    uint foreign_wave_matches = 0;
-    for (uint i = 0; i < iters; i++) {
-        uint neighbor_element = gs_rank_elem_values[i];
-        if (neighbor_element == value) foreign_wave_matches++;
-    }
-
-    return intrawave_matches + foreign_wave_matches;
+    //uint iters = wave_index * hardware_wave_lane_count;
+    //uint foreign_wave_matches = 0;
+    //for (uint i = 0; i < iters; i++) {
+    //    uint neighbor_element = gs_rank_elem_values[i];
+    //    if (neighbor_element == value) foreign_wave_matches++;
+    //}
+//
+    return intrawave_matches;
 }
 
 groupshared uint gs_elem_write_offset_bases[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
 
 [shader("compute")]
-[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1)]
+[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint tid = dtid.x;
     uint group_tid = gtid.x;
@@ -67,17 +67,20 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     uint hardware_wave_lane_count = WaveGetLaneCount();
     uint wave_lane = WaveGetLaneIndex();
 
-    uint wave_count = div_ceil(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, hardware_wave_lane_count);
+    uint wave_count = div_ceil(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE, hardware_wave_lane_count);
     uint wave_index = group_tid / hardware_wave_lane_count;
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
     // First load the local group prefix sums and add the global ones on top.
 
-    uint bin_write_offset = push_constants.group_local_histograms[group_tid * push_constants.group_count + group_id];
-    uint global_write_offset_base = push_constants.global_histogram[group_tid];
-    gs_elem_write_offset_bases[group_tid] = global_write_offset_base + bin_write_offset;
+    for (uint i = 0; i < 4; i++) {
+        uint expanded_gtid = group_tid + i * 64;
+        uint bin_write_offset = push_constants.group_local_histograms[expanded_gtid * push_constants.group_count + group_id];
+        uint global_write_offset_base = push_constants.global_histogram[expanded_gtid];
+        gs_elem_write_offset_bases[expanded_gtid] = global_write_offset_base + bin_write_offset;
 
-    GroupMemoryBarrierWithGroupSync();
+        GroupMemoryBarrierWithGroupSync();
+    }
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
     // Load all the elements belonging to the thread.
@@ -98,7 +101,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         // is the same as [wave_index][wave_lane].
         uint index = base_index
             + group_tid
-            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
+            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
 
         if (index >= push_constants.keys_count) break;
 
