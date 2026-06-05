@@ -57,16 +57,6 @@ jobs:
           curl -L https://github.com/shader-slang/slang/releases/download/v2026.10.2/slang-2026.10.2-linux-x86_64.tar.gz \
             | sudo tar -xz -C /usr/local --strip-components=1
 
-      - name: Configure
-        run: |
-          rm -rf build
-          cmake -S . -B build \
-            -G Ninja \
-            -D CMAKE_BUILD_TYPE=Release \
-            -D ENABLE_TESTS=ON \
-            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
-            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_FLAGS="-stdlib=libc++"
-
       - name: Cache build
         uses: actions/cache@v5
         with:
@@ -74,6 +64,15 @@ jobs:
           key: build-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'src/**') }}
           restore-keys: |
             build-${{ runner.os }}-
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D ENABLE_TESTS=ON \
+            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
+            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_FLAGS="-stdlib=libc++"
 
       - name: Build
         run: |
