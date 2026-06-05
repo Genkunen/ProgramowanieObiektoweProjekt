@@ -11,18 +11,18 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - name: Set up GCC
-        uses: egor-tensin/setup-gcc@v2
-        with:
-          version: latest
-          platform: x64
-          cc: 0
-
       - name: Set up Clang
         uses: egor-tensin/setup-clang@v2
         with:
           version: 22
           platform: x64
+
+      - name: Install libc++
+        run: |
+          wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+          sudo add-apt-repository "deb https://apt.llvm.org/$(lsb_release -cs)/ llvm-toolchain-$(lsb_release -cs)-22 main"
+          sudo apt-get update
+          sudo apt-get install -y libc++-22-dev libc++abi-22-dev
 
       - name: Install dependencies
         run: |
@@ -65,7 +65,7 @@ jobs:
             -D CMAKE_BUILD_TYPE=Release \
             -D ENABLE_TESTS=ON \
             -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
-            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang
+            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_FLAGS="-stdlib=libc++"
 
       - name: Build
         run: |
