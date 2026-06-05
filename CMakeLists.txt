@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
-option(ENABLE_TESTS "Enable tests" ON)
+option(ENABLE_TESTS "Enable tests" OFF)
 if (${ENABLE_TESTS})
     enable_testing()
 endif()
