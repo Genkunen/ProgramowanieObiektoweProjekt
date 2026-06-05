@@ -1,4 +1,10 @@
 cmake_minimum_required(VERSION 4.0)
+
+option(ENABLE_TESTS "Enable tests" ON)
+if (${ENABLE_TESTS})
+    enable_testing()
+endif()
+
 include(FetchContent)
 project(ProgramowanieObiektoweProjekt VERSION 0.1.0 LANGUAGES CXX C)
 
@@ -142,7 +148,7 @@ endfunction()
 # ---- Sources Setup ---------------------------------------------------------------------------------------------------
 
 file(GLOB_RECURSE LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
-list(FILTER LIBRARY_SOURCES EXCLUDE REGEX ".*/bin/.*")
+list(FILTER LIBRARY_SOURCES EXCLUDE REGEX ".*/(bin|tests)/.*")
 
 file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/bin/*.slang)
 
@@ -212,6 +218,19 @@ function(add_bin name)
 endfunction()
 
 add_bin(main)
+
+# ---- Tests -----------------------------------------------------------------------------------------------------------
+
+function(add_project_test name)
+    add_executable(test_${name} src/tests/${name}.cpp)
+    target_include_directories(test_${name} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(test_${name} PRIVATE ProgramowanieObiektoweProjekt_lib)
+    add_test(NAME ${name} COMMAND test_${name})
+endfunction()
+
+add_project_test(sanity)
+add_project_test(pass_compile)
+add_project_test(radix_sort_correctness)
 
 # ---- macOS Support ---------------------------------------------------------------------------------------------------
 
