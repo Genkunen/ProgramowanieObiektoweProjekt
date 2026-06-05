@@ -11,6 +11,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Set up Clang
+        uses: egor-tensin/setup-clang@v2
+        with:
+          version: latest
+          platform: x64
 
       - name: Install dependencies
         run: |
@@ -19,14 +24,13 @@ jobs:
             build-essential cmake ninja-build \
             mesa-vulkan-drivers \
             xvfb \
-            libglm-dev libvulkan-dev \
-            clang-18
+            libglm-dev libvulkan-dev
 
       - name: Sanity Check
         run: |
           echo '#include <print>' > test.cpp
           echo 'int main() { std::println("Glory to Mankind"); return 0; }' >> test.cpp
-          clang++-18 -std=c++23 -o test test.cpp
+          clang++ -std=c++23 -o test test.cpp
           ./test
 
       - uses: libsdl-org/setup-sdl@main
@@ -48,12 +52,13 @@ jobs:
 
       - name: Configure
         run: |
+          rm -rf build
           cmake -S . -B build \
             -G Ninja \
             -D CMAKE_BUILD_TYPE=Release \
             -D ENABLE_TESTS=ON \
             -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
-            -D CMAKE_CXX_COMPILER=clang++-18 -D CMAKE_C_COMPILER=clang-18
+            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang
 
       - name: Build
         run: |
