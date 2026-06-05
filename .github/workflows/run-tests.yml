@@ -24,15 +24,14 @@ jobs:
             build-essential cmake ninja-build \
             libvulkan-dev vulkan-tools \
             mesa-vulkan-drivers \
-            xvfb \
-            libsdl3-dev \ 
+            xvfb
 
       - name: Configure
         run: |
           cmake -S . -B build \
-            -G Ninja
-            -D CMAKE_BUILD_TYPE=Release
-            -D ENABLE_TESTS=ON
+            -G Ninja \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D ENABLE_TESTS=ON \
             -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}"
 
       - name: Build
