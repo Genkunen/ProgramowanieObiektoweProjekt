@@ -166,7 +166,7 @@ struct FishVSPushConstants {
     DevicePtr<pop::shaders::SimulationData> simulation_data;
 } PACKED;
 
-}
+} // namespace pop::shaders
 
 #ifdef _MSC_VER
 # pragma pack(pop)

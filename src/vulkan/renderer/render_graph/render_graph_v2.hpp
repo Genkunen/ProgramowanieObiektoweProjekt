@@ -20,7 +20,7 @@ struct PassIndexV2 {
 
 template <typename State> class RenderGraphV2 {
 public:
-
+    constexpr RenderGraphV2() = default;
 
     auto add_pass(std::unique_ptr<PassBase<State>>&& pass) -> PassIndexV2 {
         m_passes.emplace_back(std::move(pass));
@@ -182,9 +182,6 @@ private:
             node.global_memory_barriers.emplace_back(global_memory_barrier);
 
             for (auto& [image_id, old_layout, new_layout] : image_layouts) {
-                // An image layout change counts as a write in the Vulkan synchronization model, which implicitly causes a RAW/WAW hazard. This means that only
-                // the src access can be cleared.
-
                 auto barrier = vk::ImageMemoryBarrier2{}
                     .setImage(resources.get_image_by_identifier(image_id).vk_image())
                     .setSubresourceRange(resources.get_image_by_identifier(image_id).full_subresource_range())
@@ -203,4 +200,4 @@ private:
     }
 };
 
-}
+} // namespace pop::vulkan::renderer::render_graph

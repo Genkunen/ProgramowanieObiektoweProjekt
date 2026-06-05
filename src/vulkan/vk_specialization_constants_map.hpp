@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-
 namespace pop::vulkan {
 
 template <typename T> class VulkanSpecializationConstantsMap {
@@ -41,4 +40,4 @@ private:
     std::vector<vk::SpecializationMapEntry> m_map_entries;
 };
 
-}
+} // namespace pop::vulkan

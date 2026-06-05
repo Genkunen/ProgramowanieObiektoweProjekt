@@ -10,4 +10,4 @@ public:
     static auto write_to_file(const vulkan::renderer::SimulationDataSnapshot& data, const std::filesystem::path& filename) -> void;
 };
 
-}
+} // namespace pop::systems

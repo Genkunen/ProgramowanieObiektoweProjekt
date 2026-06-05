@@ -6,4 +6,4 @@ namespace pop::sdl {
 void initializeSdl();
 void terminateSdl();
 
-}
+} // namespace pop::sdl

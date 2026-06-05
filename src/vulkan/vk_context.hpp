@@ -21,20 +21,20 @@ public:
     static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
     static auto get()                 noexcept -> VulkanContext&;
 
-    [[nodiscard]] constexpr auto vk_instance() const noexcept              -> const vk::raii::Instance& { return m_instance; }
-    [[nodiscard]] constexpr auto vk_surface() const noexcept               -> const vk::raii::SurfaceKHR& { return m_surface; }
-    [[nodiscard]] constexpr auto vk_physical_device() const noexcept       -> const vk::raii::PhysicalDevice& { return m_physical_device; }
-    [[nodiscard]] constexpr auto vk_device() const noexcept                -> const vk::raii::Device& { return m_device; }
-    [[nodiscard]] constexpr auto vk_graphics_queue() const noexcept        -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
-    [[nodiscard]] constexpr auto vk_present_queue() const noexcept         -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
+    [[nodiscard]] constexpr auto vk_instance()              const noexcept -> const vk::raii::Instance& { return m_instance; }
+    [[nodiscard]] constexpr auto vk_surface()               const noexcept -> const vk::raii::SurfaceKHR& { return m_surface; }
+    [[nodiscard]] constexpr auto vk_physical_device()       const noexcept -> const vk::raii::PhysicalDevice& { return m_physical_device; }
+    [[nodiscard]] constexpr auto vk_device()                const noexcept -> const vk::raii::Device& { return m_device; }
+    [[nodiscard]] constexpr auto vk_graphics_queue()        const noexcept -> const vk::raii::Queue& { return m_queue_storage.at(m_graphics_queue_family); }
+    [[nodiscard]] constexpr auto vk_present_queue()         const noexcept -> const vk::raii::Queue& { return m_queue_storage.at(m_present_queue_family); }
     [[nodiscard]] constexpr auto vk_graphics_queue_family() const noexcept -> uint32_t { return m_graphics_queue_family; }
-    [[nodiscard]] constexpr auto vk_present_queue_family() const noexcept  -> uint32_t { return m_present_queue_family; }
-    [[nodiscard]] constexpr auto vma_allocator() const noexcept            -> const vma::raii::Allocator& { return m_vma_allocator; }
+    [[nodiscard]] constexpr auto vk_present_queue_family()  const noexcept -> uint32_t { return m_present_queue_family; }
+    [[nodiscard]] constexpr auto vma_allocator()            const noexcept -> const vma::raii::Allocator& { return m_vma_allocator; }
 
     [[nodiscard]] constexpr auto physical_device_vulkan13_properties() const noexcept -> const vk::PhysicalDeviceVulkan13Properties& { return m_physical_device_vulkan13_properties; }
 
-    [[nodiscard]] constexpr auto debug_utils_enabled() const noexcept            -> bool { return m_debug_utils_enabled; }
-    [[nodiscard]] constexpr auto ext_device_fault_enabled() const noexcept       -> bool { return m_ext_device_fault_enabled; }
+    [[nodiscard]] constexpr auto debug_utils_enabled()            const noexcept -> bool { return m_debug_utils_enabled; }
+    [[nodiscard]] constexpr auto ext_device_fault_enabled()       const noexcept -> bool { return m_ext_device_fault_enabled; }
     [[nodiscard]] constexpr auto ktx_preferred_transcode_format() const noexcept -> ktx_transcode_fmt_e { return m_ktx_preferred_transcode_format; }
 
 

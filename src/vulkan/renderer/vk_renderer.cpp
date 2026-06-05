@@ -343,9 +343,6 @@ auto VulkanRenderer::handle_surface_invalidation(vk::Extent2D new_window_extent)
     m_render_graph.reset_image_layout_for_image(render_graph::ImageResourceIdentifier::DepthBuffer);
 }
 
-auto VulkanRenderer::swapchain() const -> const VulkanSwapchain& {
-    return m_swapchain;
-}
 auto VulkanRenderer::reset_simulation_object_count(uint32_t new_count) -> void {
     m_gpu_driven_sim_object_count = new_count;
     m_gpu_driven_sim_needs_preinit = true;

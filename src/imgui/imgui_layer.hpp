@@ -31,5 +31,4 @@ private:
     auto create_descriptor_pool() -> vk::raii::DescriptorPool;
 };
 
-}
-
+} // namespace pop::imgui

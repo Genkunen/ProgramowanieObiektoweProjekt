@@ -20,4 +20,4 @@ struct Mesh {
 
 auto load_mesh_data_gltf(std::string filename) -> std::tuple<std::vector<Vertex>, std::vector<uint32_t>>;
 
-}
+} // namespace pop::vulkan::renderer

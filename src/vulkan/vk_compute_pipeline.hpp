@@ -62,6 +62,7 @@ public:
         m_pipeline_layout = layout.vk_pipeline_layout();
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_preferred_wave_lane_count(uint32_t lane_count) noexcept -> VulkanComputePipelineBuilder& {
         assert(lane_count >= 2 && (lane_count & (lane_count - 1)) == 0 && "lane_count must be a power of 2");
         auto& device_vk13_props = VulkanContext::get().physical_device_vulkan13_properties();
@@ -70,6 +71,7 @@ public:
         m_set_wave_lane_count = clamped_wave_lane_count;
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_required_wave_lane_count(uint32_t lane_count) -> VulkanComputePipelineBuilder& {
         assert(lane_count >= 2 && (lane_count & (lane_count - 1)) == 0 && "lane_count must be a power of 2");
         auto& device_vk13_props = VulkanContext::get().physical_device_vulkan13_properties();
@@ -80,6 +82,7 @@ public:
         m_set_wave_lane_count = lane_count;
         return *this;
     }
+
     [[nodiscard]] constexpr auto build() -> VulkanComputePipeline {
         if (m_set_wave_lane_count) {
             m_shader_stage_create_info.get<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfo>().requiredSubgroupSize = *m_set_wave_lane_count;

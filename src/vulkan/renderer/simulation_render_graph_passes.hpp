@@ -310,4 +310,4 @@ public:
     auto invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void override;
 };
 
-}
+} // namespace pop::vulkan::renderer

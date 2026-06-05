@@ -30,13 +30,14 @@ public:
 
     [[nodiscard]] constexpr static auto builder() -> VulkanImageBuilder;
 
-    [[nodiscard]] auto vk_image() const noexcept -> const vk::raii::Image& { return m_image; }
-    [[nodiscard]] auto vk_full_image_view() const noexcept -> const vk::raii::ImageView& { return m_full_image_view; }
-    [[nodiscard]] auto vma_allocation() const noexcept -> const vma::raii::Allocation& { return m_allocation; }
-    [[nodiscard]] auto format() const noexcept -> vk::Format { return m_format; }
-    [[nodiscard]] auto extent() const noexcept -> vk::Extent3D { return m_extent; }
-    [[nodiscard]] auto mip_levels() const noexcept -> uint32_t { return m_mip_levels; }
+    [[nodiscard]] auto vk_image()               const noexcept -> const vk::raii::Image& { return m_image; }
+    [[nodiscard]] auto vk_full_image_view()     const noexcept -> const vk::raii::ImageView& { return m_full_image_view; }
+    [[nodiscard]] auto vma_allocation()         const noexcept -> const vma::raii::Allocation& { return m_allocation; }
+    [[nodiscard]] auto format()                 const noexcept -> vk::Format { return m_format; }
+    [[nodiscard]] auto extent()                 const noexcept -> vk::Extent3D { return m_extent; }
+    [[nodiscard]] auto mip_levels()             const noexcept -> uint32_t { return m_mip_levels; }
     [[nodiscard]] auto full_subresource_range() const noexcept -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, m_mip_levels, 0, 1 }; }
+
 private:
     vk::raii::Image m_image;
     vk::raii::ImageView m_full_image_view;
@@ -51,14 +52,15 @@ class VulkanImageBuilder {
 public:
     constexpr VulkanImageBuilder() = default;
 
-    [[nodiscard]] auto set_type(vk::ImageType type) noexcept -> VulkanImageBuilder& { m_image_create_info.imageType = type; return *this; }
-    [[nodiscard]] auto set_extent(vk::Extent3D extent) noexcept -> VulkanImageBuilder& { m_image_create_info.extent = extent; return *this; }
-    [[nodiscard]] auto set_mip_levels(uint32_t mip_levels) noexcept -> VulkanImageBuilder& { m_image_create_info.mipLevels = mip_levels; return *this; }
-    [[nodiscard]] auto set_format(vk::Format format) noexcept -> VulkanImageBuilder& { m_image_create_info.format = format; return *this; }
-    [[nodiscard]] auto set_tiling(vk::ImageTiling tiling) noexcept -> VulkanImageBuilder& { m_image_create_info.tiling = tiling; return *this; }
-    [[nodiscard]] auto set_usage(vk::ImageUsageFlags usage) noexcept -> VulkanImageBuilder& { m_image_create_info.usage = usage; return *this; }
+    [[nodiscard]] auto set_type(vk::ImageType type)                       noexcept -> VulkanImageBuilder& { m_image_create_info.imageType = type; return *this; }
+    [[nodiscard]] auto set_extent(vk::Extent3D extent)                    noexcept -> VulkanImageBuilder& { m_image_create_info.extent = extent; return *this; }
+    [[nodiscard]] auto set_mip_levels(uint32_t mip_levels)                noexcept -> VulkanImageBuilder& { m_image_create_info.mipLevels = mip_levels; return *this; }
+    [[nodiscard]] auto set_format(vk::Format format)                      noexcept -> VulkanImageBuilder& { m_image_create_info.format = format; return *this; }
+    [[nodiscard]] auto set_tiling(vk::ImageTiling tiling)                 noexcept -> VulkanImageBuilder& { m_image_create_info.tiling = tiling; return *this; }
+    [[nodiscard]] auto set_usage(vk::ImageUsageFlags usage)               noexcept -> VulkanImageBuilder& { m_image_create_info.usage = usage; return *this; }
     [[nodiscard]] auto set_initial_layout(vk::ImageLayout initial_layout) noexcept -> VulkanImageBuilder& { m_image_create_info.initialLayout = initial_layout; return *this; }
-    [[nodiscard]] auto set_memory_usage(vma::MemoryUsage memory_usage) noexcept -> VulkanImageBuilder& { m_allocation_create_info.usage = memory_usage; return *this; }
+    [[nodiscard]] auto set_memory_usage(vma::MemoryUsage memory_usage)    noexcept -> VulkanImageBuilder& { m_allocation_create_info.usage = memory_usage; return *this; }
+
     [[nodiscard]] auto build() -> VulkanImage {
         uint32_t graphics_queue_family_index = VulkanContext::get().vk_graphics_queue_family();
         m_image_create_info.arrayLayers = 1;
@@ -100,4 +102,4 @@ private:
 
 constexpr auto VulkanImage::builder() -> VulkanImageBuilder { return VulkanImageBuilder(); }
 
-}
+} // namespace pop::vulkan

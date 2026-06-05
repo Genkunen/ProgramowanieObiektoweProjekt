@@ -220,5 +220,5 @@ void PersistentSettings::parse_buffer() {
 
 std::filesystem::path PersistentSettings::file_path = 
     pop::systems::relative_path() / "persistent.settings";
-}
 
+} // namespace pop::systems

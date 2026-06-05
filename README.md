@@ -31,7 +31,7 @@ git clone https://github.com/Genkunen/ProgramowanieObiektoweProjekt
 cd ProgramowanieObiektoweProjekt
 mkdir build && cd build
 cmake ..
-cmake --build . && ./ProgramowanieObiektoweProjekt
+cmake --build . && ./main
 ```
 It's highly recommended to use multithreaded builds using either ninja or -j$(nproc) flag:
 ```

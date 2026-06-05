@@ -16,4 +16,4 @@ private:
     vk::raii::CommandPool m_upload_cmd_pool;
 };
 
-}
+} // namespace pop::systems

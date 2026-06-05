@@ -25,7 +25,7 @@ public:
     constexpr static auto builder() -> PassDependenciesBuilder;
 
     [[nodiscard]] auto buffer_dependencies() const noexcept -> const std::vector<BufferDependency>& { return m_buffer_dependencies; }
-    [[nodiscard]] auto image_dependencies() const noexcept -> const std::vector<ImageDependency>& { return m_image_dependencies; }
+    [[nodiscard]] auto image_dependencies()  const noexcept -> const std::vector<ImageDependency>& { return m_image_dependencies; }
 
 private:
     std::vector<BufferDependency> m_buffer_dependencies;
@@ -41,6 +41,7 @@ public:
         m_buffer_dependencies.emplace_back(dep);
         return *this;
     }
+
     [[nodiscard]] constexpr auto add_image_dependency(ImageResourceIdentifier resource_id, vk::ImageLayout layout, vk::PipelineStageFlags2 stage, vk::AccessFlags2 access) noexcept -> PassDependenciesBuilder& {
         auto dep = ImageDependency{ resource_id, layout, stage, access };
         m_image_dependencies.emplace_back(dep);

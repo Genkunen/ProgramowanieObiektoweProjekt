@@ -46,4 +46,4 @@ struct SimulationData {
     float simulation_time_since_start;
 };
 
-}
+} // namespace pop::shaders

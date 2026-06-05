@@ -30,7 +30,7 @@ public:
 
     [[nodiscard]] auto vk_swapchain() const noexcept -> const vk::raii::SwapchainKHR& { return m_swapchain; }
     [[nodiscard]] auto image_extent() const noexcept -> const vk::Extent2D& { return m_swapchain_image_extent; }
-    [[nodiscard]] auto images() const       noexcept -> const std::vector<VulkanSwapchainImage>& { return m_swapchain_images; }
+    [[nodiscard]] auto images()       const noexcept -> const std::vector<VulkanSwapchainImage>& { return m_swapchain_images; }
 
 private:
     vk::raii::SwapchainKHR m_swapchain;

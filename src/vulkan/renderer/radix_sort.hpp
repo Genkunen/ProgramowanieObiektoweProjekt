@@ -25,4 +25,4 @@ constexpr std::uint64_t compute_memory_needed_for_radix_sort_group_histograms(st
     return total_bytes;
 }
 
-}
+} // namespace pop::vulkan::renderer

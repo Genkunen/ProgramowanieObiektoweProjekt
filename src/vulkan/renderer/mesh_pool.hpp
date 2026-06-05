@@ -13,9 +13,9 @@ public:
 
     static auto create(uint32_t max_vertices, uint32_t max_indices) -> MeshPool;
 
-    [[nodiscard]] auto vertex_buffer() const -> const VulkanBuffer& { return m_vertex_buffer; }
-    [[nodiscard]] auto index_buffer() const -> const VulkanBuffer& { return m_index_buffer; }
-    [[nodiscard]] auto mesh_allocations() const -> const std::vector<shaders::MeshAllocationData>& { return m_mesh_allocations; }
+    [[nodiscard]] auto vertex_buffer()                     const -> const VulkanBuffer& { return m_vertex_buffer; }
+    [[nodiscard]] auto index_buffer()                      const -> const VulkanBuffer& { return m_index_buffer; }
+    [[nodiscard]] auto mesh_allocations()                  const -> const std::vector<shaders::MeshAllocationData>& { return m_mesh_allocations; }
     [[nodiscard]] auto mesh_allocations_table_generation() const -> uint64_t { return m_mesh_allocations_table_generation; }
 
     [[nodiscard]] auto load_mesh(std::filesystem::path filename) -> Mesh;
@@ -41,4 +41,4 @@ private:
     std::vector<MeshAllocationHandle> m_mesh_allocation_handles;
 };
 
-}
+} // namespace pop::vulkan::renderer

@@ -15,4 +15,4 @@ void terminateSdl() {
     SDL_Quit();
 }
 
-}
+} // namespace pop::sdl

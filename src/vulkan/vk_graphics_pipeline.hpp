@@ -40,27 +40,33 @@ public:
         m_shader_stages.emplace_back(stage_tuple);
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_pipeline_layout(const VulkanPipelineLayout& layout) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_pipeline_layout = layout.vk_pipeline_layout();
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_input_topology(vk::PrimitiveTopology topology) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_input_assembly_state.topology = topology;
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_rasterizer_line_width(float line_width) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.lineWidth = line_width;
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_rasterizer_polygon_mode(vk::PolygonMode polygon_mode) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.polygonMode = polygon_mode;
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_rasterizer_cull_mode(vk::CullModeFlags cull_mode_flags, vk::FrontFace front_face) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.cullMode = cull_mode_flags;
         m_rasterization_state.frontFace = front_face;
         return *this;
     }
+
     [[nodiscard]] constexpr auto disable_multisampling() noexcept -> VulkanGraphicsPipelineBuilder& {
         m_multisample_state.sampleShadingEnable = false;
         m_multisample_state.rasterizationSamples = vk::SampleCountFlagBits::e1;
@@ -69,11 +75,13 @@ public:
         m_multisample_state.alphaToOneEnable = false;
         return *this;
     }
+
     [[nodiscard]] constexpr auto add_rendering_attachment(vk::PipelineColorBlendAttachmentState blending, vk::Format attachment_format) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rendering_color_attachment_blend_states.emplace_back(blending);
         m_rendering_color_attachment_formats.emplace_back(attachment_format);
         return *this;
     }
+
     [[nodiscard]] constexpr auto disable_depth_test() noexcept -> VulkanGraphicsPipelineBuilder& {
         m_depth_stencil_state.depthTestEnable = false;
         m_depth_stencil_state.depthWriteEnable = false;
@@ -84,6 +92,7 @@ public:
         m_depth_stencil_state.maxDepthBounds = 1.0;
         return *this;
     }
+
     [[nodiscard]] constexpr auto enable_depth_test(bool write) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_depth_stencil_state.depthTestEnable = true;
         m_depth_stencil_state.depthWriteEnable = write;
@@ -94,10 +103,12 @@ public:
         m_depth_stencil_state.maxDepthBounds = 1.0;
         return *this;
     }
+
     [[nodiscard]] constexpr auto set_depth_attachment_format(vk::Format format) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rendering_create_info.depthAttachmentFormat = format;
         return *this;
     }
+
     [[nodiscard]] constexpr auto build() -> VulkanGraphicsPipeline {
         auto viewport_state = vk::PipelineViewportStateCreateInfo()
             .setViewportCount(1)
@@ -152,4 +163,4 @@ private:
 
 constexpr auto VulkanGraphicsPipeline::builder() -> VulkanGraphicsPipelineBuilder { return VulkanGraphicsPipelineBuilder(); }
 
-}
+} // namespace pop::vulkan

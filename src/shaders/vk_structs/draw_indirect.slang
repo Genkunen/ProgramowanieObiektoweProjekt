@@ -6,4 +6,4 @@ namespace vk {
 		int  vertexOffset;
 		uint firstInstance;
 	};
-}
+} // namespace vk

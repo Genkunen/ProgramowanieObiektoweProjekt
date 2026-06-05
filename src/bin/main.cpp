@@ -3,7 +3,6 @@
 #endif
 
 #include "sdl/sdl_lib.hpp"
-#include "sphere_geometry_gen.hpp"
 #include "systems/debug.hpp"
 #include "systems/ktx2_loader.hpp"
 #include "systems/persistent_settings.hpp"
@@ -311,7 +310,7 @@ auto sdl_entry_main() -> void {
             }
 
             std::println("{}", error_message);
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vulkan System Error", error_message.c_str(), window.get());
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Vulkan System Error", error_message.c_str(), window.get_handle());
             running = false;
         }
 

@@ -89,4 +89,4 @@ auto load_mesh_data_gltf(std::string filename) -> std::tuple<std::vector<Vertex>
     return { std::move(vertices), std::move(indices) };
 }
 
-}
+} // namespace pop::vulkan::renderer

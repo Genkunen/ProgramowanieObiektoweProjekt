@@ -215,6 +215,4 @@ private:
     inline static std::string buffer;
 };
 
-}
-
-
+} // namespace pop::systems

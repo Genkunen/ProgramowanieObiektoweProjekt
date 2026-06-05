@@ -62,5 +62,4 @@ private:
     std::vector<vk::BufferMemoryBarrier2> m_buffer_memory_barriers;
 };
 
-
-}
+} // namespace pop::vulkan

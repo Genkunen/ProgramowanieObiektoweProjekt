@@ -31,7 +31,7 @@ auto SdlWindow::vulkan_window_drawable_extent() const -> vk::Extent2D {
     return extent;
 }
 
-auto SdlWindow::get() const -> SDL_Window* {
+auto SdlWindow::get_handle() const -> SDL_Window* {
     return m_window;
 }
 

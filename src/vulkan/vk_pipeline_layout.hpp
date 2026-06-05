@@ -57,4 +57,4 @@ private:
 
 constexpr auto VulkanPipelineLayout::builder() -> VulkanPipelineLayoutBuilder { return VulkanPipelineLayoutBuilder(); }
 
-}
+} // namespace pop::vulkan

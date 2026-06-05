@@ -18,4 +18,4 @@ inline bool is_debug_enabled() {
     return env_var != nullptr && strcmp(env_var, "1") == 0;
 }
 
-}
+} // namespace pop::systems

@@ -56,20 +56,21 @@ public:
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
     auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time, glm::vec3 cam_pos) -> RenderResult;
+
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
-    auto swapchain() const -> const VulkanSwapchain&;
 
     auto reset_simulation_object_count(uint32_t new_count) -> void;
-    auto set_water_current_strength(float new_strength) -> void;
+    auto set_water_current_strength(float new_strength)    -> void;
 
     auto export_simulation_data() -> SimulationDataSnapshot;
 
-    auto pause_simulation() -> void;
+    auto pause_simulation()  -> void;
     auto resume_simulation() -> void;
 
-    constexpr auto is_simulation_running() const -> bool { return m_simulation_is_running; }
+    constexpr auto is_simulation_running()       const -> bool { return m_simulation_is_running; }
     constexpr auto gpu_driven_sim_object_count() const -> uint32_t { return m_gpu_driven_sim_object_count; }
-    constexpr auto water_current_strength() const -> float { return m_water_current_strength; }
+    constexpr auto water_current_strength()      const -> float { return m_water_current_strength; }
+    constexpr auto swapchain()                   const -> const VulkanSwapchain& { return m_swapchain; }
 
 private:
     VulkanSwapchain m_swapchain;
@@ -108,4 +109,4 @@ private:
     auto preinitialize_simulation(const std::span<const Mesh>& meshes) -> void;
 };
 
-}
+} // namespace pop::vulkan::renderer

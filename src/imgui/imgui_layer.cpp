@@ -17,7 +17,7 @@ ImGuiLayer::ImGuiLayer(const pop::sdl::SdlWindow& window, const pop::vulkan::Vul
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    ImGui_ImplSDL3_InitForVulkan(window.get());
+    ImGui_ImplSDL3_InitForVulkan(window.get_handle());
 
     const auto& context = pop::vulkan::VulkanContext::get();
     auto swapchain_image_count = static_cast<uint32_t>(swapchain.images().size());
@@ -142,6 +142,4 @@ ImGuiLayer::~ImGuiLayer() {
     shutdown();
 }
 
-
-}
-
+} // namespace pop::imgui
