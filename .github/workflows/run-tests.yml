@@ -22,10 +22,15 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y \
             build-essential cmake ninja-build \
-            libvulkan-dev vulkan-tools \
             mesa-vulkan-drivers \
             xvfb \
             libglm-dev
+
+      - name: Install Vulkan Headers
+        run: |
+          git clone --depth=1 https://github.com/KhronosGroup/Vulkan-Headers.git
+          cmake -S Vulkan-Headers -B Vulkan-Headers/build -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo cmake --build Vulkan-Headers/build --target install
 
       - name: Install Slang
         run: |
