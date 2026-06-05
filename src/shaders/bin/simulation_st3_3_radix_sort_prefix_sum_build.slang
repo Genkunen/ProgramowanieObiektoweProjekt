@@ -56,8 +56,6 @@ uint compute_interwave_prefix_sum(uint val, uint hardware_wave_lane_count, uint 
                 gs_intrawave_total_sums[index] = value_prefix_sum;
 
                 last_highest = WaveReadLaneAt(value_prefix_sum + value, hardware_wave_lane_count - 1);
-
-                GroupMemoryBarrierWithWaveSync();
             }
         }
     }
