@@ -1,22 +1,27 @@
 import "../shared_code_shim";
 
+[vk::constant_id(0)] const uint GROUP_SIZE = 64;
+
 [vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants push_constants;
 
 groupshared uint gs_histogram[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
 
 [shader("compute")]
-[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE, 1, 1)]
+[numthreads(GROUP_SIZE, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint tid = dtid.x;
     uint group_tid = gtid.x;
     uint group_id = gid.x;
 
+    uint wb_iterations = pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS / GROUP_SIZE;
+
     // First the whole group cooperatively zeroes out the LDS histogram.
-    gs_histogram[group_tid] = 0u;
-    gs_histogram[group_tid + 64] = 0u;
-    gs_histogram[group_tid + 128] = 0u;
-    gs_histogram[group_tid + 192] = 0u;
-    GroupMemoryBarrierWithGroupSync();
+    [unroll]
+    for (uint i = 0; i < wb_iterations; i++) {
+        uint base = i * GROUP_SIZE;
+        gs_histogram[base + group_tid] = 0u;
+    }
+    GroupMemoryBarrierWithWaveSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
     // Load all the elements belonging to the thread.
@@ -32,7 +37,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         // at a time, then the access pattern is to the chunk is ABCDABCDABCDABCD...
         uint index = base_index
             + group_tid
-            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
+            + i * GROUP_SIZE;
 
         if (index >= push_constants.keys_count) break;
 
@@ -49,15 +54,14 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
 
         InterlockedAdd(gs_histogram[digit], 1u);
     }
-    GroupMemoryBarrierWithGroupSync();
+    GroupMemoryBarrierWithWaveSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
-
-    uint writeback_iterations = pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS / pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
+    // Write back the histogram to the global memory and build the global histogram.
 
     [unroll]
-    for (uint i = 0; i < writeback_iterations; i++) {
-        uint base = i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_WORKGROUP_SIZE;
+    for (uint i = 0; i < wb_iterations; i++) {
+        uint base = i * GROUP_SIZE;
 
         uint digit_id = base + group_tid;
         uint digit_count = gs_histogram[digit_id];
