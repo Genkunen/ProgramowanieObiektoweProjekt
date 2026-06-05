@@ -1,5 +1,6 @@
 #include "simulation_render_graph_passes.hpp"
 
+#include "radix_sort.hpp"
 #include "shaders/push_constant_structs.hpp"
 #include "shaders/shared_consts.hpp"
 #include "systems/ktx2_loader.hpp"
@@ -291,9 +292,21 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
     auto prefix_sum_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_3_radix_sort_prefix_sum_build.spv");
     auto scatter_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_4_radix_sort_scatter.spv");
 
+    uint32_t group_size = get_radix_sort_group_size();
+
+    struct RadixSortPipelinesSpecializations {
+        uint32_t group_size;
+    };
+
+    RadixSortPipelinesSpecializations specialization_data = { group_size };
+
+    auto specialization_map = VulkanSpecializationConstantsMap(specialization_data);
+    specialization_map.add_map_entry(0, &RadixSortPipelinesSpecializations::group_size);
+
     auto histogram_cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(histogram_cs_layout)
-        .set_shader(histogram_cs_code)
+        .set_shader(histogram_cs_code, specialization_map)
+        .set_required_wave_lane_count(group_size)
         .build();
 
     auto prefix_sum_cs = VulkanComputePipeline::builder()
@@ -303,7 +316,8 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
 
     auto scatter_cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(scatter_cs_layout)
-        .set_shader(scatter_cs_code)
+        .set_shader(scatter_cs_code, specialization_map)
+        .set_required_wave_lane_count(group_size)
         .build();
 
     return SimulationAccelerationGridRadixSortPass(std::move(dependencies),
@@ -328,7 +342,7 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
     uint32_t pass_count = (8 * sizeof(uint32_t)) / shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_BITS;
     assert(pass_count % 2 == 0 && "radix sort pass count must be even");
 
-    uint32_t group_count = div_ceil(keys_count, shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_GROUP);
+    uint32_t group_count = div_ceil(keys_count, get_radix_sort_keys_count_per_group());
 
     for (uint32_t pass_index = 0; pass_index < pass_count; pass_index++) {
         uint32_t radix_bit_shift = pass_index * shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_BITS;

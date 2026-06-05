@@ -151,6 +151,9 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     render_graph_v2.add_dependency_edge(imgui_render_pass, blit_main_image_to_swapchain_pass);
 
+    auto radix_sort_group_size = get_radix_sort_group_size();
+    std::println("Radix sort histogram and scatter shader execution mode: Wave{}", radix_sort_group_size);
+
     // ---- Simulation and Rendering Resources -----------------------------------------------------------------------------------------------------------------
 
     auto simulation_buffers_manager = SimulationBuffersManager::create(
