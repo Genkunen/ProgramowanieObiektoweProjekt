@@ -24,7 +24,7 @@ jobs:
             build-essential cmake ninja-build \
             mesa-vulkan-drivers \
             xvfb \
-            libglm-dev
+            libglm-dev libvulkan-dev
 
       - name: Install Vulkan Headers
         run: |
