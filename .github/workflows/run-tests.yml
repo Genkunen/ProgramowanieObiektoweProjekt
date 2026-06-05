@@ -1,0 +1,54 @@
+name: Run Tests
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build 
+            libvulkan1 libvulkan-dev vulkan-tools \
+            mesa-vulkan-drivers \
+            xvfb \
+            libsdl3-dev \ 
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -G Ninja
+            -D CMAKE_BUILD_TYPE=Release
+            -D ENABLE_TESTS=ON
+        
+      - name: Build
+        run: |
+          cmake --build build
+
+      - name: Test
+        run: |
+          ctest --test-dir build --output-on-failure --output-junit test-results.xml
+        env:
+          VK_ICD_FILENAMES: /usr/share/vulkan/icd.d/lvp_icd.x86_64.json
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results
+          path: test-results.xml
+
+      - name: Report test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: CTest results
+          path: test-results.xml
+          reporter: java-junit
