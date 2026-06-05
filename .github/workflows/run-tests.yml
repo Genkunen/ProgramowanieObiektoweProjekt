@@ -24,7 +24,8 @@ jobs:
             build-essential cmake ninja-build \
             libvulkan-dev vulkan-tools \
             mesa-vulkan-drivers \
-            xvfb
+            xvfb \
+            libglm-dev
 
       - name: Configure
         run: |
