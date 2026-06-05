@@ -76,6 +76,8 @@ jobs:
           ICD=$(find /usr/share/vulkan/icd.d/ -name "lvp_icd*.json" | head -1)
           echo "Using ICD: $ICD"
           VK_ICD_FILENAMES="$ICD" xvfb-run --auto-servernum bash -c "ctest --test-dir build --verbose --output-junit $PWD/test-results.xml"
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
