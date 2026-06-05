@@ -1,31 +1,18 @@
 import "../shared_code_shim";
 
-[vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants push_constants;
+[vk::constant_id(0)] const uint GROUP_SIZE = 64;
 
+[vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants push_constants;
 
 uint div_ceil(uint a, uint b) {
     return (a + b - 1) / b;
-}
-
-groupshared uint gs_rank_elem_values[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
-
-uint compute_element_rank256(uint value, uint group_tid) {
-    gs_rank_elem_values[group_tid] = value;
-    GroupMemoryBarrierWithGroupSync();
-
-    uint rank = 0;
-
-    for (uint i = 0; i < group_tid; i++) {
-        if (gs_rank_elem_values[i] == value) rank++;
-    }
-    return rank;
 }
 
 uint countbits128(uint4 val) {
     return countbits(val.x) + countbits(val.y) + countbits(val.z) + countbits(val.w);
 }
 
-uint wave_lt_lanecount_with_same_value(uint value) {
+uint compute_element_intrawave_rank(uint value) {
     uint4 mask_before = WaveGetLaneLtMask();
 
     while (true) {
@@ -39,26 +26,10 @@ uint wave_lt_lanecount_with_same_value(uint value) {
     return 0;
 }
 
-uint compute_element_rank256v2(uint value, uint group_tid, uint group_id, uint hardware_wave_lane_count, uint wave_index, uint wave_lane) {
-    gs_rank_elem_values[group_tid] = value;
-
-    uint intrawave_matches = wave_lt_lanecount_with_same_value(value);
-    GroupMemoryBarrierWithGroupSync();
-
-    uint iters = wave_index * hardware_wave_lane_count;
-    uint foreign_wave_matches = 0;
-    for (uint i = 0; i < iters; i++) {
-        uint neighbor_element = gs_rank_elem_values[i];
-        if (neighbor_element == value) foreign_wave_matches++;
-    }
-
-    return intrawave_matches + foreign_wave_matches;
-}
-
 groupshared uint gs_elem_write_offset_bases[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS];
 
 [shader("compute")]
-[numthreads(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1)]
+[numthreads(GROUP_SIZE, 1, 1)]
 void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
     uint tid = dtid.x;
     uint group_tid = gtid.x;
@@ -67,23 +38,27 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     uint hardware_wave_lane_count = WaveGetLaneCount();
     uint wave_lane = WaveGetLaneIndex();
 
-    uint wave_count = div_ceil(pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, hardware_wave_lane_count);
+    uint wave_count = div_ceil(GROUP_SIZE, hardware_wave_lane_count);
     uint wave_index = group_tid / hardware_wave_lane_count;
+
+    uint wb_iterations = pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS / GROUP_SIZE;
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
     // First load the local group prefix sums and add the global ones on top.
 
-    uint bin_write_offset = push_constants.group_local_histograms[group_tid * push_constants.group_count + group_id];
-    uint global_write_offset_base = push_constants.global_histogram[group_tid];
-    gs_elem_write_offset_bases[group_tid] = global_write_offset_base + bin_write_offset;
-
-    GroupMemoryBarrierWithGroupSync();
+    for (uint i = 0; i < wb_iterations; i++) {
+        uint expanded_gtid = group_tid + i * GROUP_SIZE;
+        uint bin_write_offset = push_constants.group_local_histograms[expanded_gtid * push_constants.group_count + group_id];
+        uint global_write_offset_base = push_constants.global_histogram[expanded_gtid];
+        gs_elem_write_offset_bases[expanded_gtid] = global_write_offset_base + bin_write_offset;
+    }
+    GroupMemoryBarrierWithWaveSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
     // Load all the elements belonging to the thread.
 
     // base_index - index to the first key in the chunk of keys that this group is responsible for.
-    uint base_index = group_id * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_GROUP;
+    uint base_index = group_id * GROUP_SIZE * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD;
 
     uint keys[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD];
     uint values[pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD];
@@ -98,7 +73,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         // is the same as [wave_index][wave_lane].
         uint index = base_index
             + group_tid
-            + i * pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS;
+            + i * GROUP_SIZE;
 
         if (index >= push_constants.keys_count) break;
 
@@ -116,14 +91,14 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         uint key = keys[i];
 
         uint digit = (key >> push_constants.radix_bit_shift) & pop::shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_RADIX_MASK;
-        uint rank = compute_element_rank256v2(digit, group_tid, group_id, hardware_wave_lane_count, wave_index, wave_lane);
+        uint rank = compute_element_intrawave_rank(digit);
 
         uint dst_local_write_offset = gs_elem_write_offset_bases[digit] + rank;
         kv_write_indices[i] = dst_local_write_offset;
 
-        GroupMemoryBarrierWithGroupSync();
+        GroupMemoryBarrierWithWaveSync();
         InterlockedAdd(gs_elem_write_offset_bases[digit], 1u);
-        // synchronized by barrier in compute_element_rank256v2
+        GroupMemoryBarrierWithWaveSync();
     }
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
