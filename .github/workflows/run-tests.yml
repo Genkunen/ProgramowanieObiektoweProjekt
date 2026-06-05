@@ -75,7 +75,7 @@ jobs:
         run: |
           ICD=$(find /usr/share/vulkan/icd.d/ -name "lvp_icd*.json" | head -1)
           echo "Using ICD: $ICD"
-          VK_ICD_FILENAMES="$ICD" xvfb-run --auto-servernum bash -c "ctest --test-dir build --output-on-failure --output-junit $PWD/test-results.xml"
+          VK_ICD_FILENAMES="$ICD" xvfb-run --auto-servernum bash -c "ctest --test-dir build --verbose --output-junit $PWD/test-results.xml"
 
       - name: Upload test results
         uses: actions/upload-artifact@v7

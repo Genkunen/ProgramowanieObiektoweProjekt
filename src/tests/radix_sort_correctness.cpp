@@ -56,6 +56,8 @@ void radix_sort_test() {
     auto mock_mesh_pool = MeshPool::create(1, 1);
     auto mock_swapchain_image = VulkanSwapchainImage::from(nullptr, vk::Extent2D{}, vk::Format::eUndefined);
 
+    std::println("Radix sort histogram and scatter shader execution mode: Wave{}", renderer::get_radix_sort_group_size());
+
     std::println("Compiling radix sort pass...");
     auto radix_sort_pass = std::make_unique<SimulationAccelerationGridRadixSortPass>(SimulationAccelerationGridRadixSortPass::create());
 
