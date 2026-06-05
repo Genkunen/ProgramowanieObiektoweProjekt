@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.30)
+
+option(ENABLE_TESTS "Enable tests" OFF)
+if (${ENABLE_TESTS})
+    enable_testing()
+endif()
+
 include(FetchContent)
 project(ProgramowanieObiektoweProjekt VERSION 0.1.0 LANGUAGES CXX C)
 
@@ -16,7 +22,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # ---- Dependencies ----------------------------------------------------------------------------------------------------
 
 find_package(Vulkan REQUIRED)
-find_package(SDL3 REQUIRED)
+find_package(SDL3 REQUIRED CONFIG)
 find_package(glm REQUIRED)
 
 FetchContent_Declare(
@@ -141,25 +147,27 @@ endfunction()
 
 # ---- Sources Setup ---------------------------------------------------------------------------------------------------
 
-file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+file(GLOB_RECURSE LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
+list(FILTER LIBRARY_SOURCES EXCLUDE REGEX ".*/(bin|tests)/.*")
+
 file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/bin/*.slang)
 
 # ---- Build Setup -----------------------------------------------------------------------------------------------------
 
-add_executable(ProgramowanieObiektoweProjekt ${SOURCES})
+add_library(ProgramowanieObiektoweProjekt_lib STATIC ${LIBRARY_SOURCES})
 add_slang_shaders(ProgramowanieObiektoweProjekt_spv SOURCES ${SHADER_SOURCES} TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/spirv)
-add_dependencies(ProgramowanieObiektoweProjekt ProgramowanieObiektoweProjekt_spv)
+add_dependencies(ProgramowanieObiektoweProjekt_lib ProgramowanieObiektoweProjekt_spv)
 
-add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
+add_custom_command(TARGET ProgramowanieObiektoweProjekt_lib POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
     "${CMAKE_CURRENT_SOURCE_DIR}/persistent.settings"
-    "$<TARGET_FILE_DIR:ProgramowanieObiektoweProjekt>/persistent.settings"
+    "$<TARGET_FILE_DIR:ProgramowanieObiektoweProjekt_lib>/persistent.settings"
 )
 
-target_include_directories(ProgramowanieObiektoweProjekt PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_include_directories(ProgramowanieObiektoweProjekt_lib PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
 target_link_libraries(
-        ProgramowanieObiektoweProjekt PRIVATE
+        ProgramowanieObiektoweProjekt_lib PUBLIC
         Vulkan::Headers
         SDL3::SDL3
         ktx
@@ -171,7 +179,7 @@ target_link_libraries(
 )
 
 target_compile_definitions(
-        ProgramowanieObiektoweProjekt PRIVATE
+        ProgramowanieObiektoweProjekt_lib PUBLIC
         GLM_FORCE_DEPTH_ZERO_TO_ONE
         GLM_FORCE_LEFT_HANDED
         GLM_FORCE_RADIANS
@@ -179,13 +187,13 @@ target_compile_definitions(
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
     target_compile_options(
-        ProgramowanieObiektoweProjekt PRIVATE
+        ProgramowanieObiektoweProjekt_lib PRIVATE
         /W4
         /we4716 # Odpowiednik MSVC dla -Werror=return-type
     )
 else()
     target_compile_options(
-        ProgramowanieObiektoweProjekt PRIVATE
+        ProgramowanieObiektoweProjekt_lib PRIVATE
         -Wall
         -Wextra
         -Wpedantic
@@ -195,11 +203,34 @@ endif()
 
 # ---- Assets Copy -----------------------------------------------------------------------------------------------------
 
-add_custom_command(TARGET ProgramowanieObiektoweProjekt POST_BUILD
+add_custom_command(TARGET ProgramowanieObiektoweProjekt_lib POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
         ${CMAKE_SOURCE_DIR}/Assets
         ${CMAKE_CURRENT_BINARY_DIR}/Assets
 )
+
+# ---- Executables -----------------------------------------------------------------------------------------------------
+
+function(add_bin name)
+    add_executable(${name} ${CMAKE_SOURCE_DIR}/src/bin/${name}.cpp)
+    target_include_directories(${name} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(${name} PRIVATE ProgramowanieObiektoweProjekt_lib)
+endfunction()
+
+add_bin(main)
+
+# ---- Tests -----------------------------------------------------------------------------------------------------------
+
+function(add_project_test name)
+    add_executable(test_${name} src/tests/${name}.cpp)
+    target_include_directories(test_${name} PRIVATE ${CMAKE_SOURCE_DIR}/src)
+    target_link_libraries(test_${name} PRIVATE ProgramowanieObiektoweProjekt_lib)
+    add_test(NAME ${name} COMMAND test_${name})
+endfunction()
+
+add_project_test(sanity)
+add_project_test(pass_compile)
+add_project_test(radix_sort_correctness)
 
 # ---- macOS Support ---------------------------------------------------------------------------------------------------
 

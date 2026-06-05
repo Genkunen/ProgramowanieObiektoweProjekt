@@ -18,3 +18,6 @@ UML/**/.uml_tmp/
 !persistent.settings
 !suzanne.glb
 !.gitattributes
+
+!.github/
+!.github/**

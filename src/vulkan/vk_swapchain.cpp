@@ -20,8 +20,8 @@ auto VulkanSwapchainImage::from(vk::Image image, vk::Extent2D extent, vk::Format
 // ---- VulkanSwapchain ----------------------------------------------------------------------------------------------------------------------------------------
 
 VulkanSwapchain::VulkanSwapchain(vk::raii::SwapchainKHR&& swapchain, vk::Extent2D swapchain_image_extent,
-                                 std::vector<VulkanSwapchainImage>&& swapchain_images)
-                                     : m_swapchain(std::move(swapchain)), m_swapchain_image_extent(swapchain_image_extent), m_swapchain_images(std::move(swapchain_images)) {}
+    std::vector<VulkanSwapchainImage>&& swapchain_images)
+        : m_swapchain(std::move(swapchain)), m_swapchain_image_extent(swapchain_image_extent), m_swapchain_images(std::move(swapchain_images)) {}
 
 // clang-format off
 static constexpr std::array<vk::PresentModeKHR, 4> PRESENT_MODE_PRIORITY_VSYNC = { vk::PresentModeKHR::eFifoRelaxed, vk::PresentModeKHR::eFifo, vk::PresentModeKHR::eMailbox, vk::PresentModeKHR::eImmediate };

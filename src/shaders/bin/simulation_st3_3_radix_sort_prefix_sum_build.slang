@@ -35,13 +35,29 @@ uint compute_interwave_prefix_sum(uint val, uint hardware_wave_lane_count, uint 
 
     // Have the first wave in the group transform the intrawave total sums into a prefix sum of it.
     if (is_first_wave) {
-        // TODO: support GPUs with execution mode narrower than wave16
-        bool is_participating_lane = wave_lane < group_wave_count;
+        uint iterations = div_ceil(group_wave_count, hardware_wave_lane_count);
+        if (iterations == 1) {
+            // 1 wave is responsible for prefix sums, if execution mode is too wide then excess lanes must not participate
+            bool is_participating_lane = wave_lane < group_wave_count;
 
-        uint value = is_participating_lane ? gs_intrawave_total_sums[wave_lane] : 0;
-        uint value_prefix_sum = WavePrefixSum(value);
+            uint value = is_participating_lane ? gs_intrawave_total_sums[wave_lane] : 0;
+            uint value_prefix_sum = WavePrefixSum(value);
 
-        if (is_participating_lane) gs_intrawave_total_sums[wave_lane] = value_prefix_sum;
+            if (is_participating_lane) gs_intrawave_total_sums[wave_lane] = value_prefix_sum;
+        } else {
+            // Given that the group count is a power of 2, and the lane count is another power of 2, we don't have to mask threads here
+            // as there's not going to be any fraction
+            uint last_highest = 0;
+            for (uint i = 0; i < iterations; i++) {
+                uint index = wave_lane + i * hardware_wave_lane_count;
+                uint value = gs_intrawave_total_sums[index];
+                uint value_prefix_sum = last_highest + WavePrefixSum(value);
+
+                gs_intrawave_total_sums[index] = value_prefix_sum;
+
+                last_highest = WaveReadLaneAt(value_prefix_sum + value, hardware_wave_lane_count - 1);
+            }
+        }
     }
     GroupMemoryBarrierWithGroupSync();
 

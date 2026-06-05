@@ -9,6 +9,8 @@
 
 #include <backends/imgui_impl_vulkan.h>
 
+#include <bit>
+
 namespace pop::vulkan::renderer {
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
