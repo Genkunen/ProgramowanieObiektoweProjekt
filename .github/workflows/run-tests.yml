@@ -24,7 +24,8 @@ jobs:
             build-essential cmake ninja-build \
             mesa-vulkan-drivers \
             xvfb \
-            libglm-dev libvulkan-dev
+            libglm-dev libvulkan-dev \
+            clang-18 
 
       - name: Install Vulkan Headers
         run: |
@@ -43,7 +44,8 @@ jobs:
             -G Ninja \
             -D CMAKE_BUILD_TYPE=Release \
             -D ENABLE_TESTS=ON \
-            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}"
+            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
+            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang
 
       - name: Build
         run: |
