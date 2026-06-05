@@ -1,4 +1,4 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
 [vk::constant_id(0)] const uint GROUP_SIZE = 64;
 

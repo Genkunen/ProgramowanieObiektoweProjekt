@@ -1,7 +1,7 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
-import "../sim_state/sim_state";
-import "../behavior/object_behavior_dispatch";
+import "../../sim_state/sim_state";
+import "../../behavior/object_behavior_dispatch";
 
 [vk::push_constant] pop::shaders::SimulationInfluenceStepCSPushConstants push_constants;
 

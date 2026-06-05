@@ -1,4 +1,4 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
 [vk::constant_id(0)] const uint GROUP_SIZE = 64;
 
@@ -57,7 +57,7 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     GroupMemoryBarrierWithWaveSync();
 
     // --------------------------------------------------------------------------------------------------------------------------------------------------------
-    // Write back the histogram to the global memory and build the global histogram.
+    // Write back the histogram to the global memory.
 
     [unroll]
     for (uint i = 0; i < wb_iterations; i++) {
@@ -66,7 +66,5 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
         uint digit_id = base + group_tid;
         uint digit_count = gs_histogram[digit_id];
         push_constants.group_local_histograms[push_constants.group_count * digit_id + group_id] = digit_count;
-
-        InterlockedAdd(push_constants.global_histogram[digit_id], digit_count);
     }
 }

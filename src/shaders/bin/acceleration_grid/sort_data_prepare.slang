@@ -1,4 +1,4 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
 [vk::push_constant] pop::shaders::SimulationAccelerationGridSortPrepareCSPushConstants push_constants;
 

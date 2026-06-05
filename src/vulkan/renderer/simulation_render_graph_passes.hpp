@@ -124,7 +124,8 @@ class SimulationAccelerationGridRadixSortPass : public render_graph::PassBase<Si
 public:
     SimulationAccelerationGridRadixSortPass(render_graph::PassDependencies&& deps,
         VulkanPipelineLayout&& histogram_pass_pipeline_layout, VulkanComputePipeline&& histogram_pass_compute_pipeline,
-        VulkanPipelineLayout&& prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& prefix_sum_pass_compute_pipeline,
+        VulkanPipelineLayout&& column_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& column_prefix_sum_pass_compute_pipeline,
+        VulkanPipelineLayout&& global_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& global_prefix_sum_pass_compute_pipeline,
         VulkanPipelineLayout&& scatter_pass_pipeline_layout, VulkanComputePipeline&& scatter_pass_compute_pipeline
     );
 
@@ -138,8 +139,11 @@ private:
     VulkanPipelineLayout m_histogram_pass_pipeline_layout;
     VulkanComputePipeline m_histogram_pass_compute_pipeline;
 
-    VulkanPipelineLayout m_prefix_sum_pass_pipeline_layout;
-    VulkanComputePipeline m_prefix_sum_pass_compute_pipeline;
+    VulkanPipelineLayout m_column_prefix_sum_pass_pipeline_layout;
+    VulkanComputePipeline m_column_prefix_sum_pass_compute_pipeline;
+
+    VulkanPipelineLayout m_global_prefix_sum_pass_pipeline_layout;
+    VulkanComputePipeline m_global_prefix_sum_pass_compute_pipeline;
 
     VulkanPipelineLayout m_scatter_pass_pipeline_layout;
     VulkanComputePipeline m_scatter_pass_compute_pipeline;

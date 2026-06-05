@@ -1,6 +1,6 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
-import "../vk_structs/draw_indirect";
+import "../../vk_structs/draw_indirect";
 
 [vk::push_constant] pop::shaders::BuildInstanceBufferCSPushConstants push_constants;
 

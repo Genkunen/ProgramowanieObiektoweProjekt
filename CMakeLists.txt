@@ -117,8 +117,10 @@ function(add_slang_shaders TARGET)
     )
 
     foreach(SHADER ${SLANG_SOURCES})
-        get_filename_component(NAME_WE ${SHADER} NAME_WE)
-        set(OUTPUT_BINARY ${SLANG_TARGET_DIR}/${NAME_WE}.spv)
+        file(RELATIVE_PATH SHADER_RELATIVE_PATH "${CMAKE_SOURCE_DIR}/src/shaders/bin" "${SHADER}")
+        cmake_path(REMOVE_EXTENSION SHADER_RELATIVE_PATH OUTPUT_VARIABLE SHADER_STEM)
+        message(STATUS "name = ${SHADER_STEM}, fullpath = ${SHADER}")
+        set(OUTPUT_BINARY ${SLANG_TARGET_DIR}/${SHADER_STEM}.spv)
         set(OUTPUT_DEPFILE ${OUTPUT_BINARY}.d)
         set(CMD
                 ${SLANGC_EXECUTABLE}

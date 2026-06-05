@@ -1,4 +1,4 @@
-import "../shared_code_shim";
+import "../../shared_code_shim";
 
 [vk::push_constant] pop::shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants push_constants;
 
@@ -7,6 +7,8 @@ import "../shared_code_shim";
 uint div_ceil(uint a, uint b) {
     return (a + b - 1) / b;
 }
+
+// TODO: use a specialization constant and subgroup size control to actually get an answer here.
 
 // Hardware has different wave sizes, but it is not possible to reliably dynamically size arrays in LDS to depend on the hardware wave size.
 // Therefore we have to make a guess. Typically we see wave8/wave16 on Intel Arc, wave32 on NVIDIA (and in some cases AMD), and wave64 on AMD.
@@ -115,16 +117,11 @@ void main(uint3 gtid : SV_GroupThreadID, uint3 gid : SV_GroupID) {
             GroupMemoryBarrierWithGroupSync();
             if (is_last_thread_in_group) gs_column_prefix_sums_last_value = prefix_sum + bin_value;
             GroupMemoryBarrierWithGroupSync();
+        } else {
+            // Last active thread in the group writes the total sum to the respective global histogram index
+            bool is_last_active_thread = bin_group_index == (push_constants.group_count - 1);
+
+            if (is_last_active_thread) push_constants.global_histogram[group_id] = prefix_sum + bin_value;
         }
     }
-
-    if (group_id != 0) return;
-
-    // --------------------------------------------------------------------------------------------------------------------------------------------------------
-    // After group 0 is done with computing the prefix sums within local histograms bin 0, it also computes the prefix sums of the global histogram.
-
-    uint global_histogram_value = push_constants.global_histogram[group_tid];
-    uint global_histogram_prefix_sum = compute_interwave_prefix_sum(global_histogram_value, hardware_wave_lane_count, wave_count, wave_index, wave_lane);
-
-    push_constants.global_histogram[group_tid] = global_histogram_prefix_sum;
 }

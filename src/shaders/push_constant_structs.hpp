@@ -72,7 +72,6 @@ struct SimulationAccelerationGridSortPrepareCSPushConstants {
 struct SimulationAccelerationGridRadixSortHistogramCSPushConstants {
     DevicePtr<uint> sort_keys;
 
-    DevicePtr<uint> global_histogram;
     DevicePtr<uint> group_local_histograms;
 
     uint group_count;
@@ -85,6 +84,10 @@ struct SimulationAccelerationGridRadixSortPrefixSumCSPushConstants {
     DevicePtr<uint> group_local_histograms;
 
     uint group_count;
+} PACKED;
+
+struct SimulationAccelerationGridRadixSortGlobalPrefixSumCSPushConstants {
+    DevicePtr<uint> global_histogram;
 } PACKED;
 
 // TODO: reduce size (<= 13 DWORDs)

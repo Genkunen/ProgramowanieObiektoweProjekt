@@ -29,7 +29,7 @@ auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
         .add_push_constant_range(0, sizeof(shaders::UploadMeshesCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st1_1_upload_meshes.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/indirect_draw_prep/mesh_param_upload.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -75,7 +75,7 @@ auto RandomEventsPass::create() -> RandomEventsPass {
         .add_push_constant_range(0, sizeof(shaders::RandomEventsCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st7_random_events.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation/random_events.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -119,7 +119,7 @@ auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
         .add_push_constant_range(0, sizeof(shaders::ClearInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st2_clear_instance_count.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/indirect_draw_prep/clear_instancecount_params.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -163,7 +163,7 @@ auto SimulationStepPass::create() -> SimulationStepPass {
         .add_push_constant_range(0, sizeof(shaders::SimulationStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_step.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation/internal_step.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -218,7 +218,7 @@ auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerati
         .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridSortPrepareCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_1_acceleration_grid_sort_prepare.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/acceleration_grid/sort_data_prepare.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -260,13 +260,17 @@ auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& 
 
 SimulationAccelerationGridRadixSortPass::SimulationAccelerationGridRadixSortPass(render_graph::PassDependencies&& deps,
     VulkanPipelineLayout&& histogram_pass_pipeline_layout, VulkanComputePipeline&& histogram_pass_compute_pipeline,
-    VulkanPipelineLayout&& prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& prefix_sum_pass_compute_pipeline,
+    VulkanPipelineLayout&& column_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& column_prefix_sum_pass_compute_pipeline,
+    VulkanPipelineLayout&& global_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& global_prefix_sum_pass_compute_pipeline,
     VulkanPipelineLayout&& scatter_pass_pipeline_layout, VulkanComputePipeline&& scatter_pass_compute_pipeline)
     : PassBase<SimulationRenderState>(std::move(deps)), m_histogram_pass_pipeline_layout(std::move(histogram_pass_pipeline_layout)),
-      m_histogram_pass_compute_pipeline(std::move(histogram_pass_compute_pipeline)),
-      m_prefix_sum_pass_pipeline_layout(std::move(prefix_sum_pass_pipeline_layout)),
-      m_prefix_sum_pass_compute_pipeline(std::move(prefix_sum_pass_compute_pipeline)), m_scatter_pass_pipeline_layout(std::move(scatter_pass_pipeline_layout)),
-      m_scatter_pass_compute_pipeline(std::move(scatter_pass_compute_pipeline)) {}
+        m_histogram_pass_compute_pipeline(std::move(histogram_pass_compute_pipeline)),
+        m_column_prefix_sum_pass_pipeline_layout(std::move(column_prefix_sum_pass_pipeline_layout)),
+        m_column_prefix_sum_pass_compute_pipeline(std::move(column_prefix_sum_pass_compute_pipeline)),
+        m_global_prefix_sum_pass_pipeline_layout(std::move(global_prefix_sum_pass_pipeline_layout)),
+        m_global_prefix_sum_pass_compute_pipeline(std::move(global_prefix_sum_pass_compute_pipeline)),
+        m_scatter_pass_pipeline_layout(std::move(scatter_pass_pipeline_layout)),
+        m_scatter_pass_compute_pipeline(std::move(scatter_pass_compute_pipeline)) {}
 
 auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAccelerationGridRadixSortPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -282,17 +286,22 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
         .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto prefix_sum_cs_layout = VulkanPipelineLayout::builder()
+    auto column_prefix_sum_cs_layout = VulkanPipelineLayout::builder()
         .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants), vk::ShaderStageFlagBits::eCompute)
+        .build();
+
+    auto global_prefix_sum_cs_layout = VulkanPipelineLayout::builder()
+        .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortGlobalPrefixSumCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
     auto scatter_cs_layout = VulkanPipelineLayout::builder()
         .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto histogram_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_2_radix_sort_histogram_build.spv");
-    auto prefix_sum_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_3_radix_sort_prefix_sum_build.spv");
-    auto scatter_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_4_radix_sort_scatter.spv");
+    auto histogram_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/radix_sort/histogram_build.spv");
+    auto column_prefix_sum_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/radix_sort/columns_prefix_sum_build.spv");
+    auto global_prefix_sum_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/radix_sort/global_prefix_sum_build.spv");
+    auto scatter_cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/radix_sort/scatter.spv");
 
     uint32_t group_size = get_radix_sort_group_size();
 
@@ -311,9 +320,14 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
         .set_required_wave_lane_count(group_size)
         .build();
 
-    auto prefix_sum_cs = VulkanComputePipeline::builder()
-        .set_pipeline_layout(prefix_sum_cs_layout)
-        .set_shader(prefix_sum_cs_code)
+    auto column_prefix_sum_cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(column_prefix_sum_cs_layout)
+        .set_shader(column_prefix_sum_cs_code)
+        .build();
+
+    auto global_prefix_sum_cs = VulkanComputePipeline::builder()
+        .set_pipeline_layout(global_prefix_sum_cs_layout)
+        .set_shader(global_prefix_sum_cs_code)
         .build();
 
     auto scatter_cs = VulkanComputePipeline::builder()
@@ -324,7 +338,8 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
 
     return SimulationAccelerationGridRadixSortPass(std::move(dependencies),
         std::move(histogram_cs_layout), std::move(histogram_cs),
-        std::move(prefix_sum_cs_layout), std::move(prefix_sum_cs),
+        std::move(column_prefix_sum_cs_layout), std::move(column_prefix_sum_cs),
+        std::move(global_prefix_sum_cs_layout), std::move(global_prefix_sum_cs),
         std::move(scatter_cs_layout), std::move(scatter_cs) );
 }
 
@@ -358,17 +373,20 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
 
         shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants histogram_consts = {
             .sort_keys              = real_keys_buffer.memory_device_ptr(),
-            .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
             .group_local_histograms = acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
             .group_count            = group_count,
             .keys_count             = keys_count,
             .radix_bit_shift        = radix_bit_shift
         };
 
-        shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants prefix_sum_consts = {
+        shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants column_prefix_sum_consts = {
             .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr(),
             .group_local_histograms = acceleration_grid_sort_group_local_histograms_buffer.memory_device_ptr(),
             .group_count            = group_count
+        };
+
+        shaders::SimulationAccelerationGridRadixSortGlobalPrefixSumCSPushConstants global_prefix_sum_consts = {
+            .global_histogram       = acceleration_grid_sort_global_histogram_buffer.memory_device_ptr()
         };
 
         shaders::SimulationAccelerationGridRadixSortScatterCSPushConstants scatter_consts = {
@@ -382,15 +400,6 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
             .keys_count             = keys_count,
             .radix_bit_shift        = radix_bit_shift
         };
-
-        cmd.fillBuffer(acceleration_grid_sort_global_histogram_buffer.vk_buffer(), 0, acceleration_grid_sort_global_histogram_buffer.size(), 0);
-
-        VulkanPipelineBarriers::builder()
-            .insert_memory_barrier(
-                vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
-                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite
-            )
-            .flush(cmd);
 
         cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_histogram_pass_compute_pipeline.vk_pipeline());
         cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortHistogramCSPushConstants>(m_histogram_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, histogram_consts);
@@ -407,9 +416,20 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
             )
             .flush(cmd);
 
-        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_prefix_sum_pass_compute_pipeline.vk_pipeline());
-        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants>(m_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, prefix_sum_consts);
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_column_prefix_sum_pass_compute_pipeline.vk_pipeline());
+        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortPrefixSumCSPushConstants>(m_column_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, column_prefix_sum_consts);
         cmd.dispatch(shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_RADIX_BUCKETS, 1, 1);
+
+        VulkanPipelineBarriers::builder()
+            .insert_memory_barrier(
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageWrite,
+                vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite
+            )
+            .flush(cmd);
+
+        cmd.bindPipeline(vk::PipelineBindPoint::eCompute, m_global_prefix_sum_pass_compute_pipeline.vk_pipeline());
+        cmd.pushConstants<shaders::SimulationAccelerationGridRadixSortGlobalPrefixSumCSPushConstants>(m_global_prefix_sum_pass_pipeline_layout.vk_pipeline_layout(), vk::ShaderStageFlagBits::eCompute, 0, global_prefix_sum_consts);
+        cmd.dispatch(1, 1, 1);
 
         VulkanPipelineBarriers::builder()
             .insert_memory_barrier(
@@ -431,8 +451,8 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
         if (!is_last_pass) {
             VulkanPipelineBarriers::builder()
                 .insert_memory_barrier(
-                    vk::PipelineStageFlagBits2::eComputeShader | vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite,
-                    vk::PipelineStageFlagBits2::eTransfer, vk::AccessFlagBits2::eTransferWrite
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageWrite,
+                    vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderStorageRead | vk::AccessFlagBits2::eShaderStorageWrite
                 )
                 .flush(cmd);
         }
@@ -478,7 +498,7 @@ auto SimulationAccelerationGridBoundScanPass::create() -> SimulationAcceleration
         .add_push_constant_range(0, sizeof(shaders::SimulationAccelerationGridBoundScanCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_5_acceleration_grid_scan_bounds.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/acceleration_grid/sorted_data_bounds_scan.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -533,7 +553,7 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
         .add_push_constant_range(0, sizeof(shaders::SimulationInfluenceStepCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st3_6_influence_step_v2.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation/influence_step.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -598,7 +618,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
         .add_push_constant_range(0, sizeof(shaders::BuildIndirectInstanceCountCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st4_build_indirect_instance_count.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/indirect_draw_prep/build_instancecount_params.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -645,7 +665,7 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommand
         .add_push_constant_range(0, sizeof(shaders::BuildIndirectFirstInstanceCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st5_build_indirect_first_instance.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/indirect_draw_prep/build_firstinstance_params.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -695,7 +715,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
         .add_push_constant_range(0, sizeof(shaders::BuildInstanceBufferCSPushConstants), vk::ShaderStageFlagBits::eCompute)
         .build();
 
-    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_st6_build_instance_buffer.spv");
+    auto cs_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/indirect_draw_prep/build_instance_buffer.spv");
 
     auto cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(cs_layout)
@@ -749,7 +769,7 @@ auto BackgroundRenderPass::create() -> BackgroundRenderPass {
         .add_push_constant_range(0, sizeof(shaders::BackgroundVSFSPushConstants), vk::ShaderStageFlagBits::eVertex | vk::ShaderStageFlagBits::eFragment)
         .build();
 
-    auto shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/background.spv");
+    auto shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/graphics/background.spv");
 
     auto pipeline = VulkanGraphicsPipeline::builder()
         .set_pipeline_layout(pipeline_layout)
@@ -885,7 +905,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
         .add_descriptor_set_layout(descriptor_set_layout)
         .build();
 
-    auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/simulation_entity.spv");
+    auto pipeline_shader_code = SpirvCode::load_from_file(systems::relative_path() / "spirv/graphics/simulation_entity.spv");
 
     auto fish_texture = loader.load_to_vulkan_image(pop::systems::relative_path() / "Assets/fih.ktx2");
     auto food_texture = loader.load_to_vulkan_image(pop::systems::relative_path() / "Assets/plant____kind_of.ktx2");
