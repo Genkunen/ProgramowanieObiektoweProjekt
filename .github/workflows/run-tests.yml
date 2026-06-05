@@ -11,6 +11,12 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
+        with:
+          version: 3-latest
+          install-linux-dependencies: true
+
       - name: Install dependencies
         run: |
           sudo apt-get update
@@ -27,7 +33,8 @@ jobs:
             -G Ninja
             -D CMAKE_BUILD_TYPE=Release
             -D ENABLE_TESTS=ON
-        
+            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}"
+
       - name: Build
         run: |
           cmake --build build
