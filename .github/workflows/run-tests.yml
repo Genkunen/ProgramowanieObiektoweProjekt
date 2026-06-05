@@ -27,6 +27,11 @@ jobs:
             xvfb \
             libglm-dev
 
+      - name: Install Slang
+        run: |
+          curl -L https://github.com/shader-slang/slang/releases/download/v2026.10.2/slang-2026.10.2-linux-x86_64.tar.gz \
+            | tar -xz -C /usr/local --strip-components=1
+
       - name: Configure
         run: |
           cmake -S . -B build \
