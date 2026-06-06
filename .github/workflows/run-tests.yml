@@ -1,8 +1,8 @@
-name: Run Tests
+name: Build Executables and Run Tests
 on: [push, pull_request]
 
 jobs:
-  test:
+  build:
     runs-on: ubuntu-latest
     permissions:
       checks: write

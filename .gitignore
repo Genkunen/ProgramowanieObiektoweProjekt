@@ -15,8 +15,8 @@ UML/**/.uml_tmp/
 !.gitignore
 !CMakeLists.txt
 !README.md
+!Doxyfile.in
 !persistent.settings
-!suzanne.glb
 !.gitattributes
 
 !.github/

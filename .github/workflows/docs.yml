@@ -1,0 +1,39 @@
+name: Build Documentation
+on: [push, pull_request]
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake doxygen graphviz libglm-dev libvulkan-dev
+
+      - name: Install Vulkan Headers
+        run: |
+          git clone --depth=1 https://github.com/KhronosGroup/Vulkan-Headers.git
+          cmake -S Vulkan-Headers -B Vulkan-Headers/build -DCMAKE_INSTALL_PREFIX=/usr/local
+          sudo cmake --build Vulkan-Headers/build --target install
+
+      - uses: libsdl-org/setup-sdl@main
+        id: sdl
+        with:
+          version: 3-latest
+          install-linux-dependencies: true
+
+      - name: Configure
+        run: |
+          cmake -S . -B build \
+            -G Ninja \
+            -D CMAKE_BUILD_TYPE=Release \
+            -D BUILD_SHADERS=OFF \
+            -D CMAKE_PREFIX_PATH="${{ steps.sdl.outputs.prefix }}" \
+            -D CMAKE_CXX_COMPILER=clang++ -D CMAKE_C_COMPILER=clang -D CMAKE_CXX_FLAGS="-stdlib=libc++"
+
+      - name: Build
+        run: |
+          cmake -S . -B build --build docs

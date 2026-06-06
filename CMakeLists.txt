@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.30)
 
+option(BUILD_SHADERS "Build shaders" ON)
 option(ENABLE_TESTS "Enable tests" OFF)
 if (${ENABLE_TESTS})
     enable_testing()
@@ -24,6 +25,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(Vulkan REQUIRED)
 find_package(SDL3 REQUIRED CONFIG)
 find_package(glm REQUIRED)
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
 
 FetchContent_Declare(
         VMAHpp
@@ -91,12 +93,14 @@ FetchContent_MakeAvailable(tinygltf)
 
 # ---- Slang Setup -----------------------------------------------------------------------------------------------------
 
-find_program(SLANGC_EXECUTABLE slangc
+if(${BUILD_SHADERS})
+    find_program(SLANGC_EXECUTABLE slangc
         HINTS $ENV{VULKAN_SDK}/bin
         REQUIRED
-)
+    )
 
-message(STATUS "Found slangc: ${SLANGC_EXECUTABLE}")
+    message(STATUS "Found slangc: ${SLANGC_EXECUTABLE}")
+endif()
 
 function(add_slang_shaders TARGET)
     cmake_parse_arguments(SLANG "" "TARGET_DIR" "SOURCES" ${ARGN})
@@ -157,8 +161,11 @@ file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shade
 # ---- Build Setup -----------------------------------------------------------------------------------------------------
 
 add_library(ProgramowanieObiektoweProjekt_lib STATIC ${LIBRARY_SOURCES})
-add_slang_shaders(ProgramowanieObiektoweProjekt_spv SOURCES ${SHADER_SOURCES} TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/spirv)
-add_dependencies(ProgramowanieObiektoweProjekt_lib ProgramowanieObiektoweProjekt_spv)
+
+if(${BUILD_SHADERS})
+    add_slang_shaders(ProgramowanieObiektoweProjekt_spv SOURCES ${SHADER_SOURCES} TARGET_DIR ${CMAKE_CURRENT_BINARY_DIR}/spirv)
+    add_dependencies(ProgramowanieObiektoweProjekt_lib ProgramowanieObiektoweProjekt_spv)
+endif()
 
 add_custom_command(TARGET ProgramowanieObiektoweProjekt_lib POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -241,6 +248,24 @@ foreach(TEST_FILE ${SRC_TEST_FILES})
     get_filename_component(TEST_FILE_WE ${TEST_FILE} NAME_WE)
     add_project_test(${TEST_FILE_WE})
 endforeach()
+
+# ---- Documentation ---------------------------------------------------------------------------------------------------
+
+if(DOXYGEN_FOUND)
+    set(DOXYGEN_INPUT_DIR ${CMAKE_SOURCE_DIR}/src)
+    set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR}/docs)
+
+    configure_file(${CMAKE_SOURCE_DIR}/Doxyfile.in ${CMAKE_BINARY_DIR}/Doxyfile @ONLY)
+
+    add_custom_target(
+        docs
+        COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_BINARY_DIR}/Doxyfile
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        COMMENT "Building documentation"
+        VERBATIM
+    )
+endif()
+
 
 # ---- macOS Support ---------------------------------------------------------------------------------------------------
 
