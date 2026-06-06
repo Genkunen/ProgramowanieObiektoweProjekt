@@ -33,13 +33,17 @@ struct SimulationRenderState {
     float water_current_strength;
 };
 
-// ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
+// ---- UploadMeshParamsPass -----------------------------------------------------------------------------------------------------------------------------------
 
-class UploadMeshInfoPass : public render_graph::PassBase<SimulationRenderState> {
+/// @class UploadMeshParamsPass
+/// @brief (Render Graph Pass) Uploads mesh parameters to a respective vk::DrawIndexedIndirectCommand in GPU memory.
+/// @details This pass dispatches a compute shader that reads meshes' @c first_index, @c index_count, and @c vertex_offset parameters, and writes them to the
+///     respective @c vk::DrawIndexedIndirectCommand instance in the indirect draw commands buffer for the indirect draw handling instances of that mesh.
+class UploadMeshParamsPass : public render_graph::PassBase<SimulationRenderState> {
 public:
-    UploadMeshInfoPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+    UploadMeshParamsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
-    static auto create() -> UploadMeshInfoPass;
+    static auto create() -> UploadMeshParamsPass;
 
     auto debug_name() const noexcept -> std::string override;
 
@@ -52,6 +56,9 @@ private:
 
 // ---- RandomEventsPass ---------------------------------------------------------------------------------------------------------------------------------------
 
+/// @class RandomEventsPass
+/// @brief (Render Graph Pass) Generates random events for the simulation.
+/// @details This pass dispatches a compute shader that randomly resets a number of objects back from a dead state into a randomly chosen object type.
 class RandomEventsPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     RandomEventsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -67,13 +74,16 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
-// ---- SimulationIndirectDrawCommandsResetPass ----------------------------------------------------------------------------------------------------------------
+// ---- IndirectDrawCommandsInstanceCountClearPass -------------------------------------------------------------------------------------------------------------
 
-class IndirectDrawCommandsClearPass : public render_graph::PassBase<SimulationRenderState> {
+/// @class IndirectDrawCommandsInstanceCountClearPass
+/// @brief (Render Graph Pass) Clears out the @c instanceCount parameters in all @c vk::DrawIndexedIndirectCommand instances in the indirect draw commands
+///     buffer using a compute shader.
+class IndirectDrawCommandsInstanceCountClearPass : public render_graph::PassBase<SimulationRenderState> {
 public:
-    IndirectDrawCommandsClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+    IndirectDrawCommandsInstanceCountClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
-    static auto create() -> IndirectDrawCommandsClearPass;
+    static auto create() -> IndirectDrawCommandsInstanceCountClearPass;
 
     auto debug_name() const noexcept -> std::string override;
 
@@ -84,13 +94,15 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
-// ---- SimulationStepPass -------------------------------------------------------------------------------------------------------------------------------------
+// ---- SimulationInternalStepPass -----------------------------------------------------------------------------------------------------------------------------
 
-class SimulationStepPass : public render_graph::PassBase<SimulationRenderState> {
+/// @class SimulationInternalStepPass
+/// @brief (Render Graph Pass) Performs an internal simulation step for all live objects in the simulation using a compute shader.
+class SimulationInternalStepPass : public render_graph::PassBase<SimulationRenderState> {
 public:
-    SimulationStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
+    SimulationInternalStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
 
-    static auto create() -> SimulationStepPass;
+    static auto create() -> SimulationInternalStepPass;
 
     auto debug_name() const noexcept -> std::string override;
 
@@ -103,6 +115,10 @@ private:
 
 // ---- SimulationAccelerationGridSortPreparePass --------------------------------------------------------------------------------------------------------------
 
+/// @class SimulationAccelerationGridSortPreparePass
+/// @brief (Render Graph Pass) Prepares sort data to build a spatial hash grid based on object locations.
+/// @details Dispatches a compute shader to fill the acceleration grid sort key and value buffers with a position-based tile index for a given object and the
+///     index of that object, respectively.
 class SimulationAccelerationGridSortPreparePass : public render_graph::PassBase<SimulationRenderState> {
 public:
     SimulationAccelerationGridSortPreparePass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -118,8 +134,14 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
-// ---- SimulationAccelerationGridBitonicSortPass --------------------------------------------------------------------------------------------------------------
+// ---- SimulationAccelerationGridRadixSortPass ----------------------------------------------------------------------------------------------------------------
 
+/// @class SimulationAccelerationGridRadixSortPass
+/// @brief (Render Graph Pass) Sorts the key and value buffers prepared by @c SimulationAccelerationGridSortPreparePass to form the spatial hash grid.
+/// @details Dispatches a number of passes of a set of compute shaders to run a radix sort algorithm on the key and value buffers prepared by
+///     @c SimulationAccelerationGridSortPreparePass to form a spatial hash grid. After the sort is completed, the key buffer holds a monotonically increasing
+///     set of spatial hashes joined with object IDs in the value buffer. The indices at which the spatial hash values in the key buffer increase are then found
+///     by @c SimulationAccelerationGridBoundScanPass.
 class SimulationAccelerationGridRadixSortPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     SimulationAccelerationGridRadixSortPass(render_graph::PassDependencies&& deps,
@@ -151,6 +173,8 @@ private:
 
 // ---- SimulationAccelerationGridBoundClearPass ---------------------------------------------------------------------------------------------------------------
 
+/// @class SimulationAccelerationGridBoundClearPass
+/// @brief (Render Graph Pass) Dispatches a transfer operation to default-initialize the acceleration grid spatial hash boundary indices.
 class SimulationAccelerationGridBoundClearPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     SimulationAccelerationGridBoundClearPass(render_graph::PassDependencies&& deps);
@@ -164,6 +188,9 @@ public:
 
 // ---- SimulationAccelerationGridBoundScanPass ----------------------------------------------------------------------------------------------------------------
 
+/// @class SimulationAccelerationGridBoundScanPass
+/// @brief (Render Graph Pass) Dispatches a compute shader to scan the spatial hash grid boundary indices to find the indices of the first and last objects in
+///     each spatial hash grid cell. Stores results to the acceleration grid spatial hash boundary start/end buffers.
 class SimulationAccelerationGridBoundScanPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     SimulationAccelerationGridBoundScanPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -181,6 +208,8 @@ private:
 
 // ---- SimulationInfluenceStepPass ----------------------------------------------------------------------------------------------------------------------------
 
+/// @class SimulationInfluenceStepPass
+/// @brief (Render Graph Pass) Performs a simulation step where objects simulate interactions with one another using a compute shader.
 class SimulationInfluenceStepPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     SimulationInfluenceStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -198,6 +227,9 @@ private:
 
 // ---- IndirectDrawCommandsInstanceCountBuildPass -------------------------------------------------------------------------------------------------------------
 
+/// @class IndirectDrawCommandsInstanceCountBuildPass
+/// @brief (Render Graph Pass) Builds the @c instanceCount parameters in all @c vk::DrawIndexedIndirectCommand instances in the indirect draw commands buffer
+///     using a compute shader based on all live objects.
 class IndirectDrawCommandsInstanceCountBuildPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     IndirectDrawCommandsInstanceCountBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -215,6 +247,9 @@ private:
 
 // ---- IndirectDrawCommandsFirstInstanceBuildPass -------------------------------------------------------------------------------------------------------------
 
+/// @class IndirectDrawCommandsFirstInstanceBuildPass
+/// @brief (Render Graph Pass) Builds the @c firstInstance parameters in all @c vk::DrawIndexedIndirectCommand instances in the indirect draw commands buffer
+///     using a compute shader based on an exclusive prefix sum of @c instanceCount parameters built by @c IndirectDrawCommandsInstanceCountBuildPass.
 class IndirectDrawCommandsFirstInstanceBuildPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     IndirectDrawCommandsFirstInstanceBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -232,6 +267,8 @@ private:
 
 // ---- InstanceBufferBuildPass --------------------------------------------------------------------------------------------------------------------------------
 
+/// @class InstanceBufferBuildPass
+/// @brief (Render Graph Pass) Builds the object instance buffer for all live objects in the simulation using a compute shader to use in rendering.
 class InstanceBufferBuildPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     InstanceBufferBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline);
@@ -247,6 +284,10 @@ private:
     VulkanComputePipeline m_compute_pipeline;
 };
 
+// ---- BackgroundRenderPass -----------------------------------------------------------------------------------------------------------------------------------
+
+/// @class BackgroundRenderPass
+/// @brief (Render Graph Pass) Renders the background of the simulation using a graphics pipeline.
 class BackgroundRenderPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     BackgroundRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline);
@@ -264,6 +305,8 @@ private:
 
 // ---- FishTankRenderPass -------------------------------------------------------------------------------------------------------------------------------------
 
+/// @class FishTankRenderPass
+/// @brief (Render Graph Pass) Renders all live objects using a graphics pipeline, based on the object instance buffer built by @c InstanceBufferBuildPass.
 class FishTankRenderPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline,
@@ -290,6 +333,8 @@ private:
 
 // ---- ImGuiRenderPass ---------------------------------------------------------------------------------------------------------------------------------------
 
+/// @class ImGuiRenderPass
+/// @brief (Render Graph Pass) Renders the ImGui interface.
 class ImGuiRenderPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     ImGuiRenderPass(render_graph::PassDependencies&& deps);
@@ -303,6 +348,8 @@ public:
 
 // ---- BlitMainImageToSwapchainPass ---------------------------------------------------------------------------------------------------------------------------
 
+/// @class BlitMainImageToSwapchainPass
+/// @brief (Render Graph Pass) Blit the main render target to the swapchain image currently in use by the application.
 class BlitMainImageToSwapchainPass : public render_graph::PassBase<SimulationRenderState> {
 public:
     BlitMainImageToSwapchainPass(render_graph::PassDependencies&& deps);

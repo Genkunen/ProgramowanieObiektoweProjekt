@@ -9,11 +9,11 @@ void instrumentate_pass_compile_call(const std::string_view& label, const std::f
 
 void pass_compile_test() {
     using namespace pop::vulkan::renderer;
-    instrumentate_pass_compile_call("UploadMeshInfoPass",                         [](){ std::make_unique<UploadMeshInfoPass                        >(UploadMeshInfoPass::create());});
-    instrumentate_pass_compile_call("IndirectDrawCommandsClearPass",              [](){ std::make_unique<IndirectDrawCommandsClearPass             >(IndirectDrawCommandsClearPass::create());});
+    instrumentate_pass_compile_call("UploadMeshInfoPass",                         [](){ std::make_unique<UploadMeshParamsPass                      >(UploadMeshParamsPass::create());});
+    instrumentate_pass_compile_call("IndirectDrawCommandsClearPass",              [](){ std::make_unique<IndirectDrawCommandsInstanceCountClearPass>(IndirectDrawCommandsInstanceCountClearPass::create());});
     instrumentate_pass_compile_call("SimulationAccelerationGridBoundClearPass",   [](){ std::make_unique<SimulationAccelerationGridBoundClearPass  >(SimulationAccelerationGridBoundClearPass::create());});
     instrumentate_pass_compile_call("RandomEventsPass",                           [](){ std::make_unique<RandomEventsPass                          >(RandomEventsPass::create());});
-    instrumentate_pass_compile_call("SimulationStepPass",                         [](){ std::make_unique<SimulationStepPass                        >(SimulationStepPass::create());});
+    instrumentate_pass_compile_call("SimulationStepPass",                         [](){ std::make_unique<SimulationInternalStepPass                >(SimulationInternalStepPass::create());});
     instrumentate_pass_compile_call("SimulationAccelerationGridSortPreparePass",  [](){ std::make_unique<SimulationAccelerationGridSortPreparePass >(SimulationAccelerationGridSortPreparePass::create());});
     instrumentate_pass_compile_call("SimulationAccelerationGridRadixSortPass",    [](){ std::make_unique<SimulationAccelerationGridRadixSortPass   >(SimulationAccelerationGridRadixSortPass::create());});
     instrumentate_pass_compile_call("SimulationAccelerationGridBoundScanPass",    [](){ std::make_unique<SimulationAccelerationGridBoundScanPass   >(SimulationAccelerationGridBoundScanPass::create());});

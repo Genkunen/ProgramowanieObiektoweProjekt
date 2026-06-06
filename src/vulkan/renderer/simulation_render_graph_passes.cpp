@@ -15,11 +15,11 @@ namespace pop::vulkan::renderer {
 
 // ---- SimulationUploadMeshInfoPass ---------------------------------------------------------------------------------------------------------------------------
 
-UploadMeshInfoPass::UploadMeshInfoPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
+UploadMeshParamsPass::UploadMeshParamsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
         : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
-auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
+auto UploadMeshParamsPass::create() -> UploadMeshParamsPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalMeshInfoStagingBuffer, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
@@ -36,12 +36,12 @@ auto UploadMeshInfoPass::create() -> UploadMeshInfoPass {
         .set_shader(cs_code)
         .build();
 
-    return UploadMeshInfoPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+    return UploadMeshParamsPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
-auto UploadMeshInfoPass::debug_name() const noexcept -> std::string { return "Upload Mesh Info"; }
+auto UploadMeshParamsPass::debug_name() const noexcept -> std::string { return "Upload Mesh Info"; }
 
-auto UploadMeshInfoPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto UploadMeshParamsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
     -> void {
     auto& frame_local_mesh_info_staging_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalMeshInfoStagingBuffer);
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
@@ -106,11 +106,11 @@ auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRend
 
 // ---- SimulationIndirectDrawCommandsResetPass ----------------------------------------------------------------------------------------------------------------
 
-IndirectDrawCommandsClearPass::IndirectDrawCommandsClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
+IndirectDrawCommandsInstanceCountClearPass::IndirectDrawCommandsInstanceCountClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
         : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
-auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
+auto IndirectDrawCommandsInstanceCountClearPass::create() -> IndirectDrawCommandsInstanceCountClearPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderWrite)
         .build();
@@ -126,12 +126,12 @@ auto IndirectDrawCommandsClearPass::create() -> IndirectDrawCommandsClearPass {
         .set_shader(cs_code)
         .build();
 
-    return IndirectDrawCommandsClearPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+    return IndirectDrawCommandsInstanceCountClearPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
-auto IndirectDrawCommandsClearPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands Clear"; }
+auto IndirectDrawCommandsInstanceCountClearPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands Clear"; }
 
-auto IndirectDrawCommandsClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto IndirectDrawCommandsInstanceCountClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     uint32_t mesh_count = static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size());
 
@@ -147,11 +147,11 @@ auto IndirectDrawCommandsClearPass::invoke(vk::raii::CommandBuffer& cmd, const S
 
 // ---- SimulationStepPass -------------------------------------------------------------------------------------------------------------------------------------
 
-SimulationStepPass::SimulationStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
+SimulationInternalStepPass::SimulationInternalStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
         : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
-auto SimulationStepPass::create() -> SimulationStepPass {
+auto SimulationInternalStepPass::create() -> SimulationInternalStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::FrameLocalSimulationData, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
         .add_buffer_dependency(render_graph::BufferResourceIdentifier::SimulationObjects, vk::PipelineStageFlagBits2::eComputeShader, vk::AccessFlagBits2::eShaderRead)
@@ -170,12 +170,12 @@ auto SimulationStepPass::create() -> SimulationStepPass {
         .set_shader(cs_code)
         .build();
 
-    return SimulationStepPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
+    return SimulationInternalStepPass(std::move(dependencies), std::move(cs_layout), std::move(cs));
 }
 
-auto SimulationStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Independent Step"; }
+auto SimulationInternalStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Independent Step"; }
 
-auto SimulationStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto SimulationInternalStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);

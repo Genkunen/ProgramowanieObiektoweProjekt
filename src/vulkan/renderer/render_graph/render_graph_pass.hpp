@@ -58,6 +58,8 @@ private:
 };
 constexpr auto PassDependencies::builder() -> PassDependenciesBuilder { return PassDependenciesBuilder(); }
 
+/// @class PassBase
+/// @brief Base class for all render graph passes.
 template <typename StateType> class PassBase {
 public:
     PassBase(PassDependencies&& dependencies) : m_dependencies(std::move(dependencies)) {}
@@ -70,6 +72,10 @@ public:
     auto enable() noexcept -> void { m_is_enabled = true; }
     auto disable() noexcept -> void { m_is_enabled = false; }
 
+    /// Invokes the commands for this render graph pass.
+    /// @param cmd The command buffer to use for the pass.
+    /// @param state The state of the render graph.
+    /// @param resources The resources required by the pass.
     virtual auto invoke(vk::raii::CommandBuffer& cmd, const StateType& state, const PassResources& resources) -> void = 0;
 
 protected:

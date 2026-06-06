@@ -93,17 +93,17 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     render_graph::RenderGraphV2<SimulationRenderState> render_graph_v2;
 
-    auto mesh_upload_pass = render_graph_v2.add_pass(std::make_unique<UploadMeshInfoPass>(UploadMeshInfoPass::create()));
+    auto mesh_upload_pass = render_graph_v2.add_pass(std::make_unique<UploadMeshParamsPass>(UploadMeshParamsPass::create()));
 
     // Transient State Clear Passes
-    auto indirect_draw_commands_clear_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsClearPass>(IndirectDrawCommandsClearPass::create()));
+    auto indirect_draw_commands_clear_pass = render_graph_v2.add_pass(std::make_unique<IndirectDrawCommandsInstanceCountClearPass>(IndirectDrawCommandsInstanceCountClearPass::create()));
     auto simulation_acceleration_grid_bound_clear_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridBoundClearPass>(SimulationAccelerationGridBoundClearPass::create()));
 
     // Random Events
     auto random_events_pass = render_graph_v2.add_pass(std::make_unique<RandomEventsPass>(RandomEventsPass::create()));
 
     // Simulation Step
-    auto simulation_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationStepPass>(SimulationStepPass::create()));
+    auto simulation_step_pass = render_graph_v2.add_pass(std::make_unique<SimulationInternalStepPass>(SimulationInternalStepPass::create()));
 
     // Acceleration Grid Build
     auto simulation_acceleration_grid_sort_prepare_pass = render_graph_v2.add_pass(std::make_unique<SimulationAccelerationGridSortPreparePass>(SimulationAccelerationGridSortPreparePass::create()));
