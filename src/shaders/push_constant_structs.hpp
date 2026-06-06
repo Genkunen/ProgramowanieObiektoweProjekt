@@ -4,6 +4,7 @@
 
 #ifdef __cplusplus
 #include <glm/glm.hpp>
+#include <cstdint>
 #else
 // for vk::DrawIndexedIndirectCommand
 import "vk_structs/draw_indirect";
@@ -20,7 +21,7 @@ namespace pop::shaders {
 #  define PACKED __attribute((packed))
 # endif
 
-using uint = uint32_t;
+using uint = std::uint32_t;
 using float2 = glm::vec2;
 using float3 = glm::vec3;
 

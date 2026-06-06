@@ -1,9 +1,12 @@
 #pragma once
 
+#ifdef __cplusplus
+#include <cstdint>
+#endif
+
 namespace pop::shader_consts {
 
 #ifdef __cplusplus
-#include <cstdint>
 using uint = std::uint32_t;
 #define POP_CONST constexpr
 #else // ^^ cpp vv slang
