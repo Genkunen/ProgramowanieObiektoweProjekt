@@ -155,6 +155,9 @@ endfunction()
 
 file(GLOB_RECURSE LIBRARY_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cpp)
 list(FILTER LIBRARY_SOURCES EXCLUDE REGEX ".*/(bin|tests)/.*")
+file(GLOB_RECURSE PRECOMPILE_HEADERS CONFIGURE_DEPENDS
+        ${CMAKE_SOURCE_DIR}/src/*_prelude.hpp
+)
 
 file(GLOB_RECURSE SHADER_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/shaders/bin/*.slang)
 
@@ -186,6 +189,8 @@ target_link_libraries(
         glm::glm
         tinygltf
 )
+
+target_precompile_headers(ProgramowanieObiektoweProjekt_lib PRIVATE ${PRECOMPILE_HEADERS})
 
 target_compile_definitions(
         ProgramowanieObiektoweProjekt_lib PUBLIC
