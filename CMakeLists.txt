@@ -119,7 +119,7 @@ function(add_slang_shaders TARGET)
     foreach(SHADER ${SLANG_SOURCES})
         file(RELATIVE_PATH SHADER_RELATIVE_PATH "${CMAKE_SOURCE_DIR}/src/shaders/bin" "${SHADER}")
         cmake_path(REMOVE_EXTENSION SHADER_RELATIVE_PATH OUTPUT_VARIABLE SHADER_STEM)
-        message(STATUS "name = ${SHADER_STEM}, fullpath = ${SHADER}")
+
         set(OUTPUT_BINARY ${SLANG_TARGET_DIR}/${SHADER_STEM}.spv)
         set(OUTPUT_DEPFILE ${OUTPUT_BINARY}.d)
         set(CMD
@@ -219,7 +219,12 @@ function(add_bin name)
     target_link_libraries(${name} PRIVATE ProgramowanieObiektoweProjekt_lib)
 endfunction()
 
-add_bin(main)
+file(GLOB_RECURSE SRC_BIN_FILES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/bin/*.cpp)
+
+foreach(BIN_FILE ${SRC_BIN_FILES})
+    get_filename_component(BIN_FILE_WE ${BIN_FILE} NAME_WE)
+    add_bin(${BIN_FILE_WE})
+endforeach()
 
 # ---- Tests -----------------------------------------------------------------------------------------------------------
 
@@ -230,9 +235,12 @@ function(add_project_test name)
     add_test(NAME ${name} COMMAND test_${name})
 endfunction()
 
-add_project_test(sanity)
-add_project_test(pass_compile)
-add_project_test(radix_sort_correctness)
+file(GLOB_RECURSE SRC_TEST_FILES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/tests/*.cpp)
+
+foreach(TEST_FILE ${SRC_TEST_FILES})
+    get_filename_component(TEST_FILE_WE ${TEST_FILE} NAME_WE)
+    add_project_test(${TEST_FILE_WE})
+endforeach()
 
 # ---- macOS Support ---------------------------------------------------------------------------------------------------
 

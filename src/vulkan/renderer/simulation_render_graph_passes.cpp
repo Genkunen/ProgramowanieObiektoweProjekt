@@ -322,12 +322,12 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
 
     auto column_prefix_sum_cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(column_prefix_sum_cs_layout)
-        .set_shader(column_prefix_sum_cs_code)
+        .set_shader(column_prefix_sum_cs_code, specialization_map)
         .build();
 
     auto global_prefix_sum_cs = VulkanComputePipeline::builder()
         .set_pipeline_layout(global_prefix_sum_cs_layout)
-        .set_shader(global_prefix_sum_cs_code)
+        .set_shader(global_prefix_sum_cs_code, specialization_map)
         .build();
 
     auto scatter_cs = VulkanComputePipeline::builder()
