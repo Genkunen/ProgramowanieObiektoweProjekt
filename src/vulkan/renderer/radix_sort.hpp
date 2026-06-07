@@ -8,8 +8,11 @@
 namespace pop::vulkan::renderer {
 
 constexpr std::uint32_t get_radix_sort_group_size() {
-    return VulkanContext::get().physical_device_vulkan13_properties().maxSubgroupSize;
+    std::uint32_t clamp_min = VulkanContext::get().physical_device_vulkan13_properties().minSubgroupSize;
+    std::uint32_t clamp_max = VulkanContext::get().physical_device_vulkan13_properties().maxSubgroupSize;
+    return std::clamp(32u, clamp_min, clamp_max);
 }
+
 
 constexpr std::uint32_t get_radix_sort_keys_count_per_group() {
     return get_radix_sort_group_size() * shader_consts::CS_SIMULATION_ACCELERATION_GRID_RADIX_SORT_HISTOGRAM_BUILD_KEYS_PER_THREAD;

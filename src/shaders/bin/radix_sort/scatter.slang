@@ -13,14 +13,12 @@ uint countbits128(uint4 val) {
 }
 
 uint compute_element_intrawave_rank(uint value) {
-    uint4 mask_before = WaveGetLaneLtMask();
-
     while (true) {
         bool match_condition = WaveReadLaneFirst(value) == value;
-        uint4 matching = WaveActiveBallot(match_condition);
+        uint match_count = WavePrefixCountBits(match_condition);
 
         if (match_condition) {
-            return countbits128(mask_before & matching);
+            return match_count;
         }
     }
     return 0;
@@ -47,9 +45,9 @@ void main(uint3 dtid : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID, uint3
     // First load the local group prefix sums and add the global ones on top.
 
     for (uint i = 0; i < wb_iterations; i++) {
-        uint expanded_gtid = group_tid + i * GROUP_SIZE;
-        uint bin_write_offset = push_constants.group_local_histograms[expanded_gtid * push_constants.group_count + group_id];
+        uint expanded_gtid = group_tid * wb_iterations + i;
         uint global_write_offset_base = push_constants.global_histogram[expanded_gtid];
+        uint bin_write_offset = push_constants.group_local_histograms[expanded_gtid * push_constants.group_count + group_id];
         gs_elem_write_offset_bases[expanded_gtid] = global_write_offset_base + bin_write_offset;
     }
     GroupMemoryBarrierWithWaveSync();
