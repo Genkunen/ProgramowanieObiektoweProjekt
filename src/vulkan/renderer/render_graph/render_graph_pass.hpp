@@ -18,6 +18,9 @@ struct ImageDependency {
 };
 
 class PassDependenciesBuilder;
+
+/// @class PassDependencies
+/// @brief Describes the image and buffer dependencies of a render graph pass.
 class PassDependencies {
 public:
     PassDependencies(std::vector<BufferDependency>&& buffer_dependencies, std::vector<ImageDependency>&& image_dependencies);
