@@ -3,12 +3,15 @@
 
 namespace pop::vulkan {
 
+/// @brief A helper class to create and record a Vulkan pipeline barrier to a command buffer.
 class VulkanPipelineBarriers {
 public:
     static auto builder() -> VulkanPipelineBarriers {
         return VulkanPipelineBarriers();
     }
 
+    /// @brief Inserts a global memory barrier to the command buffer.
+    /// @note See the Vulkan specification for more information on how stage and access flags affect synchronization.
     auto insert_memory_barrier(vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access, vk::PipelineStageFlags2 dst_stage, vk::AccessFlags2 dst_access) -> VulkanPipelineBarriers& {
         auto barrier = vk::MemoryBarrier2{}
             .setSrcStageMask(src_stage)
@@ -19,6 +22,8 @@ public:
         return *this;
     }
 
+    /// @brief Inserts an image memory barrier to the command buffer.
+    /// @note See the Vulkan specification for more information on how the stage and access flags, as well as old/new image layouts affect synchronization.
     auto insert_image_memory_barrier(vk::Image image, vk::ImageLayout src_layout, vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access, vk::ImageLayout dst_layout, vk::PipelineStageFlags2 dst_stage, vk::AccessFlags2 dst_access, vk::ImageSubresourceRange subresource_range) -> VulkanPipelineBarriers& {
         auto barrier = vk::ImageMemoryBarrier2{}
             .setOldLayout(src_layout)
@@ -35,6 +40,8 @@ public:
         return *this;
     }
 
+    /// @brief Inserts a buffer memory barrier to the command buffer.
+    /// @note See the Vulkan specification for more information on how the stage and access flags, as well as the buffer offset and size affect synchronization.
     auto insert_buffer_memory_barrier(vk::Buffer buffer, uint64_t size, uint64_t offset, vk::PipelineStageFlags2 src_stage, vk::AccessFlags2 src_access, vk::PipelineStageFlags2 dst_stage, vk::AccessFlags2 dst_access) -> VulkanPipelineBarriers& {
         auto barrier = vk::BufferMemoryBarrier2{}
             .setSize(size)
@@ -48,6 +55,7 @@ public:
         return *this;
     }
 
+    /// @brief Flushes the pipeline barriers to the command buffer.
     auto flush(const vk::CommandBuffer& cb) -> void {
         auto dependency_info = vk::DependencyInfo{}
             .setMemoryBarriers(m_memory_barriers)

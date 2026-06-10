@@ -9,6 +9,9 @@
 namespace pop::vulkan {
 
 class VulkanGraphicsPipelineBuilder;
+
+/// @class VulkanGraphicsPipeline
+/// @brief Wrapper around a Vulkan @c vk::raii::Pipeline object that represents a graphics pipeline.
 class VulkanGraphicsPipeline {
 public:
     VulkanGraphicsPipeline(vk::raii::Pipeline&& pipeline);
@@ -21,6 +24,8 @@ private:
     vk::raii::Pipeline m_pipeline;
 };
 
+/// @class VulkanGraphicsPipelineBuilder
+/// @brief A builder for a @c VulkanGraphicsPipeline object.
 class VulkanGraphicsPipelineBuilder {
 public:
     constexpr VulkanGraphicsPipelineBuilder() = default;
@@ -30,6 +35,9 @@ public:
     VulkanGraphicsPipelineBuilder& operator=(const VulkanGraphicsPipelineBuilder&) = delete;
     VulkanGraphicsPipelineBuilder& operator=(VulkanGraphicsPipelineBuilder&&) = default;
 
+    /// @brief Adds a shader stage to the pipeline.
+    /// @param shader_code The shader code to add.
+    /// @param stage The specified shader stage.
     [[nodiscard]] constexpr auto add_shader(const SpirvCode& shader_code, vk::ShaderStageFlagBits stage) noexcept -> VulkanGraphicsPipelineBuilder& {
         auto stage_tuple = vk::StructureChain<vk::PipelineShaderStageCreateInfo, vk::ShaderModuleCreateInfo>{
             vk::PipelineShaderStageCreateInfo()
@@ -41,32 +49,44 @@ public:
         return *this;
     }
 
+    /// @brief Sets the pipeline layout for the pipeline.
+    /// @param layout The pipeline layout to set.
     [[nodiscard]] constexpr auto set_pipeline_layout(const VulkanPipelineLayout& layout) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_pipeline_layout = layout.vk_pipeline_layout();
         return *this;
     }
 
+    /// @brief Sets the primitive input topology of the pipeline.
+    /// @param topology The primitive input topology to set.
     [[nodiscard]] constexpr auto set_input_topology(vk::PrimitiveTopology topology) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_input_assembly_state.topology = topology;
         return *this;
     }
 
+    /// @brief Sets the pipeline rasterizer state line width.
+    /// @param line_width The line width to set.
     [[nodiscard]] constexpr auto set_rasterizer_line_width(float line_width) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.lineWidth = line_width;
         return *this;
     }
 
+    /// @brief Sets the pipeline rasterizer state polygon mode.
+    /// @param polygon_mode The polygon mode to set.
     [[nodiscard]] constexpr auto set_rasterizer_polygon_mode(vk::PolygonMode polygon_mode) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.polygonMode = polygon_mode;
         return *this;
     }
 
+    /// @brief Sets the pipeline rasterizer state cull mode.
+    /// @param cull_mode_flags The cull mode flags to set.
+    /// @param front_face The front face winding direction to set.
     [[nodiscard]] constexpr auto set_rasterizer_cull_mode(vk::CullModeFlags cull_mode_flags, vk::FrontFace front_face) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rasterization_state.cullMode = cull_mode_flags;
         m_rasterization_state.frontFace = front_face;
         return *this;
     }
 
+    /// @brief Disables multisampling in the pipeline.
     [[nodiscard]] constexpr auto disable_multisampling() noexcept -> VulkanGraphicsPipelineBuilder& {
         m_multisample_state.sampleShadingEnable = false;
         m_multisample_state.rasterizationSamples = vk::SampleCountFlagBits::e1;
@@ -76,12 +96,16 @@ public:
         return *this;
     }
 
+    /// @brief Adds a rendering color attachment to the pipeline.
+    /// @param blending The blending state for the attachment.
+    /// @param attachment_format The format of the attachment.
     [[nodiscard]] constexpr auto add_rendering_attachment(vk::PipelineColorBlendAttachmentState blending, vk::Format attachment_format) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rendering_color_attachment_blend_states.emplace_back(blending);
         m_rendering_color_attachment_formats.emplace_back(attachment_format);
         return *this;
     }
 
+    /// @brief Disables depth test for the pipeline.
     [[nodiscard]] constexpr auto disable_depth_test() noexcept -> VulkanGraphicsPipelineBuilder& {
         m_depth_stencil_state.depthTestEnable = false;
         m_depth_stencil_state.depthWriteEnable = false;
@@ -93,6 +117,8 @@ public:
         return *this;
     }
 
+    /// @brief Enables depth test for the pipeline.
+    /// @param write Whether to write to the depth buffer.
     [[nodiscard]] constexpr auto enable_depth_test(bool write) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_depth_stencil_state.depthTestEnable = true;
         m_depth_stencil_state.depthWriteEnable = write;
@@ -104,11 +130,14 @@ public:
         return *this;
     }
 
+    /// @brief Sets the depth attachment format for the pipeline.
+    /// @param format The depth attachment format to set.
     [[nodiscard]] constexpr auto set_depth_attachment_format(vk::Format format) noexcept -> VulkanGraphicsPipelineBuilder& {
         m_rendering_create_info.depthAttachmentFormat = format;
         return *this;
     }
 
+    /// @brief Builds the graphics pipeline given the shader stages and state parameters.
     [[nodiscard]] constexpr auto build() -> VulkanGraphicsPipeline {
         auto viewport_state = vk::PipelineViewportStateCreateInfo()
             .setViewportCount(1)

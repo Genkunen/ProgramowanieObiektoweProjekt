@@ -24,18 +24,28 @@ inline static std::unordered_map<vk::Format, ImageFormatMetadata> IMAGE_FORMAT_M
 // clang-format on
 
 class VulkanImageBuilder;
+
+/// @class VulkanImage
+/// @brief Wrapper around the Vulkan @c vk::raii::Image, @c vk::raii::ImageView, and the VMA @c vma::raii::Allocation objects.
 class VulkanImage {
 public:
     VulkanImage(vk::raii::Image&& image, vk::raii::ImageView&& full_image_view, vma::raii::Allocation&& allocation, vk::Format format, vk::Extent3D extent, uint32_t mip_levels);
 
     [[nodiscard]] constexpr static auto builder() -> VulkanImageBuilder;
 
+    /// @brief Returns the underlying Vulkan image object.
     [[nodiscard]] auto vk_image()               const noexcept -> const vk::raii::Image& { return m_image; }
+    /// @brief Returns the underlying Vulkan image view object that spans the entire image.
     [[nodiscard]] auto vk_full_image_view()     const noexcept -> const vk::raii::ImageView& { return m_full_image_view; }
+    /// @brief Returns the underlying VMA allocation object.
     [[nodiscard]] auto vma_allocation()         const noexcept -> const vma::raii::Allocation& { return m_allocation; }
+    /// @brief Returns the format of the image.
     [[nodiscard]] auto format()                 const noexcept -> vk::Format { return m_format; }
+    /// @brief Returns the extent of the image.
     [[nodiscard]] auto extent()                 const noexcept -> vk::Extent3D { return m_extent; }
+    /// @brief Returns the number of mip levels in the image.
     [[nodiscard]] auto mip_levels()             const noexcept -> uint32_t { return m_mip_levels; }
+    /// @brief Returns the subresource range for the entire image.
     [[nodiscard]] auto full_subresource_range() const noexcept -> vk::ImageSubresourceRange { return { IMAGE_FORMAT_METADATA.at(m_format).aspect_flags, 0, m_mip_levels, 0, 1 }; }
 
 private:
@@ -48,6 +58,8 @@ private:
     uint32_t m_mip_levels;
 };
 
+/// @class VulkanImageBuilder
+/// @brief A builder for a @c VulkanImage object.
 class VulkanImageBuilder {
 public:
     constexpr VulkanImageBuilder() = default;

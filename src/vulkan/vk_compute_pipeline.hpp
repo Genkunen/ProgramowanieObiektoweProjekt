@@ -6,6 +6,9 @@
 namespace pop::vulkan {
 
 class VulkanComputePipelineBuilder;
+
+/// @class VulkanComputePipeline
+/// @brief Wrapper around a Vulkan @c vk::raii::Pipeline object that represents a compute pipeline.
 class VulkanComputePipeline {
 public:
     VulkanComputePipeline(vk::raii::Pipeline&& pipeline);
@@ -18,6 +21,8 @@ private:
     vk::raii::Pipeline m_pipeline;
 };
 
+/// @class VulkanComputePipelineBuilder
+/// @brief A builder for a @c VulkanComputePipeline object.
 class VulkanComputePipelineBuilder {
 public:
     constexpr VulkanComputePipelineBuilder() = default;
@@ -27,6 +32,9 @@ public:
     VulkanComputePipelineBuilder& operator=(const VulkanComputePipelineBuilder&) = delete;
     VulkanComputePipelineBuilder& operator=(VulkanComputePipelineBuilder&&) = delete;
 
+    /// @brief Sets the shader code for the compute pipeline.
+    /// @param shader_code The shader code to set.
+    /// @note This function will automatically set the shader stage to @c vk::ShaderStageFlagBits::eCompute.
     [[nodiscard]] constexpr auto set_shader(const SpirvCode& shader_code) -> VulkanComputePipelineBuilder& {
         auto stage_tuple = vk::StructureChain{
             vk::PipelineShaderStageCreateInfo()
@@ -39,6 +47,10 @@ public:
         return *this;
     }
 
+    /// @brief Sets the shader code for the compute pipeline with specialization constants.
+    /// @param shader_code The shader code to set.
+    /// @param specialization_constants The specialization constants map to source specialization constant data and mappings from.
+    /// @note This function will automatically set the shader stage to @c vk::ShaderStageFlagBits::eCompute.
     template <typename T>
     [[nodiscard]] constexpr auto set_shader(const SpirvCode& shader_code, const VulkanSpecializationConstantsMap<T>& specialization_constants) -> VulkanComputePipelineBuilder& {
         m_specialization_info = vk::SpecializationInfo()
@@ -58,11 +70,16 @@ public:
         return *this;
     }
 
+    /// @brief Sets the pipeline layout for the compute pipeline.
+    /// @param layout The pipeline layout to set.
     [[nodiscard]] constexpr auto set_pipeline_layout(const VulkanPipelineLayout& layout) noexcept -> VulkanComputePipelineBuilder& {
         m_pipeline_layout = layout.vk_pipeline_layout();
         return *this;
     }
 
+    /// @brief Sets the preferred wave lane count for the compute pipeline.
+    /// @param lane_count The preferred wave lane count to set. This must be a power of 2.
+    /// @note This function will clamp the lane count to the range of the device's minSubgroupSize and maxSubgroupSize.
     [[nodiscard]] constexpr auto set_preferred_wave_lane_count(uint32_t lane_count) noexcept -> VulkanComputePipelineBuilder& {
         assert(lane_count >= 2 && (lane_count & (lane_count - 1)) == 0 && "lane_count must be a power of 2");
         auto& device_vk13_props = VulkanContext::get().physical_device_vulkan13_properties();
@@ -72,6 +89,9 @@ public:
         return *this;
     }
 
+    /// @brief Sets the required wave lane count for the compute pipeline.
+    /// @param lane_count The required wave lane count to set. This must be a power of 2.
+    /// @note This function will throw an exception if the lane count is outside the range of the device's minSubgroupSize and maxSubgroupSize.
     [[nodiscard]] constexpr auto set_required_wave_lane_count(uint32_t lane_count) -> VulkanComputePipelineBuilder& {
         assert(lane_count >= 2 && (lane_count & (lane_count - 1)) == 0 && "lane_count must be a power of 2");
         auto& device_vk13_props = VulkanContext::get().physical_device_vulkan13_properties();
@@ -83,6 +103,7 @@ public:
         return *this;
     }
 
+    /// @brief Builds the compute pipeline given the shader code and state parameters.
     [[nodiscard]] constexpr auto build() -> VulkanComputePipeline {
         if (m_set_wave_lane_count) {
             m_shader_stage_create_info.get<vk::PipelineShaderStageRequiredSubgroupSizeCreateInfo>().requiredSubgroupSize = *m_set_wave_lane_count;

@@ -8,6 +8,8 @@
 
 namespace pop::vulkan {
 
+/// @brief A helper class to create a Vulkan specialization constants map.
+/// @tparam T The type of the data to source data from which pipeline specialization constants are sourced.
 template <typename T> class VulkanSpecializationConstantsMap {
 public:
     explicit VulkanSpecializationConstantsMap(T data) : m_data(data) {}
@@ -18,6 +20,10 @@ public:
 
     constexpr auto map_entries() const noexcept -> const std::vector<vk::SpecializationMapEntry>& { return m_map_entries; }
 
+    /// @brief Adds a map entry for the given member of the data that will be exposed to the shader as a specialization constant with ID @c constant_id
+    /// @tparam MemberType The type of the member to map.
+    /// @param constant_id The ID of the specialization constant exposed to the shader.
+    /// @param member The pointer to the member of the data to map as the specialization constant.
     template <typename MemberType>
     auto add_map_entry(uint32_t constant_id, MemberType T::* member) {
         uint32_t size = sizeof(MemberType);

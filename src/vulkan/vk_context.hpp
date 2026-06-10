@@ -10,6 +10,8 @@
 
 namespace pop::vulkan {
 
+/// @class VulkanContext
+/// @brief Singleton wrapper around Vulkan and VMA objects necessary for rendering and computation.
 class VulkanContext {
 public:
     VulkanContext(vk::detail::DynamicLoader&& dynamic_loader, vk::raii::Context&& raii_context, vk::raii::Instance&& instance, vk::raii::SurfaceKHR&& surface,
@@ -18,7 +20,15 @@ public:
         bool ext_device_fault_enabled, ktx_transcode_fmt_e preferred_transcode_format);
     ~VulkanContext();
 
+    /// @brief Create a VulkanContext object and initialize it.
+    /// @param window The SDL window to use for Vulkan initialization.
+    /// @return A unique pointer to the created VulkanContext object.
+    /// @note The caller is responsible for managing the lifetime of the returned unique pointer, and making sure that it remains valid while any other Vulkan
+    ///     objects are in scope and/or in use by the GPU.
     static auto create(sdl::SdlWindow& window) -> std::unique_ptr<VulkanContext>;
+
+    /// @brief Get the singleton VulkanContext object.
+    /// @return A reference to the singleton VulkanContext object.
     static auto get()                 noexcept -> VulkanContext&;
 
     [[nodiscard]] constexpr auto vk_instance()              const noexcept -> const vk::raii::Instance& { return m_instance; }
@@ -33,8 +43,11 @@ public:
 
     [[nodiscard]] constexpr auto physical_device_vulkan13_properties() const noexcept -> const vk::PhysicalDeviceVulkan13Properties& { return m_physical_device_vulkan13_properties; }
 
+    /// @brief Check if the VK_EXT_debug_utils extension is enabled.
     [[nodiscard]] constexpr auto debug_utils_enabled()            const noexcept -> bool { return m_debug_utils_enabled; }
+    /// @brief Check if the VK_EXT_device_fault extension is enabled.
     [[nodiscard]] constexpr auto ext_device_fault_enabled()       const noexcept -> bool { return m_ext_device_fault_enabled; }
+    /// @brief Get the preferred KTX transcode format when transcoding KTX2 files.
     [[nodiscard]] constexpr auto ktx_preferred_transcode_format() const noexcept -> ktx_transcode_fmt_e { return m_ktx_preferred_transcode_format; }
 
 
