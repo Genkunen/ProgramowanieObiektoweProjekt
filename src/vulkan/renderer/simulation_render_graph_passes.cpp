@@ -17,7 +17,7 @@ namespace pop::vulkan::renderer {
 
 UploadMeshParamsPass::UploadMeshParamsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto UploadMeshParamsPass::create() -> UploadMeshParamsPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -41,7 +41,7 @@ auto UploadMeshParamsPass::create() -> UploadMeshParamsPass {
 
 auto UploadMeshParamsPass::debug_name() const noexcept -> std::string { return "Upload Mesh Info"; }
 
-auto UploadMeshParamsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto UploadMeshParamsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& frame_local_mesh_info_staging_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalMeshInfoStagingBuffer);
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
@@ -63,7 +63,7 @@ auto UploadMeshParamsPass::invoke(vk::raii::CommandBuffer& cmd, const Simulation
 // ---- RandomEventsPass ---------------------------------------------------------------------------------------------------------------------------------------
 
 RandomEventsPass::RandomEventsPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
-    : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+    : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto RandomEventsPass::create() -> RandomEventsPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -87,7 +87,7 @@ auto RandomEventsPass::create() -> RandomEventsPass {
 
 auto RandomEventsPass::debug_name() const noexcept -> std::string { return "Random Events Pass"; }
 
-auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
 
@@ -108,7 +108,7 @@ auto RandomEventsPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRend
 
 IndirectDrawCommandsInstanceCountClearPass::IndirectDrawCommandsInstanceCountClearPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto IndirectDrawCommandsInstanceCountClearPass::create() -> IndirectDrawCommandsInstanceCountClearPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -131,7 +131,7 @@ auto IndirectDrawCommandsInstanceCountClearPass::create() -> IndirectDrawCommand
 
 auto IndirectDrawCommandsInstanceCountClearPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands Clear"; }
 
-auto IndirectDrawCommandsInstanceCountClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto IndirectDrawCommandsInstanceCountClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& indirect_draw_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     uint32_t mesh_count = static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size());
 
@@ -149,7 +149,7 @@ auto IndirectDrawCommandsInstanceCountClearPass::invoke(vk::raii::CommandBuffer&
 
 SimulationInternalStepPass::SimulationInternalStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto SimulationInternalStepPass::create() -> SimulationInternalStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -175,7 +175,7 @@ auto SimulationInternalStepPass::create() -> SimulationInternalStepPass {
 
 auto SimulationInternalStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Independent Step"; }
 
-auto SimulationInternalStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto SimulationInternalStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
@@ -204,7 +204,7 @@ auto SimulationInternalStepPass::invoke(vk::raii::CommandBuffer& cmd, const Simu
 
 SimulationAccelerationGridSortPreparePass::SimulationAccelerationGridSortPreparePass(render_graph::PassDependencies&& deps,
     VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerationGridSortPreparePass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -230,7 +230,7 @@ auto SimulationAccelerationGridSortPreparePass::create() -> SimulationAccelerati
 
 auto SimulationAccelerationGridSortPreparePass::debug_name() const noexcept -> std::string { return "Acceleration Grid Sort Prepare"; }
 
-auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto SimulationAccelerationGridSortPreparePass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& simulation_next_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
     auto& simulation_objects_flags_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsFlags);
@@ -263,7 +263,7 @@ SimulationAccelerationGridRadixSortPass::SimulationAccelerationGridRadixSortPass
     VulkanPipelineLayout&& column_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& column_prefix_sum_pass_compute_pipeline,
     VulkanPipelineLayout&& global_prefix_sum_pass_pipeline_layout, VulkanComputePipeline&& global_prefix_sum_pass_compute_pipeline,
     VulkanPipelineLayout&& scatter_pass_pipeline_layout, VulkanComputePipeline&& scatter_pass_compute_pipeline)
-    : PassBase<SimulationRenderState>(std::move(deps)), m_histogram_pass_pipeline_layout(std::move(histogram_pass_pipeline_layout)),
+    : PassBase<SimulationSharedPassData>(std::move(deps)), m_histogram_pass_pipeline_layout(std::move(histogram_pass_pipeline_layout)),
         m_histogram_pass_compute_pipeline(std::move(histogram_pass_compute_pipeline)),
         m_column_prefix_sum_pass_pipeline_layout(std::move(column_prefix_sum_pass_pipeline_layout)),
         m_column_prefix_sum_pass_compute_pipeline(std::move(column_prefix_sum_pass_compute_pipeline)),
@@ -345,7 +345,7 @@ auto SimulationAccelerationGridRadixSortPass::create() -> SimulationAcceleration
 
 auto SimulationAccelerationGridRadixSortPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Radix Sort"; }
 
-auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
+auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_sort_values_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortValues);
@@ -462,7 +462,7 @@ auto SimulationAccelerationGridRadixSortPass::invoke(vk::raii::CommandBuffer& cm
 // ---- SimulationAccelerationGridBoundClearPass ---------------------------------------------------------------------------------------------------------------
 
 SimulationAccelerationGridBoundClearPass::SimulationAccelerationGridBoundClearPass(render_graph::PassDependencies&& deps)
-    : render_graph::PassBase<SimulationRenderState>(std::move(deps)) {}
+    : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)) {}
 
 auto SimulationAccelerationGridBoundClearPass::create() -> SimulationAccelerationGridBoundClearPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -474,7 +474,7 @@ auto SimulationAccelerationGridBoundClearPass::create() -> SimulationAcceleratio
 
 auto SimulationAccelerationGridBoundClearPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Bounds Clear"; }
 
-auto SimulationAccelerationGridBoundClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
+auto SimulationAccelerationGridBoundClearPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
 
@@ -485,7 +485,7 @@ auto SimulationAccelerationGridBoundClearPass::invoke(vk::raii::CommandBuffer& c
 
 SimulationAccelerationGridBoundScanPass::SimulationAccelerationGridBoundScanPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto SimulationAccelerationGridBoundScanPass::create() -> SimulationAccelerationGridBoundScanPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -510,7 +510,7 @@ auto SimulationAccelerationGridBoundScanPass::create() -> SimulationAcceleration
 
 auto SimulationAccelerationGridBoundScanPass::debug_name() const noexcept -> std::string { return "Acceleration Grid Bounds Scan"; }
 
-auto SimulationAccelerationGridBoundScanPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state,
+auto SimulationAccelerationGridBoundScanPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state,
     const render_graph::PassResources& resources) -> void {
     auto& acceleration_grid_sort_keys_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridSortKeys);
     auto& acceleration_grid_cells_start_indices_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::AccelerationGridCellsStartIndices);
@@ -536,7 +536,7 @@ auto SimulationAccelerationGridBoundScanPass::invoke(vk::raii::CommandBuffer& cm
 
 SimulationInfluenceStepPass::SimulationInfluenceStepPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -565,7 +565,7 @@ auto SimulationInfluenceStepPass::create() -> SimulationInfluenceStepPass {
 
 auto SimulationInfluenceStepPass::debug_name() const noexcept -> std::string { return "Simulation Objects Influences Step"; }
 
-auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_objects_scratch_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjectsScratch);
@@ -604,7 +604,7 @@ auto SimulationInfluenceStepPass::invoke(vk::raii::CommandBuffer& cmd, const Sim
 
 IndirectDrawCommandsInstanceCountBuildPass::IndirectDrawCommandsInstanceCountBuildPass(render_graph::PassDependencies&& deps,
     VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommandsInstanceCountBuildPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -630,7 +630,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::create() -> IndirectDrawCommand
 
 auto IndirectDrawCommandsInstanceCountBuildPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands instanceCount Build"; }
 
-auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
     auto& simulation_objects_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationObjects);
@@ -654,7 +654,7 @@ auto IndirectDrawCommandsInstanceCountBuildPass::invoke(vk::raii::CommandBuffer&
 
 IndirectDrawCommandsFirstInstanceBuildPass::IndirectDrawCommandsFirstInstanceBuildPass(render_graph::PassDependencies&& deps,
     VulkanPipelineLayout&& pipeline_layout, VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommandsFirstInstanceBuildPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -677,7 +677,7 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::create() -> IndirectDrawCommand
 
 auto IndirectDrawCommandsFirstInstanceBuildPass::debug_name() const noexcept -> std::string { return "Indirect Draw Commands firstInstance Build"; }
 
-auto IndirectDrawCommandsFirstInstanceBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto IndirectDrawCommandsFirstInstanceBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     uint32_t mesh_count = static_cast<uint32_t>(state.mesh_pool.get().mesh_allocations().size());
@@ -699,7 +699,7 @@ auto IndirectDrawCommandsFirstInstanceBuildPass::invoke(vk::raii::CommandBuffer&
 
 InstanceBufferBuildPass::InstanceBufferBuildPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanComputePipeline&& compute_pipeline)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_compute_pipeline(std::move(compute_pipeline)) {}
 
 auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -728,7 +728,7 @@ auto InstanceBufferBuildPass::create() -> InstanceBufferBuildPass {
 
 auto InstanceBufferBuildPass::debug_name() const noexcept -> std::string { return "Rendering Instance Buffer Build"; }
 
-auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources)
+auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources)
     -> void {
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
     auto& draw_commands_object_instance_offsets_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::DrawCommandsObjectInstanceOffsets);
@@ -757,7 +757,7 @@ auto InstanceBufferBuildPass::invoke(vk::raii::CommandBuffer& cmd, const Simulat
 
 
 BackgroundRenderPass::BackgroundRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout, VulkanGraphicsPipeline&& graphics_pipeline) 
-: render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)) {}
+: render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)) {}
 
 auto BackgroundRenderPass::create() -> BackgroundRenderPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -793,7 +793,7 @@ auto BackgroundRenderPass::create() -> BackgroundRenderPass {
 
 auto BackgroundRenderPass::debug_name() const noexcept -> std::string { return "Background Render Pass"; }
 
-auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]] const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]] const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);
 
@@ -851,7 +851,7 @@ auto BackgroundRenderPass::invoke(vk::raii::CommandBuffer& cmd, [[maybe_unused]]
 FishTankRenderPass::FishTankRenderPass(render_graph::PassDependencies&& deps, VulkanPipelineLayout&& pipeline_layout,
     VulkanGraphicsPipeline&& graphics_pipeline, vk::raii::Sampler&& sampler, systems::Ktx2Loader&& loader, vk::raii::DescriptorPool&& pool, vk::raii::DescriptorSet&& set,
     VulkanImage&& fish_texture, VulkanImage&& food_texture, VulkanImage&& predator_texture)
-        : render_graph::PassBase<SimulationRenderState>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)),
+        : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)), m_pipeline_layout(std::move(pipeline_layout)), m_graphics_pipeline(std::move(graphics_pipeline)),
         m_sampler(std::move(sampler)), m_texture_loader(std::move(loader)), m_descriptor_pool(std::move(pool)), m_descriptor_set(std::move(set)),
         m_fish_texture(std::move(fish_texture)), m_food_texture(std::move(food_texture)), m_predator_texture(std::move(predator_texture)) {}
 
@@ -960,7 +960,7 @@ auto FishTankRenderPass::create() -> FishTankRenderPass {
 
 auto FishTankRenderPass::debug_name() const noexcept -> std::string { return "Fish Tank Render Pass"; }
 
-auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& objects_instance_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::ObjectsInstanceBuffer);
     auto& frame_local_simulation_data_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::FrameLocalSimulationData);
     auto& simulation_draw_indirect_commands_buffer = resources.get_buffer_by_identifier(render_graph::BufferResourceIdentifier::SimulationDrawIndirectCommands);
@@ -1023,7 +1023,7 @@ auto FishTankRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRe
 // ---- ImGuiRenderPass ----------------------------------------------------------------------------------------------------------------------------------------
 
 ImGuiRenderPass::ImGuiRenderPass(render_graph::PassDependencies&& deps)
-    : render_graph::PassBase<SimulationRenderState>(std::move(deps)) {}
+    : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)) {}
 
 auto ImGuiRenderPass::create() -> ImGuiRenderPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -1036,7 +1036,7 @@ auto ImGuiRenderPass::create() -> ImGuiRenderPass {
 
 auto ImGuiRenderPass::debug_name() const noexcept -> std::string { return "ImGui Render Pass"; }
 
-auto ImGuiRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto ImGuiRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);
 
     auto main_render_target_attachment_info = vk::RenderingAttachmentInfo()
@@ -1076,7 +1076,7 @@ auto ImGuiRenderPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRende
 // ---- BlitMainImageToSwapchainPass ---------------------------------------------------------------------------------------------------------------------------
 
 BlitMainImageToSwapchainPass::BlitMainImageToSwapchainPass(render_graph::PassDependencies&& deps)
-    : render_graph::PassBase<SimulationRenderState>(std::move(deps)) {}
+    : render_graph::PassBase<SimulationSharedPassData>(std::move(deps)) {}
 
 auto BlitMainImageToSwapchainPass::create() -> BlitMainImageToSwapchainPass {
     auto dependencies = render_graph::PassDependencies::builder()
@@ -1089,7 +1089,7 @@ auto BlitMainImageToSwapchainPass::create() -> BlitMainImageToSwapchainPass {
 
 auto BlitMainImageToSwapchainPass::debug_name() const noexcept -> std::string { return "Blit Main Image to Swapchain"; }
 
-auto BlitMainImageToSwapchainPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationRenderState& state, const render_graph::PassResources& resources) -> void {
+auto BlitMainImageToSwapchainPass::invoke(vk::raii::CommandBuffer& cmd, const SimulationSharedPassData& state, const render_graph::PassResources& resources) -> void {
     auto& main_render_target = resources.get_image_by_identifier(render_graph::ImageResourceIdentifier::MainRenderTarget);
 
     // Swapchain images are managed by the driver, which doesn't play too well with the current abstraction over images, so we synchronize access to it manually.

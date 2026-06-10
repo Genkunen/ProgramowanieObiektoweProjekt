@@ -25,7 +25,7 @@ static constexpr uint32_t ACCELERATION_GRID_SIZE = ACCELERATION_GRID_WIDTH * ACC
 static constexpr float RANDOM_EVENTS_INTERVAL_SECONDS = 5.0f;
 
 VulkanRenderer::VulkanRenderer(
-    VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
+    VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationSharedPassData>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
     render_graph::PassIndexV2 simulation_step_pass_index, render_graph::PassIndexV2 simulation_influence_step_pass_index,
     render_graph::PassIndexV2 acceleration_grid_prepare_pass_index, render_graph::PassIndexV2 acceleration_grid_radix_sort_pass_index,
     render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index, render_graph::PassIndexV2 random_events_pass_index,
@@ -91,7 +91,7 @@ auto VulkanRenderer::create(VulkanSwapchain&& swapchain) -> VulkanRenderer {
 
     // ---- Render Graph Build ---------------------------------------------------------------------------------------------------------------------------------
 
-    render_graph::RenderGraphV2<SimulationRenderState> render_graph_v2;
+    render_graph::RenderGraphV2<SimulationSharedPassData> render_graph_v2;
 
     auto mesh_upload_pass = render_graph_v2.add_pass(std::make_unique<UploadMeshParamsPass>(UploadMeshParamsPass::create()));
 
@@ -277,7 +277,7 @@ auto VulkanRenderer::render_frame(MeshPool& mesh_pool, const std::span<const Mes
     pass_resources.inject_image(render_graph::ImageResourceIdentifier::MainRenderTarget, m_render_targets_manager.main_color_image());
     pass_resources.inject_image(render_graph::ImageResourceIdentifier::DepthBuffer, m_render_targets_manager.depth_buffer());
 
-    SimulationRenderState simulation_render_state = {
+    SimulationSharedPassData simulation_render_state = {
         .mesh_pool = mesh_pool,
         .current_swapchain_image = swapchain_image,
         .imgui_draw_data = draw_data,

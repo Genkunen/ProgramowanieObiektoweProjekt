@@ -9,6 +9,7 @@
 
 namespace pop::systems {
 
+/// @brief Returns true if debug mode is enabled.
 inline bool is_debug_enabled() {
 #ifndef NDEBUG
     return true;

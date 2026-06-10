@@ -18,12 +18,16 @@ using float4x4 = glm::mat4;
 
 #endif
 
+/// @struct Vertex
+/// @brief A vertex in an object's mesh.
 struct Vertex {
     float3 position;
     float3 normal;
     float2 texcoord;
 };
 
+/// @struct MeshAllocationData
+/// @brief Parameters of a mesh allocation within the application's mesh pool.
 struct MeshAllocationData {
     uint vertex_count;
     uint index_count;
@@ -31,6 +35,8 @@ struct MeshAllocationData {
     uint first_index;
 };
 
+/// @struct SimulationObject
+/// @brief Represents a single simulation object.
 struct SimulationObject {
     float2 position;
     float2 velocity;
@@ -39,11 +45,15 @@ struct SimulationObject {
     uint randseed;
 };
 
+/// @struct PreparedSimulationObject
+/// @brief Represents the properties of a simulation object used during rendering.
 struct PreparedSimulationObject {
     float4x4 transform;
     uint randseed;
 };
 
+/// @struct SimulationData
+/// @brief Uniform data used by the simulation.
 struct SimulationData {
     float4x4 projview;
     float delta_time;

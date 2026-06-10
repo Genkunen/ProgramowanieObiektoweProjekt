@@ -98,7 +98,7 @@ void radix_sort_test() {
         pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortGlobalHistogram, global_histogram_buffer);
         pass_resources.inject_buffer(render_graph::BufferResourceIdentifier::AccelerationGridSortGroupLocalHistograms, group_local_histograms_buffer);
 
-        SimulationRenderState state{
+        SimulationSharedPassData state{
             .mesh_pool = mock_mesh_pool,
             .current_swapchain_image = mock_swapchain_image
         };

@@ -3,6 +3,8 @@
 
 namespace pop::vulkan::renderer {
 
+/// @struct DynamicallySizedSimulationBuffers
+/// @brief Manages buffer handles that are dynamically sized based on the number of simulation objects.
 struct DynamicallySizedSimulationBuffers {
     VulkanBuffer simulation_objects;
     VulkanBuffer simulation_objects_scratch;
@@ -16,6 +18,8 @@ struct DynamicallySizedSimulationBuffers {
     VulkanBuffer acceleration_grid_sort_group_local_histograms;
 };
 
+/// @struct StaticallySizedSimulationBuffers
+/// @brief Manages buffer handles that have a constant size and are never resized.
 struct StaticallySizedSimulationBuffers {
     VulkanBuffer indirect_draw_commands;
     uint64_t     indirect_draw_commands_generation = 0;
@@ -24,11 +28,23 @@ struct StaticallySizedSimulationBuffers {
     VulkanBuffer acceleration_grid_tile_end_indices;
 };
 
+/// @class SimulationBuffersManager
+/// @brief Manages buffers used by the simulation renderer.
 class SimulationBuffersManager {
 public:
     SimulationBuffersManager(StaticallySizedSimulationBuffers&& statically_sized_buffers, DynamicallySizedSimulationBuffers&& dynamically_sized_buffers);
 
+    /// @brief Creates a new SimulationBuffersManager instance.
+    /// @param max_draw_commands The maximum number of draw commands that can be stored in the indirect draw commands buffer.
+    /// @param radix_sort_histogram_buckets The number of buckets in the radix sort histogram.
+    /// @param acceleration_grid_tile_indices_count The number of indices in the acceleration grid tile indices buffer.
+    /// @param initial_max_object_count The initial maximum number of simulation objects.
+    /// @returns A new SimulationBuffersManager instance.
     static auto create(uint32_t max_draw_commands, uint32_t radix_sort_histogram_buckets, uint32_t acceleration_grid_tile_indices_count, uint32_t initial_max_object_count) -> SimulationBuffersManager;
+
+    /// @brief Resizes the dynamically sized buffers to match the new maximum number of simulation objects.
+    /// @param max_object_count The new maximum number of simulation objects.
+    /// @note This function should be called whenever the maximum number of simulation objects changes.
     auto refit(uint32_t max_object_count) -> void;
 
     [[nodiscard]] constexpr auto simulation_objects()                            noexcept -> VulkanBuffer& { return m_dynamically_sized_buffers.simulation_objects; }

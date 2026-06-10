@@ -6,6 +6,8 @@
 
 namespace pop::vulkan::renderer::render_graph {
 
+/// @enum BufferResourceIdentifier
+/// @brief Identifiers for buffers used in the render graph.
 enum class BufferResourceIdentifier {
     FrameLocalMeshInfoStagingBuffer,
 
@@ -31,11 +33,15 @@ enum class BufferResourceIdentifier {
     ObjectsInstanceBuffer,
 };
 
+/// @enum ImageResourceIdentifier
+/// @brief Identifiers for images used in the render graph.
 enum class ImageResourceIdentifier {
     MainRenderTarget,
     DepthBuffer,
 };
 
+/// @class PassResources
+/// @brief Map of resource handles used by a render graph pass.
 class PassResources {
 public:
     PassResources() = default;

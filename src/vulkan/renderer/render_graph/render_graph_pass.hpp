@@ -27,7 +27,9 @@ public:
 
     constexpr static auto builder() -> PassDependenciesBuilder;
 
+    /// @brief Returns the buffer dependencies of the pass.
     [[nodiscard]] auto buffer_dependencies() const noexcept -> const std::vector<BufferDependency>& { return m_buffer_dependencies; }
+    /// @brief Returns the image dependencies of the pass.
     [[nodiscard]] auto image_dependencies()  const noexcept -> const std::vector<ImageDependency>& { return m_image_dependencies; }
 
 private:
@@ -35,22 +37,34 @@ private:
     std::vector<ImageDependency> m_image_dependencies;
 };
 
+/// @class PassDependenciesBuilder
+/// @brief Builder for PassDependencies.
 class PassDependenciesBuilder {
 public:
     constexpr PassDependenciesBuilder() = default;
 
+    /// @brief Adds a buffer dependency to the pass.
+    /// @param resource_id The identifier of the buffer resource.
+    /// @param stage The pipeline stage that the buffer resource will be accessed in.
+    /// @param access The access flags that the buffer resource will be accessed with.
     [[nodiscard]] constexpr auto add_buffer_dependency(BufferResourceIdentifier resource_id, vk::PipelineStageFlags2 stage, vk::AccessFlags2 access) noexcept -> PassDependenciesBuilder& {
         auto dep = BufferDependency{ resource_id, stage, access };
         m_buffer_dependencies.emplace_back(dep);
         return *this;
     }
 
+    /// @brief Adds an image dependency to the pass.
+    /// @param resource_id The identifier of the image resource.
+    /// @param layout The image layout that the image resource will be in.
+    /// @param stage The pipeline stage that the image resource will be accessed in.
+    /// @param access The access flags that the image resource will be accessed with.
     [[nodiscard]] constexpr auto add_image_dependency(ImageResourceIdentifier resource_id, vk::ImageLayout layout, vk::PipelineStageFlags2 stage, vk::AccessFlags2 access) noexcept -> PassDependenciesBuilder& {
         auto dep = ImageDependency{ resource_id, layout, stage, access };
         m_image_dependencies.emplace_back(dep);
         return *this;
     }
 
+    /// @brief Builds the PassDependencies object.
     [[nodiscard]] auto build() noexcept -> PassDependencies {
         return PassDependencies(std::move(m_buffer_dependencies), std::move(m_image_dependencies));
     }

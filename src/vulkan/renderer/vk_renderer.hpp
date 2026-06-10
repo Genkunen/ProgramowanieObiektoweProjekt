@@ -46,7 +46,7 @@ struct SimulationDataSnapshot {
 class VulkanRenderer {
 public:
     VulkanRenderer(
-        VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationRenderState>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
+        VulkanSwapchain&& swapchain, render_graph::RenderGraphV2<SimulationSharedPassData>&& render_graph, render_graph::PassIndexV2 mesh_upload_pass_index,
         render_graph::PassIndexV2 simulation_step_pass_index, render_graph::PassIndexV2 simulation_influence_step_pass_index,
         render_graph::PassIndexV2 acceleration_grid_prepare_pass_index, render_graph::PassIndexV2 acceleration_grid_radix_sort_pass_index,
         render_graph::PassIndexV2 acceleration_grid_bound_scan_pass_index, render_graph::PassIndexV2 random_events_pass_index,
@@ -75,7 +75,7 @@ public:
 private:
     VulkanSwapchain m_swapchain;
 
-    render_graph::RenderGraphV2<SimulationRenderState> m_render_graph;
+    render_graph::RenderGraphV2<SimulationSharedPassData> m_render_graph;
     render_graph::PassIndexV2 m_mesh_upload_pass_index;
 
     render_graph::PassIndexV2 m_simulation_step_pass_index;

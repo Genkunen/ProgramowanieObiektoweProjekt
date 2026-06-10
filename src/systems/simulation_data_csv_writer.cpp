@@ -7,10 +7,10 @@
 
 namespace pop::systems {
 
-auto SimulationDataCsvWriter::write_to_file(const vulkan::renderer::SimulationDataSnapshot& data, const std::filesystem::path& filename) -> void {
+auto SimulationDataCsvWriter::write_to_file(const vulkan::renderer::SimulationDataSnapshot& data, const std::filesystem::path& filepath) -> void {
     assert(data.simulation_objects.size() == data.simulation_objects_flags.size() && "simulation data snapshot vectors must all be of the same size");
 
-    std::ofstream file(filename);
+    std::ofstream file(filepath);
 
     file << "ObjectID,Type,Dead,PosX,PosY,VelX,VelY,Size\n";
 

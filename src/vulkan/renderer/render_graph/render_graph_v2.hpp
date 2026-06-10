@@ -3,6 +3,7 @@
 
 namespace pop::vulkan::renderer::render_graph {
 
+/// @brief Helper function for returning an access flag set with the write bits retained only.
 inline auto mask_access_flags_with_write_bit(vk::AccessFlags2 access_flags) -> vk::AccessFlags2 {
     vk::AccessFlags2 mask = vk::AccessFlagBits2::eHostWrite | vk::AccessFlagBits2::eMemoryWrite | vk::AccessFlagBits2::eShaderWrite
         | vk::AccessFlagBits2::eTransferWrite | vk::AccessFlagBits2::eColorAttachmentWrite | vk::AccessFlagBits2::eShaderStorageWrite
@@ -10,24 +11,38 @@ inline auto mask_access_flags_with_write_bit(vk::AccessFlags2 access_flags) -> v
     return access_flags & mask;
 }
 
+/// @brief Helper function for checking if an access flag set has any flag that is a write bit.
 inline auto access_flags_has_write_aspect(vk::AccessFlags2 access_flags) -> bool {
     return mask_access_flags_with_write_bit(access_flags) != vk::AccessFlags2{};
 }
 
+/// @struct PassIndexV2
+/// @brief A pass index for the render graph.
 struct PassIndexV2 {
     uint32_t index;
 };
 
+/// @class RenderGraphV2
+/// @brief A render graph implementation, which uses a topological sort to execute passes in a correct order, and a straightforward barrier generation algorithm
+///     to manage synchronization hazards between passes.
 template <typename State> class RenderGraphV2 {
 public:
     constexpr RenderGraphV2() = default;
 
+    /// @brief Adds a pass to the render graph.
+    /// @param pass The pass to add.
+    /// @return The index of the pass in the render graph.
     auto add_pass(std::unique_ptr<PassBase<State>>&& pass) -> PassIndexV2 {
         m_passes.emplace_back(std::move(pass));
         return { static_cast<uint32_t>(m_passes.size() - 1) };
     }
+
+    /// @brief Returns a handle to the render graph pass with a given pass index.
     auto get_pass_by_id(PassIndexV2 id) -> PassBase<State>& { return *m_passes[id.index].pass; }
 
+    /// @brief Adds a dependency between two passes.
+    /// @param from The index of the pass that depends on the other pass.
+    /// @param to The index of the pass that is depended on by the other pass.
     auto add_dependency_edge(PassIndexV2 from, PassIndexV2 to) -> void {
         assert(from.index < m_passes.size() && to.index < m_passes.size() && "invalid pass index");
 
@@ -35,6 +50,10 @@ public:
         m_passes[to.index].indegree++;
     }
 
+    /// @brief Executes the render graph.
+    /// @param cmd The command buffer to execute the render graph on.
+    /// @param state The state to pass to the render graph passes.
+    /// @param resources The resources to pass to the render graph passes.
     auto execute(vk::raii::CommandBuffer& cmd, State& state, PassResources& resources) -> void {
         bool insert_debug_labels = VulkanContext::get().debug_utils_enabled();
 
@@ -70,6 +89,8 @@ public:
         }
     }
 
+    /// @brief Resets the image layout for a given image resource identifier.
+    /// @param id The identifier of the image resource.
     auto reset_image_layout_for_image(ImageResourceIdentifier id) -> void {
         m_last_image_layouts[id] = vk::ImageLayout::eUndefined;
     }

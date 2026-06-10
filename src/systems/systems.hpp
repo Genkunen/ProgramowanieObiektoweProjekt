@@ -11,6 +11,7 @@
 
 namespace pop::systems {
 
+/// @brief Returns the path to the executable's parent directory.'
 inline constexpr class {
 public:
     inline static auto operator()() -> std::filesystem::path {
