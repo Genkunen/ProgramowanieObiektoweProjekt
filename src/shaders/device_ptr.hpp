@@ -4,5 +4,5 @@
 #include "vulkan/vk_prelude.hpp"
 template <typename T> using DevicePtr = vk::DeviceAddress;
 #else
-typealias DevicePtr<T> = Ptr<T, Access.ReadWrite, AddressSpace.Device, ScalarDataLayout>;
+typealias DevicePtr<T> = T*;
 #endif
