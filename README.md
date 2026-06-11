@@ -1,5 +1,5 @@
 # Programowanie Obiektowe Projekt
-
+## Generated documentation and diagrams are [here](https://genkunen.github.io/ProgramowanieObiektoweProjekt/files.html)
 <img src="./Images/SampleView.png">
 
 ## Objective
