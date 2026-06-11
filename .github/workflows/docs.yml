@@ -1,6 +1,11 @@
 name: Build Documentation
 on: [push, pull_request]
 
+permissions:
+  contents: read
+  pages: write 
+  id-token: write
+
 jobs:
   docs:
     runs-on: ubuntu-latest
@@ -11,14 +16,14 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake doxygen graphviz libglm-dev libvulkan-dev
+          sudo apt-get install -y cmake doxygen graphviz libglm-dev libvulkan-dev ninja-build
 
       - name: Install Vulkan Headers
         run: |
           git clone --depth=1 https://github.com/KhronosGroup/Vulkan-Headers.git
           cmake -S Vulkan-Headers -B Vulkan-Headers/build -DCMAKE_INSTALL_PREFIX=/usr/local
           sudo cmake --build Vulkan-Headers/build --target install
-
+      
       - uses: libsdl-org/setup-sdl@main
         id: sdl
         with:
@@ -36,3 +41,17 @@ jobs:
       - name: Build
         run: |
           cmake --build build --target docs
+
+      - name: Add .nojekyll
+        run: touch build/html/.nojekyll
+
+      - name: Setup Pages 
+        uses: actions/configure-pages@v4
+
+      - name: Upload Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './build/html'
+
+      - name: Deploy to Github Pages 
+        uses: actions/deploy-pages@v4
