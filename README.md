@@ -1,5 +1,5 @@
 # Programowanie Obiektowe Projekt
-## Generated documentation and diagrams are [here](https://genkunen.github.io/ProgramowanieObiektoweProjekt/files.html)
+## Generated documentation and diagrams are [here](https://genkunen.github.io/ProgramowanieObiektoweProjekt/inherits.html)
 <img src="./Images/SampleView.png">
 
 ## Objective
