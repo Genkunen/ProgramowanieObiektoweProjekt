@@ -8,6 +8,8 @@
 
 namespace pop::vulkan::renderer {
 
+/// @struct Mesh
+/// @brief Represents a mesh allocation handle.
 struct Mesh {
     std::uint32_t allocation_index;
 };

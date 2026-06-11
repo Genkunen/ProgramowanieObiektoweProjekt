@@ -4,12 +4,16 @@
 
 namespace pop::vulkan::renderer::render_graph {
 
+/// @struct BufferDependency
+/// @brief Describes a buffer dependency in a render graph pass.
 struct BufferDependency {
     BufferResourceIdentifier resource_id;
     vk::PipelineStageFlags2 stage;
     vk::AccessFlags2 access;
 };
 
+/// @struct ImageDependency
+/// @brief Describes an image dependency in a render graph pass.
 struct ImageDependency {
     ImageResourceIdentifier resource_id;
     vk::ImageLayout layout;
