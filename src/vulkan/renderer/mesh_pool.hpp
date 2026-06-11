@@ -43,7 +43,7 @@ public:
     /// @param mesh The mesh to upload data to.
     /// @param vertices The vertices of the mesh.
     /// @param indices The indices of the mesh.
-    auto upload_mesh_data(Mesh mesh, const std::span<const Vertex>& vertices, const std::span<const uint32_t>& indices) -> void;
+    auto upload_mesh_data(Mesh mesh, const std::span<const shaders::Vertex>& vertices, const std::span<const uint32_t>& indices) -> void;
 
 private:
     VulkanBuffer m_vertex_buffer;

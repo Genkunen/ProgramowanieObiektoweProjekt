@@ -23,6 +23,8 @@ enum class RenderResult {
     SwapchainSuboptimal,
 };
 
+/// @struct FrameInFlight
+/// @brief Represents a frame in flight.
 struct FrameInFlight {
     vk::raii::Fence frame_finished_fence;
 
@@ -38,11 +40,15 @@ struct FrameInFlight {
 
 };
 
+/// @struct SimulationDataSnapshot
+/// @brief A snapshot of the simulation data.
 struct SimulationDataSnapshot {
     std::vector<shaders::SimulationObject> simulation_objects;
     std::vector<uint32_t> simulation_objects_flags;
 };
 
+/// @class VulkanRenderer
+/// @brief Manages the rendering and simulation processes orchestration.
 class VulkanRenderer {
 public:
     VulkanRenderer(
@@ -55,21 +61,44 @@ public:
 
     static auto create(VulkanSwapchain&& swapchain) -> VulkanRenderer;
 
+    /// @brief Renders a single frame.
+    /// @param mesh_pool The mesh pool to use for rendering.
+    /// @param meshes The meshes to render.
+    /// @param draw_data The @c ImDrawData* pointer to the structure containing the ImGui draw commands.
+    /// @param delta_time The time elapsed since the last frame.
+    /// @param cam_pos The position of the camera.
+    /// @return The result of the rendering operation.
     auto render_frame(MeshPool& mesh_pool, const std::span<const Mesh>& meshes, ImDrawData* draw_data, float delta_time, glm::vec3 cam_pos) -> RenderResult;
 
+    /// @brief Handles surface invalidation events (e.g. window resizes).
+    /// @param new_window_extent The new extent of the window.
     auto handle_surface_invalidation(vk::Extent2D new_window_extent) -> void;
 
+    /// @brief Restarts the simulation with a new set object count.
+    /// @param new_count The new number of simulation objects.
     auto reset_simulation_object_count(uint32_t new_count) -> void;
+
+    /// @brief Sets the strength of the water current.
+    /// @param new_strength The new strength of the water current.
     auto set_water_current_strength(float new_strength)    -> void;
 
+    /// @brief Exports the simulation data to a snapshot.
+    /// @return A SimulationDataSnapshot containing the simulation data.
     auto export_simulation_data() -> SimulationDataSnapshot;
 
+    /// @brief Pauses the simulation.
     auto pause_simulation()  -> void;
+
+    /// @brief Resumes the simulation.
     auto resume_simulation() -> void;
 
+    /// @brief Returns whether the simulation is currently running.
     constexpr auto is_simulation_running()       const -> bool { return m_simulation_is_running; }
+    /// @brief Returns the number of simulation objects.
     constexpr auto gpu_driven_sim_object_count() const -> uint32_t { return m_gpu_driven_sim_object_count; }
+    /// @brief Returns the strength of the water current.
     constexpr auto water_current_strength()      const -> float { return m_water_current_strength; }
+    /// @brief Returns the swapchain used by the renderer.
     constexpr auto swapchain()                   const -> const VulkanSwapchain& { return m_swapchain; }
 
 private:

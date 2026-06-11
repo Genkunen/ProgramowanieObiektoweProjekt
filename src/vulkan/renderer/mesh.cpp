@@ -53,7 +53,7 @@ auto read_indices_at(const tinygltf::Model& model, At&& at) {
 
 namespace pop::vulkan::renderer {
 
-auto load_mesh_data_gltf(std::string filename) -> std::tuple<std::vector<Vertex>, std::vector<uint32_t>> {
+auto load_mesh_data_gltf(std::string filename) -> std::tuple<std::vector<shaders::Vertex>, std::vector<uint32_t>> {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
     std::string err;
@@ -78,7 +78,7 @@ auto load_mesh_data_gltf(std::string filename) -> std::tuple<std::vector<Vertex>
     const auto& uvs = read_floats_at(model, primitives.attributes.at("TEXCOORD_0"));
     const auto& indices = read_indices_at(model, primitives.indices);
 
-    std::vector<pop::vulkan::renderer::Vertex> vertices(positionAcc.count);
+    std::vector<shaders::Vertex> vertices(positionAcc.count);
 
     for (size_t i = 0; i < vertices.size(); ++i) {
         vertices[i].position = { positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2] };
