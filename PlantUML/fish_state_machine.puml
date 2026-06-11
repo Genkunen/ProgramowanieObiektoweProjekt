@@ -1,0 +1,33 @@
+@startuml
+!theme black-knight
+skinparam ArrowColor gray
+
+state Fish {
+    [*] --> FWander
+    
+    state "Wander" as FWander
+    state "Hunt" as FHunt
+    state "EatFish" as FEatFish
+
+    FWander ---> SeekFood : food visible
+    FWander ---> FHunt : smaller fish visible 
+    FWander --> Flee : predator visible/larger fish visible 
+
+    SeekFood ---> EatFood : withing eat distance
+    EatFood ---> FWander 
+
+    FHunt --> FEatFish : within eat distance 
+    FEatFish ---> FWander 
+
+    Flee -> FWander : no threats nearby
+}
+
+state Predator {
+    [*] --> Wander
+
+    Wander --> Hunt : edible fish visible 
+    Hunt --> EatFish : within eat distance 
+    EatFish --> Wander
+}
+
+@enduml

@@ -1,0 +1,32 @@
+@startuml
+!theme black-knight
+
+autonumber
+skinparam roundcorner 10
+skinparam maxmessagesize 150
+
+participant "Simulation Engine" as Engine
+participant "Current Tile" as MasterTile
+participant "Neighboring Tiles" as Neighbors
+participant "Object Data" as Memory
+
+Engine -> MasterTile : Begin processing area
+MasterTile -> Memory : Load objects located in this tile
+
+note over MasterTile
+  Phase 1: Local Interactions
+end note
+MasterTile -> MasterTile : Calculate interactions between\nobjects within the same tile
+
+note over MasterTile, Neighbors
+  Phase 2: Neighborhood Interactions
+end note
+MasterTile -> Neighbors : Request objects from surrounding 8 tiles
+Neighbors --> MasterTile : Return neighboring objects
+MasterTile -> MasterTile : Calculate interactions between\nlocal objects and neighbor objects
+
+note over MasterTile, Memory
+  Phase 3: State Update
+end note
+MasterTile -> Memory : Save new positions and velocities
+@enduml
