@@ -1,0 +1,42 @@
+@startuml
+!theme black-knight
+skinparam linetype ortho
+allowmixing
+
+namespace simulation {
+
+    interface "IObjectBehavior" {
+        + simulate_self(object, delta_time)
+        + simulate_with_neighbor(object,other, other_id, simulation_state, delta_time)
+    }
+
+    class NoBehavior {
+        + simulate_self(object, delta_time)
+        + simulate_with_neighbor(object,other, other_id, simulation_state, delta_time)
+    }
+    class FoodBehavior {
+        + simulate_self(object, delta_time)
+        + simulate_with_neighbor(object,other, other_id, simulation_state, delta_time)
+    }
+    class FishBehavior {
+        + simulate_self(object, delta_time)
+        + simulate_with_neighbor(object,other, other_id, simulation_state, delta_time)
+    }
+    class PredatorBehavior {
+        + simulate_self(object, delta_time)
+        + simulate_with_neighbor(object,other, other_id, simulation_state, delta_time)
+    }
+
+    NoBehavior ...|> IObjectBehavior
+    FoodBehavior ..|> IObjectBehavior
+    FishBehavior ..|> IObjectBehavior
+    PredatorBehavior ...|> IObjectBehavior
+}
+
+class SimulationState
+class SimulationObject
+
+IObjectBehavior ..> SimulationObject : modifies
+IObjectBehavior ..> SimulationState : uses
+
+@enduml

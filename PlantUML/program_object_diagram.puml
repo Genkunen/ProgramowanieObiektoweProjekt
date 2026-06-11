@@ -1,0 +1,74 @@
+@startuml
+!theme black-knight
+
+package "Core & SDL" <<Rectangle>> {
+  object "window : pop::sdl::SdlWindow" as window {
+    title = "ProgramowanieObiektoweProjekt"
+    width = 1920
+    height = 1080
+  }
+  
+  object "vulkan_context : pop::vulkan::VulkanContext" as vulkan_context
+}
+
+package "Vulkan & Rendering" <<Rectangle>> {
+  object "swapchain : pop::vulkan::VulkanSwapchain" as swapchain {
+    vsync = true
+  }
+  
+  object "renderer : pop::vulkan::renderer::VulkanRenderer" as renderer {
+    gpu_driven_sim_object_count = default
+    water_current_strength = default
+  }
+  
+  object "mesh_pool : pop::vulkan::renderer::MeshPool" as mesh_pool {
+    vertex_capacity = 1048576
+    index_capacity = 1048576
+  }
+  
+  object "ktx2_loader : pop::systems::Ktx2Loader" as ktx2_loader
+}
+
+package "Scene & Assets" <<Rectangle>> {
+  object "meshes : std::vector" as meshes {
+    size = 3
+  }
+  
+  object "mesh_elements : pop::vulkan::renderer::Mesh" as mesh_elements {
+    source = "Assets/fih.glb"
+  }
+  
+  object "camera_position : glm::vec3" as camera_position {
+    x = 4000.0f
+    y = 2000.0f
+    z = -20.0f
+  }
+}
+
+package "UI & State" <<Rectangle>> {
+  object "imgui : pop::imgui::ImGuiLayer" as imgui
+  
+  object "imgui_variables : struct" as imgui_variables {
+    clr_colors
+    background_scale
+    background_iterations
+    caustic_intensity
+    ray_intensity
+    surface_y
+    depth_range
+    vignette_size
+  }
+}
+
+vulkan_context --> window 
+swapchain --> window 
+renderer *-- swapchain 
+imgui --> window 
+imgui --> swapchain 
+meshes *-- mesh_elements 
+mesh_elements --> mesh_pool 
+
+window -[hidden]down-> swapchain
+swapchain -[hidden]down-> meshes
+renderer -[hidden]right-> mesh_pool
+@enduml

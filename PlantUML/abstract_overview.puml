@@ -1,0 +1,31 @@
+@startuml
+!theme black-knight
+
+package "Core" {
+    component "main.cpp" as main <<Entry Point>>
+    component "systems" as systems <<Utilities>>
+}
+
+package "External Dependencies" {
+    component "sdl" as sdl <<Windowing & Input>>
+    component "imgui" as imgui <<User Interface>>
+}
+
+package "Graphics Engine" {
+    component "vulkan" as vulkan <<Hardware Abstraction>>
+    component "shaders" as shaders <<SLANG>>
+}
+
+main ..> sdl : window handling
+main ..> systems
+main ..> vulkan : backend initialization
+main ...> imgui : frontend initialization
+
+vulkan ..> sdl : graphics output
+vulkan ..> shaders
+
+imgui <..> vulkan : integration
+imgui <..> sdl : integration
+
+
+@enduml

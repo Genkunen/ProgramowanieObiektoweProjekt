@@ -1,0 +1,20 @@
+@startuml
+!theme black-knight
+
+interface "Simulation Object" as simulation_object {
+    float2 position
+    float2 velocity
+    uint object_type
+    float size
+    uint randseed
+}
+
+object "Fish" as fish_object 
+object "Predator" as predator_object 
+object "Food" as food_object 
+
+fish_object --|> simulation_object
+predator_object --|> simulation_object
+food_object --|> simulation_object
+
+@enduml

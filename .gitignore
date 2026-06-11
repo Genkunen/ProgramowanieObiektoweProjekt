@@ -2,9 +2,9 @@
 
 !src/
 !src/**
-!UML/
-!UML/**
-UML/**/.uml_tmp/
+!PlantUML
+!PlantUML/**
+PlantUML/**/.uml_tmp/
 !Assets/
 !Assets/**
 !Images/
